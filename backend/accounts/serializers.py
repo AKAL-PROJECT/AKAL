@@ -17,8 +17,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class SignupSerializer(serializers.ModelSerializer):
-    """Inscription publique — rôle limité à VENDEUR/ACHETEUR (ADMIN exclu,
-    cf. docs/plans/2026-07-24-auth-module-design.md)."""
+    """Inscription publique — pas de rôle à l'inscription : acheteur/vendeur
+    n'est pas une identité figée sur AKAL (cf. docs/plans/2026-07-24-auth-
+    module-design.md, addendum du même jour). ADMIN reste réservé au staff
+    (createsuperuser) ; ce champ n'est même pas exposé ici, donc un éventuel
+    "role" envoyé dans le payload est silencieusement ignoré par DRF."""
 
     # LANGUAGE_CODE du projet est 'en-us' (cf. base.py) : le message par
     # défaut de UniqueValidator ("User with this ... already exists.")
@@ -27,11 +30,10 @@ class SignupSerializer(serializers.ModelSerializer):
         validators=[UniqueValidator(queryset=User.objects.all(), message='Un compte existe déjà avec cet email.')]
     )
     password = serializers.CharField(write_only=True, validators=[validate_password])
-    role = serializers.ChoiceField(choices=[User.Role.VENDEUR, User.Role.ACHETEUR])
 
     class Meta:
         model = User
-        fields = ['email', 'password', 'nom', 'prenom', 'telephone', 'role']
+        fields = ['email', 'password', 'nom', 'prenom', 'telephone']
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)

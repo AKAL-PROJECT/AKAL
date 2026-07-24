@@ -29,14 +29,12 @@ export async function loginAction(_prevState: AuthFormState, formData: FormData)
 }
 
 export async function signupAction(_prevState: AuthFormState, formData: FormData): Promise<AuthFormState> {
-  const role = formData.get("role") === "ACHETEUR" ? "ACHETEUR" : "VENDEUR";
   const input: SignupInput = {
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
     nom: String(formData.get("nom") ?? ""),
     prenom: String(formData.get("prenom") ?? ""),
     telephone: String(formData.get("telephone") ?? "") || undefined,
-    role,
   };
 
   try {
@@ -46,7 +44,11 @@ export async function signupAction(_prevState: AuthFormState, formData: FormData
     return { error: "Une erreur est survenue. Réessayez.", fieldErrors: null };
   }
 
-  redirect(cheminSuivant(formData));
+  // Pas de rôle choisi à l'inscription : on montre systématiquement l'écran
+  // de bienvenue plutôt que /compte, même si un `next` était présent (un
+  // compte qui vient d'être créé n'a pas encore de contexte "explorer" vs
+  // "déposer une annonce" à retrouver).
+  redirect("/bienvenue");
 }
 
 export async function logoutAction(): Promise<void> {

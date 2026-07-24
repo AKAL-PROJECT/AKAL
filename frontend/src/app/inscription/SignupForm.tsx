@@ -1,19 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { signupAction, type AuthFormState } from "@/app/actions/auth";
 
 const champLabelStyle: React.CSSProperties = { display: "block", fontSize: 14, fontWeight: 500, marginBottom: 6 };
 const champErreurStyle: React.CSSProperties = { color: "#C0392B", fontSize: 13, marginTop: 4 };
 
-export function SignupForm({ next }: { next: string }) {
+export function SignupForm() {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(signupAction, null);
-  const [role, setRole] = useState<"VENDEUR" | "ACHETEUR">("VENDEUR");
 
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <input type="hidden" name="next" value={next} />
-
       <div style={{ display: "flex", gap: 24 }}>
         <div style={{ flex: 1 }}>
           <label htmlFor="prenom" style={champLabelStyle}>Prénom</label>
@@ -50,42 +47,6 @@ export function SignupForm({ next }: { next: string }) {
           className="input"
         />
         {state?.fieldErrors?.password && <p style={champErreurStyle}>{state.fieldErrors.password[0]}</p>}
-      </div>
-
-      <div>
-        <span style={champLabelStyle}>Je suis</span>
-        <div style={{ display: "flex", gap: 12 }}>
-          {(["VENDEUR", "ACHETEUR"] as const).map((valeur) => (
-            <label
-              key={valeur}
-              style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                height: 48,
-                borderRadius: "var(--radius-btn)",
-                border: `2px solid ${role === valeur ? "var(--color-foret)" : "var(--color-bordure)"}`,
-                backgroundColor: role === valeur ? "var(--color-rosee)" : "white",
-                cursor: "pointer",
-                fontSize: 14,
-                fontWeight: 500,
-              }}
-            >
-              <input
-                type="radio"
-                name="role"
-                value={valeur}
-                checked={role === valeur}
-                onChange={() => setRole(valeur)}
-                style={{ display: "none" }}
-              />
-              {valeur === "VENDEUR" ? "Vendeur" : "Acheteur"}
-            </label>
-          ))}
-        </div>
-        {state?.fieldErrors?.role && <p style={champErreurStyle}>{state.fieldErrors.role[0]}</p>}
       </div>
 
       {state?.error && <p style={{ color: "#C0392B", fontSize: 14 }}>{state.error}</p>}

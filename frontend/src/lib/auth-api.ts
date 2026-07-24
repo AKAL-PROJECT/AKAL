@@ -15,7 +15,10 @@ import { ApiError, lireErreur, type FieldErrors } from "./api";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
 
-export type Role = "VENDEUR" | "ACHETEUR" | "ADMIN";
+// Pas de rôle figé à l'inscription (une même personne peut chercher et
+// vendre une terre) : "" par défaut, ADMIN réservé au staff. cf. design doc,
+// addendum du 2026-07-24.
+export type Role = "VENDEUR" | "ACHETEUR" | "ADMIN" | "";
 
 export type User = {
   id: string;
@@ -34,7 +37,6 @@ export type SignupInput = {
   nom: string;
   prenom: string;
   telephone?: string;
-  role: Extract<Role, "VENDEUR" | "ACHETEUR">;
 };
 
 export type LoginInput = { email: string; password: string };

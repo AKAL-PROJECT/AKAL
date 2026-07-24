@@ -28,8 +28,12 @@ export default async function ComptePage() {
           <dt style={{ color: "var(--color-secondaire)" }}>Email</dt>
           <dd>{utilisateur.email}</dd>
 
-          <dt style={{ color: "var(--color-secondaire)" }}>Rôle</dt>
-          <dd>{ROLE_LABELS[utilisateur.role] ?? utilisateur.role}</dd>
+          {utilisateur.role && (
+            <>
+              <dt style={{ color: "var(--color-secondaire)" }}>Rôle</dt>
+              <dd>{ROLE_LABELS[utilisateur.role] ?? utilisateur.role}</dd>
+            </>
+          )}
 
           {utilisateur.telephone && (
             <>

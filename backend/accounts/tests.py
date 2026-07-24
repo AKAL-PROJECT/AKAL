@@ -26,7 +26,6 @@ class AuthTestCase(APITestCase):
             'password': 'un-mot-de-passe-solide-2026',
             'nom': 'El Fassi',
             'prenom': 'Ahmed',
-            'role': User.Role.VENDEUR,
         }
 
     def csrf_headers(self):
@@ -41,7 +40,7 @@ class SignupTests(AuthTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['email'], self.credentials['email'])
-        self.assertEqual(response.data['role'], User.Role.VENDEUR)
+        self.assertEqual(response.data['role'], '')
         self.assertIn('access_token', response.cookies)
         self.assertIn('refresh_token', response.cookies)
         self.assertTrue(response.cookies['access_token']['httponly'])
@@ -54,11 +53,14 @@ class SignupTests(AuthTestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('email', response.data)
 
-    def test_signup_rejects_admin_role(self):
+    def test_signup_ignores_role_field_if_provided(self):
+        # Pas de rôle à l'inscription (cf. design doc, addendum) : le champ
+        # n'existe même pas sur le serializer, DRF l'ignore silencieusement.
         response = self.client.post(SIGNUP_URL, {**self.credentials, 'role': User.Role.ADMIN})
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('role', response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = User.objects.get(email=self.credentials['email'])
+        self.assertEqual(user.role, '')
 
     def test_signup_rejects_weak_password(self):
         response = self.client.post(SIGNUP_URL, {**self.credentials, 'password': '1234'})
@@ -75,7 +77,6 @@ class LoginTests(AuthTestCase):
             password=self.credentials['password'],
             nom=self.credentials['nom'],
             prenom=self.credentials['prenom'],
-            role=self.credentials['role'],
         )
 
     def test_login_success_sets_cookies(self):
@@ -114,7 +115,6 @@ class MeTests(AuthTestCase):
             password=self.credentials['password'],
             nom=self.credentials['nom'],
             prenom=self.credentials['prenom'],
-            role=self.credentials['role'],
         )
         self.client.post(LOGIN_URL, {
             'email': self.credentials['email'],
@@ -148,7 +148,6 @@ class RefreshTests(AuthTestCase):
             password=self.credentials['password'],
             nom=self.credentials['nom'],
             prenom=self.credentials['prenom'],
-            role=self.credentials['role'],
         )
         self.client.post(LOGIN_URL, {
             'email': self.credentials['email'],
@@ -184,7 +183,6 @@ class LogoutTests(AuthTestCase):
             password=self.credentials['password'],
             nom=self.credentials['nom'],
             prenom=self.credentials['prenom'],
-            role=self.credentials['role'],
         )
         self.client.post(LOGIN_URL, {
             'email': self.credentials['email'],

@@ -17,6 +17,33 @@ urls. Aucune page login/signup ni guard côté frontend.
 Ce document couvre l'implémentation de ce module : comptes, rôles, sessions,
 JWT, pages login/signup, guards.
 
+## Addendum (2026-07-24, après retour produit) : pas de rôle à l'inscription
+
+La section "Rôles" ci-dessous décrivait initialement un choix VENDEUR/
+ACHETEUR obligatoire au signup. Retour produit : acheteur/vendeur n'est pas
+une identité permanente sur AKAL — une même personne peut chercher une terre
+aujourd'hui, en vendre une demain, ou faire les deux à la fois. Le formulaire
+d'inscription ne demande donc plus de rôle.
+
+Ce qui change par rapport à la conception initiale :
+
+- `SignupSerializer` n'expose plus de champ `role` du tout (un `role` envoyé
+  quand même dans le payload est silencieusement ignoré par DRF).
+- `User.role` devient optionnel (`blank=True, default=''`) — migration
+  `0004_alter_user_role`. `ADMIN` reste réservé au staff
+  (`createsuperuser`) ; `VENDEUR`/`ACHETEUR` restent des valeurs valables
+  dans `Role.choices` pour un usage futur (cf. ci-dessous), mais ne sont
+  plus assignées à l'inscription.
+- Après inscription, redirection vers `/bienvenue` (pas `/compte`) : écran
+  "Que souhaitez-vous faire ?" avec deux choix (Explorer les parcelles /
+  Déposer une annonce), qui reflètent une intention du moment plutôt qu'une
+  étiquette figée sur le compte.
+- Piste future (hors scope de cette itération) : dériver des capacités du
+  comportement plutôt que d'un champ `role` unique — ex. `peut explorer`,
+  `peut contacter`, `peut vendre` — le dépôt d'une première annonce faisant
+  naturellement d'un utilisateur un "vendeur" sans qu'il ait eu à le
+  déclarer.
+
 ## Rôles
 
 Renommage `PROPRIETAIRE` → `VENDEUR`, `INVESTISSEUR` → `ACHETEUR` (`ADMIN`
