@@ -2,6 +2,7 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from .models import User
 
@@ -19,6 +20,12 @@ class SignupSerializer(serializers.ModelSerializer):
     """Inscription publique — rôle limité à VENDEUR/ACHETEUR (ADMIN exclu,
     cf. docs/plans/2026-07-24-auth-module-design.md)."""
 
+    # LANGUAGE_CODE du projet est 'en-us' (cf. base.py) : le message par
+    # défaut de UniqueValidator ("User with this ... already exists.")
+    # sortirait en anglais au milieu d'un formulaire francophone.
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all(), message='Un compte existe déjà avec cet email.')]
+    )
     password = serializers.CharField(write_only=True, validators=[validate_password])
     role = serializers.ChoiceField(choices=[User.Role.VENDEUR, User.Role.ACHETEUR])
 
