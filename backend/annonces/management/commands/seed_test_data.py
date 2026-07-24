@@ -220,7 +220,7 @@ class Command(BaseCommand):
                 defaults={
                     'nom': u['nom'],
                     'prenom': u['prenom'],
-                    'role': 'PROPRIETAIRE',
+                    'role': 'VENDEUR',
                     'is_verified': True,
                 },
             )

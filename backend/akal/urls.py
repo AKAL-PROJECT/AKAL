@@ -19,6 +19,7 @@ urlpatterns = [
     # ── API REST v1 ──
     path('api/annonces/', include('annonces.api_urls')),
     path('api/geo/', include('geo.urls')),
+    path('api/auth/', include('accounts.urls')),
 
     # ── OpenAPI / Swagger (drf-spectacular) ──
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

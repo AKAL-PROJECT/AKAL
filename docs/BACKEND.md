@@ -43,8 +43,8 @@
 
 | Rôle | Permissions |
 |---|---|
-| `PROPRIETAIRE` | Créer des annonces, gérer ses parcelles, répondre aux messages |
-| `INVESTISSEUR` | Consulter les annonces, contacter les propriétaires, gérer ses favoris |
+| `VENDEUR` | Créer des annonces, gérer ses parcelles, répondre aux messages |
+| `ACHETEUR` | Consulter les annonces, contacter les propriétaires, gérer ses favoris |
 | `ADMIN` | Gestion globale de la plateforme |
 
 ---
@@ -222,7 +222,7 @@ Utilisateur personnalisé qui remplace le `User` par défaut de Django. L'authen
 |---|---|---|---|---|
 | `id` | `UUIDField` | `uuid` | PK, auto-généré | Identifiant unique |
 | `email` | `EmailField` | `varchar` | **UNIQUE**, NOT NULL | Adresse email (sert de login) |
-| `role` | `CharField(20)` | `varchar(20)` | NOT NULL | Rôle : PROPRIETAIRE, INVESTISSEUR, ADMIN |
+| `role` | `CharField(20)` | `varchar(20)` | NOT NULL | Rôle : VENDEUR, ACHETEUR, ADMIN |
 | `nom` | `CharField(150)` | `varchar(150)` | NOT NULL | Nom de famille |
 | `prenom` | `CharField(150)` | `varchar(150)` | NOT NULL | Prénom |
 | `telephone` | `CharField(20)` | `varchar(20)` | NULLABLE | Numéro de téléphone |
@@ -575,8 +575,8 @@ Parcelle.objects.filter(geom__distance_lte=(point, D(km=10)))
 
 | Valeur DB | Label | Description |
 |---|---|---|
-| `PROPRIETAIRE` | Propriétaire | Possède des terrains à vendre |
-| `INVESTISSEUR` | Investisseur | Cherche des terrains à acheter |
+| `VENDEUR` | Vendeur | Possède des terrains à vendre |
+| `ACHETEUR` | Acheteur | Cherche des terrains à acheter |
 | `ADMIN` | Administrateur | Gère la plateforme |
 
 ---
@@ -693,8 +693,8 @@ pip install Faker requests Pillow
 
 | Email | Nom | Rôle | Mot de passe |
 |---|---|---|---|
-| `vendeur1@akal.ma` | Ahmed El Fassi | PROPRIETAIRE | `test1234` |
-| `vendeur2@akal.ma` | Fatima Benkirane | PROPRIETAIRE | `test1234` |
+| `vendeur1@akal.ma` | Ahmed El Fassi | VENDEUR | `test1234` |
+| `vendeur2@akal.ma` | Fatima Benkirane | VENDEUR | `test1234` |
 
 **Gestion des images :**
 - Les images sont téléchargées depuis **Picsum** (`picsum.photos`)
@@ -756,11 +756,11 @@ akal_env\scripts\python.exe -X utf8 manage.py seed_test_data --clear --settings=
 
 | Email | Nom | Rôle | Mot de passe |
 |---|---|---|---|
-| `loadtest1@akal.ma` | Youssef Bencherki | PROPRIETAIRE | `loadtest2026` |
-| `loadtest2@akal.ma` | Khadija Amrani | PROPRIETAIRE | `loadtest2026` |
-| `loadtest3@akal.ma` | Omar Tazi | PROPRIETAIRE | `loadtest2026` |
-| `loadtest4@akal.ma` | Salma Berrada | PROPRIETAIRE | `loadtest2026` |
-| `loadtest5@akal.ma` | Mehdi Idrissi | PROPRIETAIRE | `loadtest2026` |
+| `loadtest1@akal.ma` | Youssef Bencherki | VENDEUR | `loadtest2026` |
+| `loadtest2@akal.ma` | Khadija Amrani | VENDEUR | `loadtest2026` |
+| `loadtest3@akal.ma` | Omar Tazi | VENDEUR | `loadtest2026` |
+| `loadtest4@akal.ma` | Salma Berrada | VENDEUR | `loadtest2026` |
+| `loadtest5@akal.ma` | Mehdi Idrissi | VENDEUR | `loadtest2026` |
 
 ---
 

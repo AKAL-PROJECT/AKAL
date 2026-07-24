@@ -29,8 +29,8 @@ class User(AbstractUser):
     """Utilisateur custom du projet AKAL."""
 
     class Role(models.TextChoices):
-        PROPRIETAIRE = 'PROPRIETAIRE', 'Propriétaire'
-        INVESTISSEUR = 'INVESTISSEUR', 'Investisseur'
+        VENDEUR = 'VENDEUR', 'Vendeur'
+        ACHETEUR = 'ACHETEUR', 'Acheteur'
         ADMIN = 'ADMIN', 'Administrateur'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
