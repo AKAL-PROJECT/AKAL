@@ -37,7 +37,7 @@ export class ApiError extends Error {
 // - {"detail": "..."} → message direct (404, 403, throttle, etc.)
 // - {"champ": ["msg"], ...} → premier message de champ, + fieldErrors complet
 //   pour que l'appelant puisse afficher chaque erreur au bon endroit d'un formulaire
-async function lireErreur(res: Response): Promise<{ message: string; fieldErrors: FieldErrors | null }> {
+export async function lireErreur(res: Response): Promise<{ message: string; fieldErrors: FieldErrors | null }> {
   let corps: unknown;
   try {
     corps = await res.json();

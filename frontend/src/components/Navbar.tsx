@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { logoutAction } from "@/app/actions/auth";
+import type { User } from "@/lib/auth-api";
 
-export default function Navbar() {
+export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -69,11 +71,26 @@ export default function Navbar() {
               Publier une annonce
             </button>
           </Link>
-          <Link href="/connexion">
-            <button className="btn-ghost" style={{ padding: "8px 16px", fontSize: "13px" }}>
-              Connexion
-            </button>
-          </Link>
+          {utilisateur ? (
+            <>
+              <Link href="/compte">
+                <button className="btn-ghost" style={{ padding: "8px 16px", fontSize: "13px" }}>
+                  {utilisateur.prenom}
+                </button>
+              </Link>
+              <form action={logoutAction}>
+                <button className="btn-ghost" type="submit" style={{ padding: "8px 16px", fontSize: "13px" }}>
+                  Déconnexion
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link href="/connexion">
+              <button className="btn-ghost" style={{ padding: "8px 16px", fontSize: "13px" }}>
+                Connexion
+              </button>
+            </Link>
+          )}
         </div>
 
       </div>
