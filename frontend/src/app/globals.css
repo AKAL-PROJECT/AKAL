@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tifinagh&display=swap');
 @import "tailwindcss";
 
@@ -18,7 +18,7 @@
   --color-fond:         #F8F5F0;
   --color-bordure:      #E8E4DE;
   --color-fond-input:   #F2EFE9;
-  --font-sans:          'Inter', sans-serif;
+  --font-sans:          'Manrope', system-ui, sans-serif;
   --font-tifinagh:      'Noto Sans Tifinagh', sans-serif;
   --radius-btn:         8px;
   --radius-card:        12px;
@@ -209,6 +209,37 @@
   @keyframes akal-shimmer {
     100% {
       transform: translateX(100%);
+    }
+  }
+
+  /* --- Home : hero + sections animées --- */
+  @keyframes akal-sunrise {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes akal-push-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes akal-bounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(8px); }
+  }
+  @keyframes akal-fade-cascade {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .akal-card-cascade { animation: akal-fade-cascade 0.5s ease-out both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .akal-push-up, .akal-card-cascade {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .akal-bounce, .akal-sunrise-bg {
+      animation: none !important;
     }
   }
 }
