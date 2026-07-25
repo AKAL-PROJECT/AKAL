@@ -122,7 +122,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
               )}
             </div>
 
-            <h1 style={{ fontSize: "22px", fontWeight: 500, color: "var(--color-nuit)", lineHeight: 1.3, margin: 0 }}>
+            <h1 style={{ fontSize: "32px", fontWeight: 500, color: "var(--color-nuit)", lineHeight: 1.25, margin: 0 }}>
               {a.titre}
             </h1>
 
@@ -131,6 +131,8 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
               <span>
                 {a.parcelle.adresseApproximative ?? a.parcelle.regionNom}
                 {a.parcelle.adresseApproximative && `, ${a.parcelle.regionNom}`}
+                {" · "}
+                {a.parcelle.surface} ha
               </span>
             </div>
           </div>
@@ -194,7 +196,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
             >
               Localisation
             </h2>
-            <div style={{ height: "320px", borderRadius: "var(--radius-card)", overflow: "hidden" }}>
+            <div style={{ height: "320px", borderRadius: "var(--radius-card)", overflow: "hidden", boxShadow: "var(--shadow-card)" }}>
               <CarteFiche parcelle={a} />
             </div>
           </section>
@@ -206,7 +208,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
 
             {/* Prix */}
             <div>
-              <div style={{ fontSize: "26px", fontWeight: 500, color: "var(--color-foret)" }}>
+              <div style={{ fontSize: "22px", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
                 {formatMAD.format(a.prix)} MAD
               </div>
               <div style={{ fontSize: "13px", color: "var(--color-tertiaire)", marginTop: "4px" }}>
@@ -256,14 +258,14 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                     width: "40px",
                     height: "40px",
                     borderRadius: "50%",
-                    backgroundColor: "var(--color-foret)",
+                    backgroundColor: "var(--color-menthe)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
                     fontSize: "14px",
                     fontWeight: 500,
-                    color: "white",
+                    color: "var(--color-nuit)",
                   }}
                 >
                   YA
@@ -360,7 +362,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
         }}
       >
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: "16px", fontWeight: 500, color: "var(--color-foret)" }}>
+          <div style={{ fontSize: "18px", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
             {formatMAD.format(a.prix)} MAD
           </div>
           <div style={{ fontSize: "12px", color: "var(--color-tertiaire)" }}>

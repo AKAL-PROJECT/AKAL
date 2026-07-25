@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Parcelle } from "@/types/parcelle";
@@ -12,26 +12,48 @@ type Props = {
   parcelle: Parcelle;
   enComparaison: boolean;
   onToggleComparaison: (id: string) => void;
+  // Position dans la grille — pilote le délai de l'entrée en cascade
+  // (.akal-card-cascade, globals.css). Optionnel : une carte isolée hors
+  // grille (ex. future page "favoris") s'anime simplement sans délai.
+  index?: number;
 };
 
 const formatMAD = new Intl.NumberFormat("fr-MA");
 
-export default function CardParcelle({ parcelle, enComparaison, onToggleComparaison }: Props) {
+export default function CardParcelle({ parcelle, enComparaison, onToggleComparaison, index }: Props) {
   const [favori, setFavori] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
   const a = parcelle;
   const image = a.photoPrincipale ?? a.photos[0] ?? null;
 
+  // Zoom léger de la photo au survol — mutation directe du style (même
+  // convention que Navbar.tsx) plutôt qu'un state React, pour rester fluide.
+  const zoomer = (actif: boolean) => {
+    if (imgRef.current) imgRef.current.style.transform = actif ? "scale(1.05)" : "scale(1)";
+  };
+
   return (
-    <article className="card" style={{ overflow: "hidden" }}>
+    <article
+      className="card akal-card-cascade"
+      style={{
+        overflow: "hidden",
+        animationDelay: index != null ? `${(index % 9) * 60}ms` : undefined,
+      }}
+    >
       {/* Photo */}
-      <div style={{ position: "relative", width: "100%", paddingBottom: "70%", backgroundColor: "var(--color-menthe)" }}>
+      <div
+        style={{ position: "relative", width: "100%", height: "180px", backgroundColor: "var(--color-menthe)", overflow: "hidden" }}
+        onMouseEnter={() => zoomer(true)}
+        onMouseLeave={() => zoomer(false)}
+      >
         {image && (
           <Image
+            ref={imgRef}
             src={image}
             alt={a.titre}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            style={{ objectFit: "cover" }}
+            style={{ objectFit: "cover", transition: "transform 300ms ease" }}
           />
         )}
 
@@ -64,7 +86,8 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
           <BadgeStatut statut={a.parcelle.statutFoncier} />
         </div>
 
-        {/* Favori */}
+        {/* Favori — favoris non branchés côté back pour l'instant : visuel
+            décoratif local (aucun appel API, aucune persistance). */}
         <button
           type="button"
           aria-label={favori ? "Retirer des favoris" : "Ajouter aux favoris"}
@@ -82,7 +105,7 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: favori ? "#FEF3EE" : "rgba(255,255,255,0.9)",
+            backgroundColor: "rgba(255,255,255,0.9)",
             transition: "background-color 200ms ease",
           }}
         >
@@ -103,7 +126,7 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
         </Link>
 
         <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--color-tertiaire)" }}>
-          <MapPin size={11} />
+          <MapPin size={13} />
           {/* Pas d'adresse approximative en liste (allégé, contrat §4.4) — région seule ici. */}
           <span>{a.parcelle.regionNom}</span>
         </div>
@@ -130,11 +153,9 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
           )}
         </div>
 
-        <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />
-
         {/* Prix + comparateur */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "2px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "4px" }}>
+          <span style={{ fontSize: "16px", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
             {formatMAD.format(a.prix)} MAD
           </span>
           <label
@@ -149,6 +170,11 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
             Comparer
           </label>
         </div>
+
+        {/* AgriScore — absent du prototype statique (§ "pas de bloc score"),
+            réintégré ici en pied de carte : c'est une donnée réelle du back
+            (contrat §3.5), pas un concept du mockup à recréer à l'identique. */}
+        <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />
       </div>
     </article>
   );

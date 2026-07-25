@@ -159,7 +159,7 @@ export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle 
           borderBottom: "1px solid var(--color-bordure)",
         }}
       >
-        Caractéristiques
+        Passeport de la parcelle
       </h2>
 
       <div

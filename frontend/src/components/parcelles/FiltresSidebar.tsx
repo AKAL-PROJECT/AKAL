@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   ACCES_EAU_OPTIONS,
   STATUTS,
@@ -8,7 +9,7 @@ import {
   filtresActifs,
 } from "@/data/parcelles";
 import { STATUT_FONCIER_LABEL } from "./BadgeStatut";
-import { Search, X } from "@/components/icons/Icons";
+import { Search, X, ChevronDown, Check } from "@/components/icons/Icons";
 
 type Props = {
   ouverte: boolean;
@@ -28,6 +29,123 @@ function parseNum(v: string): number | null {
   if (v.trim() === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+// Bornes indicatives des sliders — le contrat n'expose pas de min/max réel
+// du catalogue (§4.2), ce sont donc des bornes larges et arrondies, pas des
+// valeurs calculées depuis les données. Le champ "min" à côté du slider
+// reste un input libre pour dépasser ces bornes si besoin.
+const PRIX_MAX_BORNE = 5_000_000;
+const SURFACE_MAX_BORNE = 50;
+
+const fmtMAD = new Intl.NumberFormat("fr-MA");
+
+// ── Dropdown Région : liste custom avec cascade d'apparition au clic ──────
+function DropdownRegion({
+  value,
+  regions,
+  onChange,
+}: {
+  value: string;
+  regions: Region[];
+  onChange: (code: string) => void;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const label = regions.find((r) => r.code === value)?.nom ?? "Toutes les régions";
+
+  useEffect(() => {
+    if (!ouvert) return;
+    const fermerSiDehors = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOuvert(false);
+    };
+    const fermerSurEchap = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOuvert(false);
+    };
+    document.addEventListener("mousedown", fermerSiDehors);
+    document.addEventListener("keydown", fermerSurEchap);
+    return () => {
+      document.removeEventListener("mousedown", fermerSiDehors);
+      document.removeEventListener("keydown", fermerSurEchap);
+    };
+  }, [ouvert]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOuvert((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={ouvert}
+        className="input"
+        style={{
+          height: "44px",
+          fontSize: "14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: "pointer",
+          color: value ? "var(--color-texte)" : "var(--color-tertiaire)",
+        }}
+      >
+        <span>{label}</span>
+        <ChevronDown
+          size={15}
+          style={{ color: "var(--color-tertiaire)", transition: "transform 200ms ease", transform: ouvert ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+
+      {ouvert && (
+        <div
+          role="listbox"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            zIndex: 40,
+            backgroundColor: "white",
+            border: "1px solid var(--color-bordure)",
+            borderRadius: "var(--radius-btn)",
+            boxShadow: "var(--shadow-card-hover)",
+            maxHeight: "260px",
+            overflowY: "auto",
+            padding: "6px",
+          }}
+        >
+          {[{ code: "", nom: "Toutes les régions" }, ...regions].map((r, i) => (
+            <button
+              key={r.code || "toutes"}
+              type="button"
+              role="option"
+              aria-selected={value === r.code}
+              onClick={() => {
+                onChange(r.code);
+                setOuvert(false);
+              }}
+              className="akal-card-cascade"
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "9px 10px",
+                fontSize: "13px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                backgroundColor: value === r.code ? "var(--color-rosee)" : "transparent",
+                color: value === r.code ? "var(--color-foret)" : "var(--color-texte)",
+                animationDelay: `${i * 30}ms`,
+                animationDuration: "220ms",
+              }}
+            >
+              {r.nom}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function FiltresSidebar({
@@ -76,11 +194,12 @@ export default function FiltresSidebar({
                   border: "none",
                   cursor: filtresActifs(f) ? "pointer" : "default",
                   fontSize: "12px",
+                  textDecoration: filtresActifs(f) ? "underline" : "none",
                   color: filtresActifs(f) ? "var(--color-terre)" : "var(--color-tertiaire)",
                   opacity: filtresActifs(f) ? 1 : 0.6,
                 }}
               >
-                Réinitialiser
+                Réinitialiser les filtres
               </button>
               <button
                 type="button"
@@ -110,87 +229,125 @@ export default function FiltresSidebar({
             />
           </div>
 
-          {/* Région */}
+          {/* Région — dropdown custom avec cascade d'apparition au clic */}
           <div>
             <label style={labelStyle}>Région</label>
-            <select
-              className="input"
-              value={f.region}
-              onChange={(e) => onChange({ region: e.target.value })}
-              style={{ height: "44px", fontSize: "14px" }}
-            >
-              <option value="">Toutes les régions</option>
-              {regions.map((r) => (
-                <option key={r.code} value={r.code}>{r.nom}</option>
-              ))}
-            </select>
+            <DropdownRegion value={f.region} regions={regions} onChange={(code) => onChange({ region: code })} />
           </div>
 
-          {/* Statut foncier — select unique : le contrat ne documente pas de
-              multi-valeurs pour ce filtre (§4.2). */}
+          {/* Statut foncier — rendu en chips façon "checkbox", mais
+              sélection unique : le contrat ne documente pas de multi-valeurs
+              pour ce filtre (§4.2). Cliquer sur la chip active la désactive. */}
           <div>
             <label style={labelStyle}>Statut foncier</label>
-            <select
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {STATUTS.map((s) => {
+                const actif = f.statutFoncier === s;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={actif}
+                    onClick={() => onChange({ statutFoncier: actif ? "" : s })}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "7px 12px",
+                      fontSize: "13px",
+                      borderRadius: "999px",
+                      cursor: "pointer",
+                      border: `1px solid ${actif ? "var(--color-foret)" : "var(--color-bordure)"}`,
+                      backgroundColor: actif ? "var(--color-rosee)" : "white",
+                      color: actif ? "var(--color-foret)" : "var(--color-texte)",
+                      transition: "all 150ms ease",
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: "13px",
+                        height: "13px",
+                        borderRadius: "4px",
+                        border: `1.5px solid ${actif ? "var(--color-foret)" : "var(--color-tertiaire)"}`,
+                        backgroundColor: actif ? "var(--color-foret)" : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {actif && <Check size={10} strokeWidth={3} style={{ color: "white" }} />}
+                    </span>
+                    {STATUT_FONCIER_LABEL[s].label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Prix — slider Max + input Min pour affiner. */}
+          <div>
+            <label style={labelStyle}>
+              Prix max
+              <span style={{ float: "right", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
+                {f.prixMax != null ? `${fmtMAD.format(f.prixMax)} MAD` : "Illimité"}
+              </span>
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={PRIX_MAX_BORNE}
+              step={50_000}
+              value={f.prixMax ?? PRIX_MAX_BORNE}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                onChange({ prixMax: v >= PRIX_MAX_BORNE ? null : v });
+              }}
+              style={{ width: "100%", accentColor: "var(--color-foret)", cursor: "pointer" }}
+              aria-label="Prix maximum en MAD"
+            />
+            <input
               className="input"
-              value={f.statutFoncier}
-              onChange={(e) => onChange({ statutFoncier: e.target.value as FiltresState["statutFoncier"] })}
-              style={{ height: "44px", fontSize: "14px" }}
-            >
-              <option value="">Tous les statuts</option>
-              {STATUTS.map((s) => (
-                <option key={s} value={s}>{STATUT_FONCIER_LABEL[s].label}</option>
-              ))}
-            </select>
+              type="number"
+              inputMode="numeric"
+              placeholder="Prix min (MAD)"
+              value={f.prixMin ?? ""}
+              onChange={(e) => onChange({ prixMin: parseNum(e.target.value) })}
+              style={{ ...miniInputStyle, width: "100%", marginTop: "8px" }}
+            />
           </div>
 
-          {/* Prix */}
+          {/* Surface — slider Max + input Min pour affiner. */}
           <div>
-            <label style={labelStyle}>Prix (MAD)</label>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                className="input"
-                type="number"
-                inputMode="numeric"
-                placeholder="Min"
-                value={f.prixMin ?? ""}
-                onChange={(e) => onChange({ prixMin: parseNum(e.target.value) })}
-                style={miniInputStyle}
-              />
-              <input
-                className="input"
-                type="number"
-                inputMode="numeric"
-                placeholder="Max"
-                value={f.prixMax ?? ""}
-                onChange={(e) => onChange({ prixMax: parseNum(e.target.value) })}
-                style={miniInputStyle}
-              />
-            </div>
-          </div>
-
-          {/* Surface */}
-          <div>
-            <label style={labelStyle}>Surface (ha)</label>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                className="input"
-                type="number"
-                inputMode="decimal"
-                placeholder="Min"
-                value={f.surfaceMin ?? ""}
-                onChange={(e) => onChange({ surfaceMin: parseNum(e.target.value) })}
-                style={miniInputStyle}
-              />
-              <input
-                className="input"
-                type="number"
-                inputMode="decimal"
-                placeholder="Max"
-                value={f.surfaceMax ?? ""}
-                onChange={(e) => onChange({ surfaceMax: parseNum(e.target.value) })}
-                style={miniInputStyle}
-              />
-            </div>
+            <label style={labelStyle}>
+              Surface max
+              <span style={{ float: "right", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
+                {f.surfaceMax != null ? `${f.surfaceMax} ha` : "Illimité"}
+              </span>
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={SURFACE_MAX_BORNE}
+              step={0.5}
+              value={f.surfaceMax ?? SURFACE_MAX_BORNE}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                onChange({ surfaceMax: v >= SURFACE_MAX_BORNE ? null : v });
+              }}
+              style={{ width: "100%", accentColor: "var(--color-foret)", cursor: "pointer" }}
+              aria-label="Surface maximum en hectares"
+            />
+            <input
+              className="input"
+              type="number"
+              inputMode="decimal"
+              placeholder="Surface min (ha)"
+              value={f.surfaceMin ?? ""}
+              onChange={(e) => onChange({ surfaceMin: parseNum(e.target.value) })}
+              style={{ ...miniInputStyle, width: "100%", marginTop: "8px" }}
+            />
           </div>
 
           {/* Eau */}
