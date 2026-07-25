@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { Parcelle } from "@/types/parcelle";
 import { X } from "@/components/icons/Icons";
 
@@ -19,9 +20,8 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
         left: 0,
         right: 0,
         zIndex: 40,
-        backgroundColor: "white",
-        borderTop: "1px solid var(--color-bordure)",
-        boxShadow: "0 -4px 16px rgba(0,0,0,0.08)",
+        backgroundColor: "var(--color-nuit)",
+        boxShadow: "0 -4px 16px rgba(0,0,0,0.25)",
         padding: "12px 24px",
         display: "flex",
         alignItems: "center",
@@ -29,39 +29,94 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
         flexWrap: "wrap",
       }}
     >
-      <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-texte)", whiteSpace: "nowrap" }}>
-        Comparaison — {parcelles.length}/3 parcelles
+      <span style={{ fontSize: "14px", fontWeight: 500, color: "white", whiteSpace: "nowrap" }}>
+        {parcelles.length}/3 sélectionnées
       </span>
 
-      <div style={{ display: "flex", gap: "8px", flex: 1, flexWrap: "wrap", minWidth: "200px" }}>
-        {parcelles.map((p) => (
-          <div
-            key={p.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "6px 12px",
-              borderRadius: "8px",
-              fontSize: "12px",
-              backgroundColor: "var(--color-rosee)",
-              color: "var(--color-foret)",
-            }}
-          >
-            <span>{p.titre.length > 24 ? p.titre.slice(0, 24) + "…" : p.titre}</span>
-            <button
-              type="button"
-              onClick={() => onRetirer(p.id)}
-              aria-label={`Retirer ${p.titre} de la comparaison`}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-foret)", display: "flex" }}
+      {/* Miniatures empilées */}
+      <div style={{ display: "flex", alignItems: "center", flex: 1, flexWrap: "wrap", minWidth: "160px", gap: "10px" }}>
+        <div style={{ display: "flex" }}>
+          {parcelles.map((p, i) => {
+            const image = p.photoPrincipale ?? p.photos[0] ?? null;
+            return (
+              <div
+                key={p.id}
+                style={{
+                  position: "relative",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  border: "2px solid var(--color-nuit)",
+                  backgroundColor: "var(--color-menthe)",
+                  marginLeft: i === 0 ? 0 : "-12px",
+                  flexShrink: 0,
+                }}
+                title={p.titre}
+              >
+                {image && <Image src={image} alt={p.titre} fill sizes="36px" style={{ objectFit: "cover" }} />}
+                <button
+                  type="button"
+                  onClick={() => onRetirer(p.id)}
+                  aria-label={`Retirer ${p.titre} de la comparaison`}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(27,58,45,0)",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "transparent",
+                    transition: "background-color 150ms ease, color 150ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(27,58,45,0.65)";
+                    e.currentTarget.style.color = "white";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(27,58,45,0)";
+                    e.currentTarget.style.color = "transparent";
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {parcelles.map((p) => (
+            <span
+              key={p.id}
+              className="hidden-mobile"
+              style={{ fontSize: "12px", color: "rgba(255,255,255,0.75)" }}
             >
-              <X size={12} />
-            </button>
-          </div>
-        ))}
+              {p.titre.length > 22 ? p.titre.slice(0, 22) + "…" : p.titre}
+            </span>
+          ))}
+        </div>
       </div>
 
-      <button className="btn-primary" disabled={parcelles.length < 2} style={{ opacity: parcelles.length < 2 ? 0.5 : 1, whiteSpace: "nowrap" }}>
+      <button
+        type="button"
+        disabled={parcelles.length < 2}
+        style={{
+          padding: "12px 24px",
+          fontSize: "14px",
+          fontWeight: 500,
+          color: "white",
+          backgroundColor: "var(--color-prairie)",
+          borderRadius: "var(--radius-btn)",
+          border: "none",
+          cursor: parcelles.length < 2 ? "default" : "pointer",
+          opacity: parcelles.length < 2 ? 0.5 : 1,
+          whiteSpace: "nowrap",
+          transition: "opacity 200ms ease",
+        }}
+      >
         Comparer maintenant
       </button>
     </div>

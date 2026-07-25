@@ -135,7 +135,7 @@ export default function SimulateurROI({ prix }: Props) {
   const chargeAnnuelle = prix * (charges / 100);
 
   return (
-    <section>
+    <section className="card" style={{ padding: "20px" }}>
       {/* En-tête */}
       <div
         style={{
