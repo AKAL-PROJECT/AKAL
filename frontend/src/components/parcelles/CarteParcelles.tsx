@@ -27,7 +27,16 @@ const CarteLeaflet = dynamic(() => import("./CarteLeaflet"), {
 
 export default function CarteParcelles({ parcelles }: { parcelles: Parcelle[] }) {
   return (
-    <div style={{ height: "500px", width: "100%", border: "1px solid var(--color-bordure)", borderRadius: "var(--radius-card)", overflow: "hidden" }}>
+    <div
+      style={{
+        height: "500px",
+        width: "100%",
+        border: "1px solid var(--color-bordure)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+      }}
+    >
       <CarteLeaflet parcelles={parcelles} />
     </div>
   );

@@ -1,81 +1,115 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Heart, MessageSquare } from "@/components/icons/Icons";
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isCatalogue = pathname.startsWith("/parcelles");
+  const [scrolled, setScrolled] = useState(false);
+  const [underline, setUnderline] = useState({ left: 0, width: 0 });
+  const linksRef = useRef<HTMLDivElement>(null);
+  const activeLinkRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const updateUnderline = () => {
+      const el = activeLinkRef.current;
+      const container = linksRef.current;
+      if (!el || !container) {
+        setUnderline({ left: 0, width: 0 });
+        return;
+      }
+      const er = el.getBoundingClientRect();
+      const cr = container.getBoundingClientRect();
+      setUnderline({ left: er.left - cr.left, width: er.width });
+    };
+    updateUnderline();
+    window.addEventListener("resize", updateUnderline);
+    return () => window.removeEventListener("resize", updateUnderline);
+  }, [pathname]);
 
   return (
-    <nav style={{
-      position: "sticky",
-      top: 0,
-      zIndex: 50,
-      height: "64px",
-      backgroundColor: "white",
-      borderBottom: "1px solid var(--color-bordure)",
-      backdropFilter: "blur(8px)",
-    }}>
-      <div style={{
-        maxWidth: "1280px",
-        margin: "0 auto",
-        padding: "0 24px",
-        height: "100%",
+    <nav
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+        height: "64px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-      }}>
+        padding: "0 40px",
+        backgroundColor: scrolled ? "rgba(255,255,255,0.85)" : "#FFFFFF",
+        backdropFilter: scrolled ? "blur(12px)" : "none",
+        boxShadow: scrolled ? "0 1px 0 var(--color-bordure)" : "none",
+        transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out",
+      }}
+    >
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/uploads/akal-logo.svg" alt="" width={32} height={32} />
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, gap: "2px" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/uploads/akal-wordmark.svg" alt="AKAL" style={{ height: "16px", width: "auto", display: "block" }} />
+          <span className="tifinagh" style={{ fontSize: "12px", color: "var(--color-tertiaire)" }}>ⴰⴽⴰⵍ</span>
+        </div>
+      </Link>
 
-        {/* Logo */}
-        <Link href="/" style={{ textDecoration: "none", display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: "20px", fontWeight: 500, color: "var(--color-foret)", lineHeight: 1 }}>
-            AKAL
-          </span>
-          <span className="tifinagh" style={{ fontSize: "12px", color: "var(--color-tertiaire)", lineHeight: 1.2 }}>
-            ⴰⴽⴰⵍ
-          </span>
+      <div ref={linksRef} className="hidden-mobile" style={{ position: "relative", alignItems: "center", gap: "32px", height: "100%" }}>
+        <Link
+          href="/parcelles"
+          ref={isCatalogue ? activeLinkRef : undefined}
+          style={{ fontSize: "15px", color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
+        >
+          Explorer
+        </Link>
+        <span style={{ fontSize: "15px", color: "var(--color-texte)", opacity: 0.55, padding: "4px 0", cursor: "default" }}>Carte</span>
+        <span style={{ fontSize: "15px", color: "var(--color-texte)", opacity: 0.55, padding: "4px 0", cursor: "default" }}>Régions</span>
+        <span
+          style={{
+            position: "absolute",
+            bottom: 0,
+            height: "2px",
+            background: "var(--color-prairie)",
+            left: `${underline.left}px`,
+            width: `${underline.width}px`,
+            transition: "left 0.3s ease-out, width 0.3s ease-out",
+            borderRadius: "2px",
+          }}
+        />
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+        <Link href="/publier">
+          <button className="btn-primary" style={{ padding: "10px 20px", fontSize: "14px" }}>
+            <span className="hidden-mobile" style={{ display: "inline" }}>Déposer une annonce</span>
+            <span className="hidden-desktop">Déposer</span>
+          </button>
         </Link>
 
-        {/* Liens desktop */}
-        <div style={{ display: "flex", alignItems: "center", gap: "32px" }} className="hidden-mobile">
-          <Link href="/parcelles" style={{
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "var(--color-secondaire)",
-            textDecoration: "none",
-          }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-foret)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-secondaire)")}
-          >
-            Parcelles
-          </Link>
-          <Link href="/carte" style={{
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "var(--color-secondaire)",
-            textDecoration: "none",
-          }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-foret)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-secondaire)")}
-          >
-            Carte
-          </Link>
+        <div style={{ color: "var(--color-foret)", cursor: "pointer" }} title="Favoris">
+          <Heart size={24} strokeWidth={1.7} />
         </div>
-
-        {/* CTA */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Link href="/publier">
-            <button className="btn-primary" style={{ padding: "8px 16px", fontSize: "13px" }}>
-              Publier une annonce
-            </button>
-          </Link>
-          <Link href="/connexion">
-            <button className="btn-ghost" style={{ padding: "8px 16px", fontSize: "13px" }}>
-              Connexion
-            </button>
-          </Link>
+        <div style={{ color: "var(--color-foret)", cursor: "pointer" }} title="Messages">
+          <MessageSquare size={24} strokeWidth={1.7} />
         </div>
-
+        <Link href="/connexion" title="Profil" style={{ display: "flex", flexShrink: 0 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/uploads/icon-profil-nav.svg"
+            alt="Profil"
+            style={{ height: "26px", width: "26px", borderRadius: "50%", border: "1px solid var(--color-bordure)", backgroundColor: "white" }}
+          />
+        </Link>
       </div>
     </nav>
   );

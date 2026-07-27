@@ -20,7 +20,17 @@ import CardParcelleSkeleton from "@/components/parcelles/CardParcelleSkeleton";
 import FiltresSidebar from "@/components/parcelles/FiltresSidebar";
 import BarreComparateur from "@/components/parcelles/BarreComparateur";
 import CarteParcelles from "@/components/parcelles/CarteParcelles";
-import { Grid, Map, Filter } from "@/components/icons/Icons";
+import { Grid, Map, Filter, MountainEmpty } from "@/components/icons/Icons";
+
+// Auto-fill avec un seuil de 300px : ≈3 colonnes sur un desktop courant
+// (sidebar + gap déduits), 1 colonne sous ~620px — équivalent explicite au
+// gabarit "3 col desktop / 1 col mobile" du prototype, sans dupliquer de
+// media query dans globals.css (hors périmètre de cet agent).
+const GRILLE_STYLE: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+  gap: "16px",
+};
 
 type ModeAffichage = "grille" | "carte";
 const PAGE_SIZE = 12;
@@ -280,13 +290,7 @@ function Catalogue() {
             </button>
           </div>
         ) : chargement ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: "16px",
-            }}
-          >
+          <div style={GRILLE_STYLE}>
             {Array.from({ length: NB_SKELETONS }).map((_, i) => (
               <CardParcelleSkeleton key={i} />
             ))}
@@ -295,28 +299,27 @@ function Catalogue() {
           <div
             style={{
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              gap: "12px", padding: "64px 20px", textAlign: "center", color: "var(--color-tertiaire)",
+              gap: "16px", padding: "80px 20px", textAlign: "center", color: "var(--color-tertiaire)",
             }}
           >
-            <p style={{ fontSize: "15px", color: "var(--color-secondaire)" }}>
-              Aucune annonce ne correspond à vos critères.
+            <MountainEmpty size={64} style={{ color: "var(--color-menthe)" }} />
+            <p style={{ fontSize: "16px", fontWeight: 500, color: "var(--color-texte)", margin: 0 }}>
+              Aucune terre ne correspond à ces critères
+            </p>
+            <p style={{ fontSize: "14px", color: "var(--color-secondaire)", margin: 0, maxWidth: "320px" }}>
+              Essayez d&apos;élargir votre recherche ou de réinitialiser les filtres.
             </p>
             <button type="button" className="btn-secondary" onClick={reinitialiser}>
               Réinitialiser les filtres
             </button>
           </div>
         ) : mode === "grille" ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: "16px",
-            }}
-          >
-            {resultatsAffiches.map((p) => (
+          <div style={GRILLE_STYLE}>
+            {resultatsAffiches.map((p, i) => (
               <CardParcelle
                 key={p.id}
                 parcelle={p}
+                index={i}
                 enComparaison={comparaison.includes(p.id)}
                 onToggleComparaison={toggleComparaison}
               />

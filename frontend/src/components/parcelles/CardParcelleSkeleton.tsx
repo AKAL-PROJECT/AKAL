@@ -1,5 +1,5 @@
-// État de chargement de CardParcelle — même gabarit (photo 70%, corps 12px de
-// padding) pour éviter tout saut de mise en page (CLS) à l'arrivée des
+// État de chargement de CardParcelle — même gabarit (photo 180px, corps 12px
+// de padding) pour éviter tout saut de mise en page (CLS) à l'arrivée des
 // données réelles. Famille Skeleton* (charte de nommage v1 §3.1).
 
 function Bloc({ width, height = "12px" }: { width: string; height?: string }) {
@@ -23,7 +23,7 @@ export default function CardParcelleSkeleton() {
         className="skeleton-shimmer"
         style={{
           width: "100%",
-          paddingBottom: "70%",
+          height: "180px",
           backgroundColor: "var(--color-skeleton-base, var(--color-menthe))",
         }}
       />
