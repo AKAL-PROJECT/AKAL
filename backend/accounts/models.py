@@ -29,13 +29,16 @@ class User(AbstractUser):
     """Utilisateur custom du projet AKAL."""
 
     class Role(models.TextChoices):
-        PROPRIETAIRE = 'PROPRIETAIRE', 'Propriétaire'
-        INVESTISSEUR = 'INVESTISSEUR', 'Investisseur'
+        VENDEUR = 'VENDEUR', 'Vendeur'
+        ACHETEUR = 'ACHETEUR', 'Acheteur'
         ADMIN = 'ADMIN', 'Administrateur'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField('adresse email', unique=True)
-    role = models.CharField(max_length=20, choices=Role.choices)
+    # Pas de rôle figé à l'inscription (une même personne peut chercher et
+    # vendre une terre) : vide par défaut, ADMIN réservé au staff. Peut être
+    # dérivé du comportement plus tard (dépôt d'annonce -> VENDEUR, etc.).
+    role = models.CharField(max_length=20, choices=Role.choices, blank=True, default='')
     nom = models.CharField(max_length=150)
     prenom = models.CharField(max_length=150)
     telephone = models.CharField(max_length=20, blank=True, null=True)

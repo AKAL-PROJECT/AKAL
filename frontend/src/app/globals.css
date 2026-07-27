@@ -351,6 +351,7 @@
   }
   .connexion-submit:hover { background-color: #1B4D37; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(45,106,79,0.32); }
   .connexion-submit:active { transform: translateY(0); box-shadow: 0 3px 8px rgba(45,106,79,0.22); }
+  .connexion-submit:disabled { opacity: 0.6; cursor: default; transform: none; box-shadow: 0 4px 12px rgba(45,106,79,0.22); }
 
   @media (prefers-reduced-motion: reduce) {
     .connexion-intro { display: none; }

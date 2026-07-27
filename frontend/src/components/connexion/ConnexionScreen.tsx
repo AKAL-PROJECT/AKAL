@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import Link from "next/link";
 import { Mail, Lock, Eye, EyeOff, Check } from "@/components/icons/Icons";
 import MoroccoMap from "@/components/connexion/MoroccoMap";
+import { loginAction, type AuthFormState } from "@/app/actions/auth";
 
 const iconWrapStyle: React.CSSProperties = {
   position: "absolute",
@@ -19,8 +21,9 @@ const inputBaseStyle: React.CSSProperties = {
   paddingLeft: 42,
 };
 
-export default function ConnexionScreen() {
+export default function ConnexionScreen({ next }: { next: string }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [state, formAction, pending] = useActionState<AuthFormState, FormData>(loginAction, null);
 
   return (
     <div
@@ -63,8 +66,10 @@ export default function ConnexionScreen() {
           <form
             className="akal-rise"
             style={{ display: "flex", flexDirection: "column", gap: 20, animationDelay: "0.26s" }}
-            onSubmit={(e) => e.preventDefault()}
+            action={formAction}
           >
+            <input type="hidden" name="next" value={next} />
+
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <label htmlFor="connexion-email" style={{ fontSize: 12, letterSpacing: "0.5px", color: "#2D6A4F" }}>
                 Adresse email
@@ -84,6 +89,9 @@ export default function ConnexionScreen() {
                   style={inputBaseStyle}
                 />
               </div>
+              {state?.fieldErrors?.email && (
+                <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{state.fieldErrors.email[0]}</p>
+              )}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -130,18 +138,28 @@ export default function ConnexionScreen() {
                   {showPassword ? <EyeOff size={20} strokeWidth={1.8} /> : <Eye size={20} strokeWidth={1.8} />}
                 </button>
               </div>
+              {state?.fieldErrors?.password && (
+                <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{state.fieldErrors.password[0]}</p>
+              )}
             </div>
 
-            <button type="submit" className="connexion-submit" style={{ marginTop: 8 }}>
-              Se connecter
+            {state?.error && (
+              <p style={{ fontSize: 14, color: "#C0392B", margin: 0 }}>{state.error}</p>
+            )}
+
+            <button type="submit" className="connexion-submit" disabled={pending} style={{ marginTop: 8 }}>
+              {pending ? "Connexion…" : "Se connecter"}
             </button>
           </form>
 
           <div className="akal-rise" style={{ marginTop: 24, fontSize: 14, color: "#2D6A4F", animationDelay: "0.34s" }}>
             Pas encore de compte ?{" "}
-            <span style={{ color: "#C4622D", cursor: "pointer", borderBottom: "1px solid rgba(196,98,45,0.4)", paddingBottom: 1 }}>
+            <Link
+              href="/inscription"
+              style={{ color: "#C4622D", textDecoration: "none", borderBottom: "1px solid rgba(196,98,45,0.4)", paddingBottom: 1 }}
+            >
               Créer un compte
-            </span>
+            </Link>
           </div>
         </div>
       </div>

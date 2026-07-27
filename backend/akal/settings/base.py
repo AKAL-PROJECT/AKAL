@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 
     # Apps tierces
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',
     'django_filters',
@@ -130,7 +131,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fr-fr'
 
 TIME_ZONE = 'UTC'
 
@@ -170,6 +171,33 @@ REST_FRAMEWORK = {
     # Contrat §4.4 : prix_mad/surface_ha sont des nombres JSON, pas des
     # chaînes. DRF sérialise les DecimalField en string par défaut.
     'COERCE_DECIMAL_TO_STRING': False,
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'accounts.authentication.CookieJWTAuthentication',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '5/min',
+    },
+}
+
+
+# ──────────────────────────────────────────────
+# AUTH — JWT via cookies httpOnly (avenant v1.1, cf. docs/plans)
+# ──────────────────────────────────────────────
+
+from datetime import timedelta  # noqa: E402
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_COOKIE_ACCESS': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_REFRESH_PATH': '/api/auth/',
+    # Défauts sûrs pour la prod (frontend et backend sur des sites
+    # différents, cf. prod.py) ; dev.py les assouplit pour localhost en HTTP.
+    'AUTH_COOKIE_SECURE': True,
+    'AUTH_COOKIE_SAMESITE': 'None',
 }
 
 
@@ -192,6 +220,10 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
+
+# Requis pour que les cookies JWT (httpOnly) passent sur les requêtes
+# cross-origin du frontend (fetch avec credentials: "include").
+CORS_ALLOW_CREDENTIALS = True
 
 
 # ──────────────────────────────────────────────

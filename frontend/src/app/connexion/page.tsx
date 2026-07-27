@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth-api";
 import ConnexionScreen from "@/components/connexion/ConnexionScreen";
 
 export const metadata: Metadata = {
@@ -6,6 +8,16 @@ export const metadata: Metadata = {
   description: "Connectez-vous à AKAL pour explorer, comparer et suivre des parcelles agricoles au Maroc.",
 };
 
-export default function ConnexionPage() {
-  return <ConnexionScreen />;
+export default async function ConnexionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const cheminSuivant = next && next.startsWith("/") ? next : "/compte";
+
+  const utilisateur = await getCurrentUser();
+  if (utilisateur) redirect(cheminSuivant);
+
+  return <ConnexionScreen next={cheminSuivant} />;
 }

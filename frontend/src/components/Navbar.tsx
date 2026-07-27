@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Heart, MessageSquare } from "@/components/icons/Icons";
+import { logoutAction } from "@/app/actions/auth";
+import type { User } from "@/lib/auth-api";
 
-export default function Navbar() {
+export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
   const pathname = usePathname();
   const isCatalogue = pathname.startsWith("/parcelles");
   const [scrolled, setScrolled] = useState(false);
@@ -102,14 +104,43 @@ export default function Navbar() {
         <div style={{ color: "var(--color-foret)", cursor: "pointer" }} title="Messages">
           <MessageSquare size={24} strokeWidth={1.7} />
         </div>
-        <Link href="/connexion" title="Profil" style={{ display: "flex", flexShrink: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/uploads/icon-profil-nav.svg"
-            alt="Profil"
-            style={{ height: "26px", width: "26px", borderRadius: "50%", border: "1px solid var(--color-bordure)", backgroundColor: "white" }}
-          />
-        </Link>
+
+        {utilisateur ? (
+          <>
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                style={{
+                  fontSize: "13px",
+                  color: "var(--color-secondaire)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                Déconnexion
+              </button>
+            </form>
+            <Link href="/compte" title={utilisateur.prenom} style={{ display: "flex", flexShrink: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/uploads/icon-profil-nav.svg"
+                alt="Profil"
+                style={{ height: "26px", width: "26px", borderRadius: "50%", border: "1px solid var(--color-bordure)", backgroundColor: "white" }}
+              />
+            </Link>
+          </>
+        ) : (
+          <Link href="/connexion" title="Profil" style={{ display: "flex", flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/uploads/icon-profil-nav.svg"
+              alt="Profil"
+              style={{ height: "26px", width: "26px", borderRadius: "50%", border: "1px solid var(--color-bordure)", backgroundColor: "white" }}
+            />
+          </Link>
+        )}
       </div>
     </nav>
   );
