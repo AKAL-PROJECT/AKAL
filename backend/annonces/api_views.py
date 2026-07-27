@@ -22,6 +22,7 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
     FilterSet pour l'API REST /api/annonces/.
 
     Paramètres query string :
+        ?q=                → Recherche texte sur le titre et la description
         ?region=           → Code slug de la région (ex: casablanca-settat)
         ?statut_foncier=   → Statut foncier exact
         ?acces_eau=        → Accès eau exact
@@ -32,6 +33,10 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
         ?ordering=         → Tri : date_publication, prix_mad, surface_ha (préfixe - pour desc)
     """
 
+    q = dj_filters.CharFilter(
+        method='filter_search',
+        label='Recherche',
+    )
     region = dj_filters.CharFilter(
         field_name='parcelle__commune__province__region__code',
         lookup_expr='exact',
@@ -81,6 +86,10 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
         model = Annonce
         fields = []
 
+    def filter_search(self, queryset, name, value):
+        """Recherche texte insensible à la casse sur titre + description."""
+        return queryset.search(value)
+
 
 # ──────────────────────────────────────────────
 # Pagination custom
@@ -110,7 +119,7 @@ class AnnonceListAPIView(generics.ListAPIView):
     Réponse : { count, next, previous, results: [...] }
 
     Filtres query params :
-        region, statut_foncier, acces_eau,
+        q, region, statut_foncier, acces_eau,
         prix_min, prix_max, surface_min, surface_max
 
     Ordering (tri) — paramètre ?ordering= :
