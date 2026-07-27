@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { Parcelle } from "@/types/parcelle";
 import { X } from "@/components/icons/Icons";
 
@@ -100,25 +101,43 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
         </div>
       </div>
 
-      <button
-        type="button"
-        disabled={parcelles.length < 2}
-        style={{
-          padding: "12px 24px",
-          fontSize: "14px",
-          fontWeight: 500,
-          color: "white",
-          backgroundColor: "var(--color-prairie)",
-          borderRadius: "var(--radius-btn)",
-          border: "none",
-          cursor: parcelles.length < 2 ? "default" : "pointer",
-          opacity: parcelles.length < 2 ? 0.5 : 1,
-          whiteSpace: "nowrap",
-          transition: "opacity 200ms ease",
-        }}
-      >
-        Comparer maintenant
-      </button>
+      {parcelles.length < 2 ? (
+        <button
+          type="button"
+          disabled
+          style={{
+            padding: "12px 24px",
+            fontSize: "14px",
+            fontWeight: 500,
+            color: "white",
+            backgroundColor: "var(--color-prairie)",
+            borderRadius: "var(--radius-btn)",
+            border: "none",
+            cursor: "default",
+            opacity: 0.5,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Comparer maintenant
+        </button>
+      ) : (
+        <Link
+          href={`/comparateur?ids=${parcelles.map((p) => p.id).join(",")}`}
+          style={{
+            padding: "12px 24px",
+            fontSize: "14px",
+            fontWeight: 500,
+            color: "white",
+            backgroundColor: "var(--color-prairie)",
+            borderRadius: "var(--radius-btn)",
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+            transition: "opacity 200ms ease",
+          }}
+        >
+          Comparer maintenant
+        </Link>
+      )}
     </div>
   );
 }
