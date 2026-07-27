@@ -232,6 +232,43 @@ export function Images({ size, className, style, strokeWidth }: IconProps) {
   );
 }
 
+export function Mail({ size, className, style, strokeWidth }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} className={className} style={style}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
+  );
+}
+
+export function Lock({ size, className, style, strokeWidth }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} className={className} style={style}>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
+
+export function Eye({ size, className, style, strokeWidth }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} className={className} style={style}>
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function EyeOff({ size, className, style, strokeWidth }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} className={className} style={style}>
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+      <circle cx="12" cy="12" r="3" />
+      <line x1="3" y1="3" x2="21" y2="21" />
+    </svg>
+  );
+}
+
 // Illustration ligne-art (montagne/triangle) — état vide du catalogue.
 // Aucune dépendance externe, cohérente avec le reste des icônes inline.
 export function MountainEmpty({ size = 64, className, style }: IconProps) {
