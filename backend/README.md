@@ -59,7 +59,7 @@ pip install -r requirements.txt
 
 Créez un fichier `.env` à la racine du dossier `backend/` et configurez vos accès à la base de données.
 
-**Exemple de fichier `.env` (`.env.example`) :**
+**Exemple de fichier `.env` (voir `.env.example` pour la liste complète) :**
 ```env
 # Clé secrète Django (ne jamais la partager en production)
 SECRET_KEY=votre-cle-secrete-super-securisee
@@ -67,7 +67,16 @@ SECRET_KEY=votre-cle-secrete-super-securisee
 # Connexion à la base de données PostGIS
 # Format : postgis://USER:PASSWORD@HOST:PORT/NAME
 DATABASE_URL=postgis://postgres:root@localhost:5432/akal_db
+
+# MinIO (stockage des photos, cf. docker-compose.yml) — sans ça, tout
+# upload de photo échoue. Voir .env.example pour les valeurs par défaut.
+AWS_ACCESS_KEY_ID=akal
+AWS_SECRET_ACCESS_KEY=akal12345
+AWS_STORAGE_BUCKET_NAME=akal-media
+AWS_S3_ENDPOINT_URL=http://localhost:9000
 ```
+
+> Démarrer MinIO avant de lancer le serveur si vous testez le dépôt d'annonce : `docker compose up minio minio-init`.
 
 > **Attention** : Assurez-vous d'avoir créé la base de données `akal_db` et d'y avoir activé l'extension PostGIS (`CREATE EXTENSION postgis;`).
 

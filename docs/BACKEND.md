@@ -305,19 +305,21 @@ Représente le terrain physique avec ses caractéristiques agricoles et sa géol
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | `id` | `UUIDField` | PK, auto | Identifiant unique |
-| `commune` | `FK → geo.Commune` | NOT NULL, CASCADE | Localisation administrative |
+| `commune` | `FK → geo.Commune` | **NULLABLE**, CASCADE | Localisation administrative |
 | `surface_ha` | `DecimalField(8,2)` | NOT NULL | Surface en **hectares** |
 | `statut_foncier` | `CharField(20)` | NOT NULL | Voir [enum StatutFoncier](#statut-foncier) |
 | `acces_eau` | `CharField(20)` | NOT NULL | Voir [enum AccesEau](#accès-eau) |
 | `topographie` | `CharField(20)` | NOT NULL | Voir [enum Topographie](#topographie) |
 | `acces_routier` | `CharField(20)` | NOT NULL | Voir [enum AccesRoutier](#accès-routier) |
-| `latitude` | `FloatField` | NOT NULL | Coordonnée GPS |
-| `longitude` | `FloatField` | NOT NULL | Coordonnée GPS |
-| `geom` | `PointField` (PostGIS) | NOT NULL, SRID 4326 | Géométrie point pour requêtes spatiales |
+| `latitude` | `FloatField` | **NULLABLE** | Coordonnée GPS |
+| `longitude` | `FloatField` | **NULLABLE** | Coordonnée GPS |
+| `geom` | `PointField` (PostGIS) | **NULLABLE**, SRID 4326 | Géométrie point pour requêtes spatiales |
 | `metadata` | `JSONField` | DEFAULT `{}` | Données supplémentaires flexibles |
 | `created_at` | `DateTimeField` | Auto | Date de création |
 
 > **💡 `geom` vs `latitude`/`longitude`** : Le champ `geom` (PostGIS) permet les requêtes spatiales avancées (distance, intersection, contenu dans une zone). Les champs `latitude`/`longitude` offrent un accès simple aux coordonnées sans avoir besoin de PostGIS.
+>
+> **💡 Champs nullable depuis F03 (dépôt d'annonce, 2026-07-28)** : un brouillon (`Annonce.statut = brouillon`) peut exister avant que l'étape "Localisation" du formulaire ne soit renseignée — seuls `commune`/`latitude`/`longitude`/`geom` sont différables, le reste des champs de qualité du terrain reste obligatoire dès la création. `Parcelle.is_geolocated()` renvoie `True` si les quatre sont renseignés ; `Annonce.can_publish()` (contrat §6.1) s'appuie dessus pour bloquer la transition `brouillon → en_ligne` tant que ce n'est pas le cas.
 
 #### Modèle `DonneesGeo`
 **Table** : `donnees_geo`
@@ -398,8 +400,8 @@ Photos associées à une annonce. Ordonnées par le champ `ordre`.
 |---|---|---|---|
 | `id` | `UUIDField` | PK, auto | Identifiant unique |
 | `annonce` | `FK → Annonce` | NOT NULL, CASCADE | Annonce associée |
-| `image` | `ImageField` | NOT NULL | Fichier image (upload → `media/photos/`) |
-| `ordre` | `IntegerField` | DEFAULT `0` | Ordre d'affichage (0 = principale) |
+| `image` | `ImageField` | NOT NULL | Fichier image — stocké sur MinIO/S3 depuis F03 (2026-07-28), plus en local (cf. §8) |
+| `ordre` | `IntegerField` | DEFAULT `0` | Ordre d'affichage (0 = principale), unique par annonce, sans trou (réordonné à la suppression) |
 | `created_at` | `DateTimeField` | Auto | Date d'upload |
 
 > **💡 Photo principale** : La photo avec `ordre = 0` est considérée comme la photo principale. L'ordre est unique par annonce.
@@ -588,9 +590,20 @@ Parcelle.objects.filter(geom__distance_lte=(point, D(km=10)))
 ```env
 SECRET_KEY=votre-cle-secrete-ici
 DATABASE_URL=postgis://user:password@localhost:5432/akal_db
+
+# MinIO (dev) / S3-compatible (prod) — stockage des photos depuis F03, cf. .env.example
+AWS_ACCESS_KEY_ID=akal
+AWS_SECRET_ACCESS_KEY=akal12345
+AWS_STORAGE_BUCKET_NAME=akal-media
+AWS_S3_ENDPOINT_URL=http://localhost:9000
+AWS_S3_REGION_NAME=us-east-1
+AWS_S3_CUSTOM_DOMAIN=
+AWS_S3_VERIFY=True
 ```
 
 > ⚠️ Le schéma de la `DATABASE_URL` doit être `postgis://` (pas `postgres://`) pour que GeoDjango fonctionne.
+>
+> ⚠️ MinIO doit tourner (`docker compose up minio minio-init`) avant tout upload de photo — `minio-init` crée le bucket et le passe en lecture publique (contrat §4.7). Sans ça, `POST`/`PATCH /api/annonces/` échouent sur toute requête contenant une photo.
 
 ### Settings clés (`akal/settings/base.py`)
 
@@ -615,8 +628,15 @@ DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
 GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\18\bin\libgdal-35.dll'
 GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\18\bin\libgeos_c.dll'
 
-# Fichiers uploadés
-MEDIA_URL = 'media/'
+# Stockage des fichiers uploadés (photos) — MinIO (dev) / S3-compatible (prod)
+# via django-storages, depuis F03 (2026-07-28). MEDIA_URL n'existe plus :
+# FieldFile.url délègue directement au storage configuré ci-dessous.
+STORAGES = {
+    'default': {'BACKEND': 'storages.backends.s3.S3Storage'},
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+}
+# MEDIA_ROOT reste défini : seed_parcelles.py s'en sert comme répertoire de
+# téléchargement local (Unsplash) avant upload vers MinIO — jamais servi directement.
 MEDIA_ROOT = BASE_DIR / 'media'
 ```
 
@@ -966,8 +986,8 @@ Fiche complète d'une annonce spécifique.
         }
       },
       "photos": [
-        {"id": "uuid", "image": "http://.../photo_0.jpg", "ordre": 0},
-        {"id": "uuid", "image": "http://.../photo_1.jpg", "ordre": 1}
+        {"id": "uuid", "url": "http://localhost:9000/akal-media/photos/photo_0.jpg", "ordre": 0},
+        {"id": "uuid", "url": "http://localhost:9000/akal-media/photos/photo_1.jpg", "ordre": 1}
       ],
       "score_courant": {
         "score_global": 82.5,
@@ -979,9 +999,30 @@ Fiche complète d'une annonce spécifique.
       "proprietaire": {
         "id": "a1b2c3d4-e5f6-..."
       },
-      "photo_principale": "http://.../photo_0.jpg"
+      "photo_principale": "http://localhost:9000/akal-media/photos/photo_0.jpg"
     }
     ```
+
+    > `url` (pas `image`) sur chaque photo, et URLs MinIO en dev (`localhost:9000`), remplacées par le CDN public en prod (`AWS_S3_CUSTOM_DOMAIN`).
+
+#### `POST /api/annonces/` (Dépôt d'annonce — F03, 2026-07-28)
+
+Crée un brouillon. Authentification requise. `statut` est **toujours forcé à `brouillon`** côté serveur, quelle que soit la valeur envoyée par le client. Promeut automatiquement le rôle de l'utilisateur à `VENDEUR` s'il ne l'est pas déjà.
+
+*   **Payload** : mêmes champs que la réponse détail ci-dessus, plus un sous-objet `parcelle` en écriture (`surface_ha`, `statut_foncier`, `acces_eau`, `topographie`, `acces_routier`, et optionnellement `commune` (id), `latitude`, `longitude`).
+*   **Réponse** : `201 Created`, l'annonce créée (statut `brouillon`).
+
+#### `GET` / `PATCH /api/annonces/<uuid:id>/` (Brouillon du propriétaire — F03)
+
+Lecture/édition du brouillon par son propriétaire uniquement (`404` pour tout autre utilisateur — le queryset est scopé, pas de `403`). Jamais restreint à `en_ligne()`, contrairement au détail public par slug ci-dessus. Enregistrée avant la route `<slug>/` dans `api_urls.py` (un UUID est syntaxiquement aussi un slug valide). `PUT` est explicitement désactivé (`http_method_names`) — seul `PATCH` est dans le contrat.
+
+*   **Édition partielle** : `PATCH {"titre": "...", "parcelle": {...}, ...}`.
+*   **Upload photo** : `PATCH` multipart avec un champ `photos[]` (un ou plusieurs fichiers), combinable dans la même requête avec les champs ci-dessus. Chaque fichier est revalidé serveur (≤ 2 Mo, image décodable réelle via PIL) même si le client a déjà compressé — jamais confiance au client. Les photos sont créées avant le reste du PATCH, dans la même transaction, pour que `can_publish()` les voie si la même requête publie aussi l'annonce. Maximum 10 photos par annonce.
+*   **Publication** : `PATCH {"statut": "en_ligne"}` — pas d'endpoint `/publish/` dédié (charte de nommage §4.1, jamais de verbe dans l'URL). Validée par `Annonce.can_publish()` (contrat §6.1) : parcelle géolocalisée + ≥ 1 photo + prix > 0. En cas d'échec, `400` avec **toutes** les raisons de blocage simultanément dans `{"statut": [...]}`, pas seulement la première.
+
+#### `DELETE /api/annonces/<uuid:annonce_id>/photos/<uuid:photo_id>/` (Suppression photo — F03)
+
+Supprime une photo d'un brouillon appartenant à l'utilisateur connecté. Réordonne les photos restantes pour garder `ordre` contigu à partir de 0. Refusée (`403`) une fois l'annonce `en_ligne` — l'édition d'annonces déjà publiées reste hors périmètre F03.
 
 #### `GET /api/geo/regions/` (Référentiel Géo)
 
@@ -994,6 +1035,12 @@ Liste des régions du Maroc (non paginé).
       {"id": 2, "code": "marrakech-safi", "nom": "Marrakech-Safi"}
     ]
     ```
+
+#### `GET /api/geo/provinces/?region=<code>` et `GET /api/geo/communes/?province=<code>` (F03, 2026-07-28)
+
+Référentiel des provinces/communes, filtrable par le code slug du parent (ou complet si le paramètre est omis). Non paginé, même forme que `/regions/` (`{id, code, nom}` — `Commune` n'a pas de `code`, seulement `{id, nom}`).
+
+> ⚠️ Ce référentiel appartient normalement au périmètre du module `geo` d'Ibrahim, pas à F03 — ajouté ici par nécessité (la cascade région/province/commune du formulaire de dépôt et `Annonce.can_publish()` en dépendent), à faire relire/aligner avec le reste du référentiel géo.
 
 ---
 
@@ -1138,6 +1185,7 @@ Le backend AKAL est conteneurisé via Docker et configuré pour un déploiement 
 | 2026-07-03 | — | **Cache Redis & Test de charge** : Ajout `docker-compose.yml` (Redis 7 Alpine), configuration `CACHES` django-redis dans `base.py`, cache manuel sur `CatalogueView` (60s, clé MD5) et `@cache_page(300)` sur `AnnonceDetailView`. Création `seed_test_data.py` (100K annonces, `bulk_create` x5000, Points PostGIS Maroc). Création `locustfile.py` (2 profils : CatalogueBrowser + DetailViewer avec filtres aléatoires). |
 | 2026-07-13 | — | **API v2 (Intégration Frontend)** : Implémentation du contrat d'API (§4 Amélioration). I-1 : Corrections du schéma (DonneesGeo, suppression vues/contour/is_principale, ajout StatistiqueAnnonce). I-2 : Installation et config DRF, drf-spectacular (Swagger) et django-cors-headers. I-3 : Création des serializers et vues API REST (`/api/annonces/`, `/api/geo/regions/`) conformes. I-4 : Commande `seed_demo` pour générer ~15 annonces de démo complètes. |
 | 2026-07-14 | — | **Correctifs contrat v1.1 → v1.2 (T1–T11)** : T1 — RGPD `ProprietaireSerializer` expose UUID uniquement. T2 — Sous-objet `parcelle` dans la liste (interdiction d'aplatir). T3 — Renommages modèle (`prix`→`prix_mad`, `statut_annonce`→`statut`, `surface`→`surface_ha`). T4 — `OrderingFilter` django-filter avec mapping contrat (`prix_mad`, `surface_ha`, `date_publication`). T5 — Filtre `region` par code slug + sérialisation `{code, nom}`. T6 — Sous-objet `localisation` (avec `adresse_approximative` en détail). T7 — Retrait FK `destinataire` sur `Conversation` (déductible via `annonce.proprietaire`). T8 — AgriScore historisé (OneToOne→FK, `version_algo`→`version_ponderation`). T9 — Retrait `type_culture` (décision PO). T10 — Commentaire LEGACY sur `AnnonceFilter`. T11 — Codes région en slug kebab-case dans `seed_demo`. |
+| 2026-07-28 | — | **F03 — Dépôt d'annonce (MinIO)** : Stockage photo migré vers MinIO/S3 via `django-storages` (`STORAGES`, plus de `MEDIA_URL`/service Django des médias). `Parcelle.commune/latitude/longitude/geom` nullable (migration `0005`) + `Parcelle.is_geolocated()` / `Annonce.can_publish()` pour encadrer la transition `brouillon → en_ligne` (contrat §6.1). Nouveaux endpoints : `POST /api/annonces/` (création, statut forcé brouillon, rôle auto-promu VENDEUR), `GET/PATCH /api/annonces/<uuid>/` (édition + upload photo multipart `photos[]`, PUT désactivé), `DELETE /api/annonces/<uuid>/photos/<uuid>/` (suppression + réordonnancement, brouillon uniquement). Pas d'endpoint `/publish/` (charte §4.1). `GET /api/geo/provinces/` et `/communes/` ajoutés hors périmètre F03 par nécessité (à faire relire par Ibrahim). Suite de tests permanente : `annonces/tests.py` (20 tests), `geo/tests.py` (6 tests). |
 ---
 
 *Documentation générée et maintenue au fur et à mesure de l'avancement du projet AKAL.*
