@@ -11,11 +11,20 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
       {"statut": "en_ligne"} sur cet endpoint (validée par Annonce.can_publish(),
       cf. serializers.py) — pas d'endpoint /publish/ dédié, pour rester
       conforme à la charte de nommage §4.1 ("jamais de verbe dans l'URL").
+    - DELETE /api/annonces/<uuid:annonce_id>/photos/<uuid:photo_id>/ →
+      Suppression d'une photo de brouillon par son propriétaire. Ajout du
+      2026-07-28, hors contrat initial (4 endpoints validés à l'Étape 0/1) :
+      demandé explicitement lors de la recette utilisateur ("suppression/
+      remplacement de photo"), restreint aux annonces BROUILLON — l'édition
+      d'annonces déjà en_ligne reste hors périmètre F03.
 """
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.db.models import F
 from django_filters import rest_framework as dj_filters
 from rest_framework import generics, permissions, serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import ImageField as DRFImageField
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -273,7 +282,12 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
             })
         try:
             DRFImageField().run_validation(fichier)
-        except serializers.ValidationError:
+        except (serializers.ValidationError, DjangoValidationError):
+            # ImageField.to_internal_value() délègue à Django (forms.ImageField.clean())
+            # sans passer par le run_validators() de DRF : l'exception réelle levée
+            # sur un fichier non-image est django.core.exceptions.ValidationError,
+            # pas rest_framework.exceptions.ValidationError — les deux sont donc
+            # capturées ici plutôt que de laisser passer un 500 non voulu.
             raise serializers.ValidationError({
                 'photos': f"« {fichier.name} » n'est pas une image valide."
             })
@@ -308,3 +322,40 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
                     for i, fichier in enumerate(fichiers)
                 ])
             return self.partial_update(request, *args, **kwargs)
+
+
+class PhotoDeleteAPIView(generics.DestroyAPIView):
+    """
+    DELETE /api/annonces/<uuid:annonce_id>/photos/<uuid:photo_id>/
+
+    Supprime une photo d'un brouillon appartenant à l'utilisateur connecté.
+    Restreint aux annonces BROUILLON — supprimer une photo d'une annonce déjà
+    en_ligne est hors périmètre F03 (édition de listing publié).
+
+    Réordonne les photos restantes pour que `ordre` reste contigu à partir de
+    0 : sans ça, supprimer la photo ordre=0 laisserait l'annonce sans photo
+    principale identifiable alors que d'autres photos existent toujours
+    (contrat §3.6 — ordre 0 = photo principale, source de vérité unique).
+    """
+
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = 'photo_id'
+
+    def get_queryset(self):
+        return Photo.objects.filter(
+            annonce_id=self.kwargs['annonce_id'],
+            annonce__proprietaire=self.request.user,
+        )
+
+    def perform_destroy(self, instance):
+        if instance.annonce.statut != Annonce.StatutAnnonce.BROUILLON:
+            raise PermissionDenied(
+                "Impossible de supprimer une photo d'une annonce déjà en ligne."
+            )
+        with transaction.atomic():
+            annonce_id = instance.annonce_id
+            ordre_supprime = instance.ordre
+            instance.delete()
+            Photo.objects.filter(
+                annonce_id=annonce_id, ordre__gt=ordre_supprime,
+            ).update(ordre=F('ordre') - 1)
