@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "browser-image-compression": "^2.0.2",
     "leaflet": "^1.9.4",
     "next": "16.2.9",
     "react": "19.2.4",

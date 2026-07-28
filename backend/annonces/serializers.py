@@ -14,6 +14,10 @@ Sous-serializers :
     - ProprietaireSerializer     → {id} (UUID uniquement, RGPD loi 09-08)
 """
 
+# pyrefly: ignore [missing-import]
+from django.contrib.gis.geos import Point
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Annonce, AgriScore, Parcelle, Photo
@@ -274,3 +278,131 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
                 elif photo.image:
                     return photo.image.url
         return None
+
+
+# ──────────────────────────────────────────────
+# Écriture — dépôt d'annonce (F03)
+# ──────────────────────────────────────────────
+#
+# Distincts des serializers de lecture ci-dessus (jamais réutilisés pour
+# l'écriture : les DTO publics sont volontairement allégés/anonymisés,
+# l'écriture a des besoins différents — cf. décisions du 2026-07-28).
+
+class ParcelleEcritureSerializer(serializers.ModelSerializer):
+    """
+    Champs Parcelle modifiables via le dépôt d'annonce.
+
+    `commune`/`latitude`/`longitude` restent optionnels ici : un brouillon
+    peut exister sans localisation (étape 1 du formulaire précède l'étape
+    2 "Localisation"). `geom` n'est jamais un champ d'entrée — reconstruit
+    serveur depuis latitude/longitude dans AnnonceEcritureSerializer, pour
+    ne jamais demander au client de manipuler du GeoJSON/WKT directement.
+    """
+
+    class Meta:
+        model = Parcelle
+        fields = [
+            'surface_ha', 'statut_foncier', 'acces_eau', 'topographie', 'acces_routier',
+            'commune', 'latitude', 'longitude',
+        ]
+        extra_kwargs = {
+            'commune': {'required': False, 'allow_null': True},
+            'latitude': {'required': False, 'allow_null': True},
+            'longitude': {'required': False, 'allow_null': True},
+        }
+
+
+class AnnonceEcritureSerializer(serializers.ModelSerializer):
+    """
+    Création + édition partielle d'une annonce (dépôt F03).
+
+    - Le statut n'est jamais choisi par le client à la création : forcé
+      BROUILLON côté vue (AnnonceListCreateAPIView.perform_create).
+    - En PATCH, la seule transition de statut autorisée par ce serializer
+      est brouillon -> en_ligne (publication) — validée par
+      Annonce.can_publish() (contrat §6.1). Toute autre valeur de `statut`
+      est rejetée : archivee/vendue sont hors périmètre F03.
+    - `parcelle` est un sous-objet imbriqué (même forme que les serializers
+      de lecture) ; latitude/longitude sont converties en géométrie
+      PostGIS ici, jamais exposées en écriture brute côté Parcelle.
+    - `photos` est exposé en lecture seule (jamais en écriture ici — l'ajout
+      de photos passe par AnnonceUpdateAPIView.patch(), pas par ce champ) :
+      le formulaire 3 étapes du front doit pouvoir réafficher les photos déjà
+      déposées quand l'utilisateur revient sur un brouillon.
+    """
+
+    parcelle = ParcelleEcritureSerializer(required=False)
+    photos = PhotoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Annonce
+        fields = [
+            'id', 'slug', 'titre', 'description', 'prix_mad', 'statut',
+            'loc_confidentielle', 'parcelle', 'photos',
+        ]
+        read_only_fields = ['id', 'slug']
+
+    def validate_statut(self, value):
+        if self.instance is None:
+            return value  # ignoré à la création (forcé BROUILLON par la vue)
+        if value == self.instance.statut:
+            return value
+        if self.instance.statut != Annonce.StatutAnnonce.BROUILLON or value != Annonce.StatutAnnonce.EN_LIGNE:
+            raise serializers.ValidationError(
+                "Seule la transition brouillon → en_ligne est autorisée via cet endpoint."
+            )
+        return value
+
+    @staticmethod
+    def _appliquer_parcelle(parcelle, parcelle_data):
+        """Applique les champs Parcelle, reconstruit `geom` si lat/lng fournis."""
+        lat = parcelle_data.pop('latitude', None)
+        lng = parcelle_data.pop('longitude', None)
+        for champ, valeur in parcelle_data.items():
+            setattr(parcelle, champ, valeur)
+        if lat is not None and lng is not None:
+            parcelle.latitude = lat
+            parcelle.longitude = lng
+            parcelle.geom = Point(lng, lat, srid=4326)
+
+    def create(self, validated_data):
+        parcelle_data = validated_data.pop('parcelle', {})
+        validated_data.pop('statut', None)  # forcé BROUILLON par la vue, jamais par le client
+
+        parcelle = Parcelle()
+        self._appliquer_parcelle(parcelle, parcelle_data)
+        parcelle.save()
+
+        return Annonce.objects.create(
+            parcelle=parcelle, statut=Annonce.StatutAnnonce.BROUILLON, **validated_data
+        )
+
+    def update(self, instance, validated_data):
+        parcelle_data = validated_data.pop('parcelle', None)
+        nouveau_statut = validated_data.get('statut')
+        statut_avant = instance.statut  # capturé avant toute mutation ci-dessous
+
+        with transaction.atomic():
+            if parcelle_data:
+                self._appliquer_parcelle(instance.parcelle, parcelle_data)
+                instance.parcelle.save()
+
+            for champ, valeur in validated_data.items():
+                setattr(instance, champ, valeur)
+
+            publie_maintenant = (
+                nouveau_statut == Annonce.StatutAnnonce.EN_LIGNE
+                and statut_avant != Annonce.StatutAnnonce.EN_LIGNE
+            )
+            if publie_maintenant:
+                # Vérifie can_publish() sur l'état déjà appliqué en mémoire
+                # (parcelle + champs ci-dessus), avant tout .save() — la
+                # transaction ne persiste rien si ça échoue.
+                ok, raisons = instance.can_publish()
+                if not ok:
+                    raise serializers.ValidationError({'statut': raisons})
+                instance.date_publication = timezone.now()
+
+            instance.save()
+
+        return instance

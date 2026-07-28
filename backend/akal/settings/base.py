@@ -146,8 +146,54 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files (uploads: avatars, photos)
-MEDIA_URL = '/media/'
+# ──────────────────────────────────────────────
+# STOCKAGE MÉDIA — MinIO (dev) / S3-compatible (prod) via django-storages
+# ──────────────────────────────────────────────
+# Contrat §4.7 : bucket public en lecture, URLs absolues stables, jamais le
+# domaine de l'API Django. Mêmes settings dev/prod — seule la valeur des
+# variables d'env change (endpoint MinIO local vs S3/CDN prod).
+#
+# MEDIA_URL n'est plus défini : avec STORAGES['default'] sur S3Storage,
+# FieldFile.url délègue au storage (qui construit l'URL depuis les AWS_S3_*
+# ci-dessous) — MEDIA_URL serait une deuxième source de vérité pouvant
+# diverger silencieusement (ex. si AWS_S3_CUSTOM_DOMAIN change un jour).
+
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='akal-media')
+AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default='http://localhost:9000')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+AWS_S3_ADDRESSING_STYLE = 'path'    # requis par MinIO (pas de sous-domaine par bucket)
+AWS_QUERYSTRING_AUTH = False        # bucket public en lecture, pas d'URL présignée (§4.7)
+AWS_DEFAULT_ACL = None              # la policy du bucket gère la lecture publique
+AWS_S3_FILE_OVERWRITE = False       # chaque objet est immuable une fois uploadé
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=31536000',  # photos immuables : cache navigateur 1 an
+}
+
+# Domaine public devant le bucket en prod (CDN, ex. media.akal.ma) — vide en
+# dev, on sert alors directement depuis l'endpoint MinIO local.
+AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default='')
+AWS_S3_URL_PROTOCOL = 'https:'      # n'a d'effet que si AWS_S3_CUSTOM_DOMAIN est défini
+
+# Vérification TLS de l'endpoint S3 — sans effet ici (endpoint MinIO dev en
+# http:// simple) ; pertinent seulement si un endpoint auto-signé passe un
+# jour en https:// en local.
+AWS_S3_VERIFY = env.bool('AWS_S3_VERIFY', default=True)
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',  # whitenoise inchangé
+    },
+}
+
+# Cache local de téléchargement pour les scripts de seed (Unsplash) — plus
+# jamais servi directement (les médias réels vivent sur MinIO/S3 ci-dessus) ;
+# gardé uniquement parce que seed_parcelles.py s'en sert comme répertoire de
+# travail local avant upload.
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type

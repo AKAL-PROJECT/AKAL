@@ -39,8 +39,14 @@ class Parcelle(models.Model):
         DIFFICILE = 'difficile', 'Difficile'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Nullable depuis F03 (dépôt d'annonce) : un brouillon peut exister avant
+    # que l'étape "Localisation" du formulaire ne soit renseignée. Le reste
+    # des champs (qualité du terrain) reste requis dès la création — seule la
+    # localisation est différée. cf. Annonce.can_publish() / is_geolocated()
+    # ci-dessous pour la garde-fou avant passage en_ligne (contrat §6.1).
     commune = models.ForeignKey(
-        'geo.Commune', on_delete=models.CASCADE, related_name='parcelles'
+        'geo.Commune', on_delete=models.CASCADE, related_name='parcelles',
+        null=True, blank=True,
     )
     surface_ha = models.DecimalField(
         max_digits=8, decimal_places=2, help_text='Surface en hectares'
@@ -49,9 +55,9 @@ class Parcelle(models.Model):
     acces_eau = models.CharField(max_length=20, choices=AccesEau.choices)
     topographie = models.CharField(max_length=20, choices=Topographie.choices)
     acces_routier = models.CharField(max_length=20, choices=AccesRoutier.choices)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
-    geom = gis_models.PointField(srid=4326)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    geom = gis_models.PointField(srid=4326, null=True, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -59,6 +65,15 @@ class Parcelle(models.Model):
         db_table = 'parcelle'
         verbose_name = 'Parcelle'
         verbose_name_plural = 'Parcelles'
+
+    def is_geolocated(self):
+        """Vrai si commune + coordonnées + géométrie sont renseignées (§6.1)."""
+        return (
+            self.commune_id is not None
+            and self.latitude is not None
+            and self.longitude is not None
+            and self.geom is not None
+        )
 
     def __str__(self):
         return f"Parcelle {self.id} — {self.surface_ha} ha"
@@ -135,6 +150,25 @@ class Annonce(models.Model):
             base_slug = slugify(self.titre)
             self.slug = f"{base_slug}-{str(self.id)[:8]}"
         super().save(*args, **kwargs)
+
+    def can_publish(self):
+        """
+        Prérequis de publication brouillon → en_ligne (contrat §6.1) :
+        parcelle géolocalisée, au moins une photo, prix strictement positif.
+
+        Retourne (bool, list[str]) — la liste contient les raisons de blocage
+        si le premier élément est False, vide sinon. N'écrit rien en base :
+        appelée aussi bien en lecture seule (front) qu'avant la transition
+        réelle (serializer d'écriture).
+        """
+        raisons = []
+        if not self.parcelle.is_geolocated():
+            raisons.append("La localisation de la parcelle doit être renseignée avant publication.")
+        if not self.photos.exists():
+            raisons.append("Au moins une photo est requise avant publication.")
+        if not self.prix_mad or self.prix_mad <= 0:
+            raisons.append("Le prix doit être strictement positif avant publication.")
+        return (len(raisons) == 0, raisons)
 
     def __str__(self):
         return self.titre
