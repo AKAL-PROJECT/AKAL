@@ -18,7 +18,9 @@ export type StatutFoncier =
 export type AccesEau = "irriguee" | "bour" | "mixte";
 
 // Statut de l'annonce (§3.3) — vocabulaire partagé avec le dashboard propriétaire.
-export type StatutAnnonce = "en_attente" | "en_ligne" | "archivee" | "vendue";
+// "brouillon" n'apparaît jamais dans le catalogue public (toujours en_ligne),
+// seulement via GET /api/annonces/mes-annonces/ (dashboard propriétaire).
+export type StatutAnnonce = "brouillon" | "en_attente" | "en_ligne" | "archivee" | "vendue";
 
 // Contrat : "varchar (choices) optionnel" sans liste de valeurs fournie —
 // jamais inventer un union fermé sur une donnée dont on n'a pas la liste réelle.
