@@ -1,0 +1,152 @@
+"use client";
+
+import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ChevronLeft } from "@/components/icons/Icons";
+import { envoyerReponseAction, fetchMessagesAction } from "@/app/actions/messaging";
+import type { Conversation, Message } from "@/types/messaging";
+
+// Pas de WebSocket dans ce MVP (décision F05) : le fil se rafraîchit par
+// polling périodique. Intervalle plus court que l'inbox (5s vs 8s) — un fil
+// ouvert est un contexte plus « actif », l'utilisateur attend une réponse.
+const INTERVALLE_POLLING_MS = 5000;
+
+export function ThreadScreen({
+  conversation,
+  messagesInitiaux,
+  utilisateurId,
+}: {
+  conversation: Conversation;
+  messagesInitiaux: Message[];
+  utilisateurId: string;
+}) {
+  const [messages, setMessages] = useState<Message[]>(messagesInitiaux);
+  const [contenu, setContenu] = useState("");
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const finRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const id = setInterval(async () => {
+      const resultat = await fetchMessagesAction(conversation.id);
+      if (resultat) setMessages(resultat);
+    }, INTERVALLE_POLLING_MS);
+    return () => clearInterval(id);
+  }, [conversation.id]);
+
+  useEffect(() => {
+    finRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  function envoyer(e: React.FormEvent) {
+    e.preventDefault();
+    const texte = contenu.trim();
+    if (!texte) return;
+
+    setErreur(null);
+    startTransition(async () => {
+      const resultat = await envoyerReponseAction(conversation.id, texte);
+      if (resultat.message) {
+        const nouveauMessage = resultat.message;
+        setMessages((prev) => [...prev, nouveauMessage]);
+        setContenu("");
+      } else {
+        setErreur(resultat.error);
+      }
+    });
+  }
+
+  return (
+    <div
+      style={{
+        maxWidth: 640,
+        margin: "0 auto",
+        padding: "0 24px",
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100vh - 64px)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderBottom: "1px solid var(--color-bordure)" }}>
+        <Link href="/messages" style={{ color: "var(--color-texte)", display: "flex" }}>
+          <ChevronLeft size={20} />
+        </Link>
+        <div
+          style={{
+            position: "relative",
+            width: 40,
+            height: 40,
+            borderRadius: 8,
+            overflow: "hidden",
+            flexShrink: 0,
+            backgroundColor: "var(--color-fond-input)",
+          }}
+        >
+          {conversation.annonce.photo_principale && (
+            <Image src={conversation.annonce.photo_principale} alt="" fill style={{ objectFit: "cover" }} sizes="40px" />
+          )}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{conversation.autre_participant.prenom}</div>
+          <Link
+            href={`/parcelles/${conversation.annonce.slug}`}
+            style={{
+              fontSize: 12,
+              color: "var(--color-secondaire)",
+              textDecoration: "none",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              display: "block",
+            }}
+          >
+            {conversation.annonce.titre}
+          </Link>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} estMoi={message.auteur.id === utilisateurId} />
+        ))}
+        <div ref={finRef} />
+      </div>
+
+      <form onSubmit={envoyer} style={{ display: "flex", gap: 8, padding: "12px 0 8px", borderTop: "1px solid var(--color-bordure)" }}>
+        <input
+          type="text"
+          value={contenu}
+          onChange={(e) => setContenu(e.target.value)}
+          placeholder="Écrire un message…"
+          className="input"
+          disabled={pending}
+        />
+        <button type="submit" className="btn-primary" disabled={pending || !contenu.trim()}>
+          Envoyer
+        </button>
+      </form>
+      {erreur && <p style={{ color: "#C0392B", fontSize: 13, margin: "0 0 16px" }}>{erreur}</p>}
+    </div>
+  );
+}
+
+function MessageBubble({ message, estMoi }: { message: Message; estMoi: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: estMoi ? "flex-end" : "flex-start" }}>
+      <div
+        style={{
+          maxWidth: "75%",
+          padding: "10px 14px",
+          borderRadius: 14,
+          backgroundColor: estMoi ? "var(--color-foret)" : "var(--color-fond-input)",
+          color: estMoi ? "white" : "var(--color-texte)",
+          fontSize: 14,
+          lineHeight: 1.4,
+        }}
+      >
+        {message.contenu}
+      </div>
+    </div>
+  );
+}
