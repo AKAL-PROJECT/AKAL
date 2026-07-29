@@ -19,6 +19,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from annonces.models import Annonce
+from annonces.serializers import AnnonceListSerializer
 from .models import Conversation, Favori, Message
 
 
@@ -225,6 +226,14 @@ class EnvoyerReponseSerializer(serializers.Serializer):
 # ──────────────────────────────────────────────
 
 class FavoriSerializer(serializers.ModelSerializer):
+    """
+    `annonce` nesté via AnnonceListSerializer (même forme que le catalogue) —
+    ajouté pour permettre à /favoris/ d'afficher une vraie grille de cartes
+    côté front sans un second aller-retour par annonce.
+    """
+
+    annonce = AnnonceListSerializer(read_only=True)
+
     class Meta:
         model = Favori
         fields = ['id', 'annonce', 'created_at']

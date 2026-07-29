@@ -160,7 +160,18 @@ class FavoriListAPIView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return Favori.objects.filter(user=self.request.user).select_related('annonce')
+        # Même liste de relations que AnnonceManager.with_relations()
+        # (préfixée annonce__) — nécessaire depuis que FavoriSerializer
+        # nest AnnonceListSerializer, pour ne pas retomber en N+1.
+        return (
+            Favori.objects.filter(user=self.request.user)
+            .select_related(
+                'annonce', 'annonce__parcelle', 'annonce__parcelle__commune',
+                'annonce__parcelle__commune__province', 'annonce__parcelle__commune__province__region',
+                'annonce__proprietaire',
+            )
+            .prefetch_related('annonce__photos', 'annonce__parcelle__scores')
+        )
 
 
 class FavoriToggleAPIView(APIView):

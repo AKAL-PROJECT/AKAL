@@ -98,9 +98,9 @@ export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
           </button>
         </Link>
 
-        <div style={{ color: "var(--color-foret)", cursor: "pointer" }} title="Favoris">
+        <Link href="/favoris" style={{ color: "var(--color-foret)", display: "flex" }} title="Favoris">
           <Heart size={24} strokeWidth={1.7} />
-        </div>
+        </Link>
         <Link href="/messages" style={{ color: "var(--color-foret)", display: "flex" }} title="Messages">
           <MessageSquare size={24} strokeWidth={1.7} />
         </Link>

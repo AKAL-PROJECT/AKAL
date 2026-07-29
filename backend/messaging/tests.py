@@ -410,7 +410,10 @@ class FavoriListTests(FavorisTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['annonce'], self.annonce.id)
+        # `annonce` est nesté (AnnonceListSerializer) depuis l'ajout de la
+        # page /favoris — plus un UUID brut, cf. FavoriSerializer.
+        self.assertEqual(response.data[0]['annonce']['id'], str(self.annonce.id))
+        self.assertEqual(response.data[0]['annonce']['titre'], self.annonce.titre)
 
     def test_list_empty_when_no_favoris(self):
         self.client.force_authenticate(self.user)
