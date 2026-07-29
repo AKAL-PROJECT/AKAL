@@ -11,6 +11,7 @@
 
 import type {
   AccesEau,
+  AnnonceProprietaire,
   Parcelle,
   ScoreCourant,
   StatutAnnonce,
@@ -148,6 +149,23 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
     scoreCourant: mapScoreCourant(dto.score_courant),
     photoPrincipale: dto.photo_principale,
     photos: [],
+  };
+}
+
+// Réponse de GET /api/annonces/mes-annonces/ (dashboard propriétaire).
+// Ne lit jamais dto.parcelle.region ni dto.parcelle.localisation — tous deux
+// null tant que l'annonce (brouillon compris) n'a pas été localisée, cf.
+// AnnonceProprietaire.
+export function mapAnnonceToAnnonceProprietaire(dto: AnnonceListDTO): AnnonceProprietaire {
+  return {
+    id: dto.id,
+    slug: dto.slug,
+    titre: dto.titre,
+    prix: Number(dto.prix_mad),
+    statut: dto.statut,
+    surface: Number(dto.parcelle.surface_ha),
+    createdAt: dto.created_at,
+    photoPrincipale: dto.photo_principale,
   };
 }
 

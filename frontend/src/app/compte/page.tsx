@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-api";
 import { logoutAction } from "@/app/actions/auth";
@@ -42,6 +43,12 @@ export default async function ComptePage() {
             </>
           )}
         </dl>
+
+        {utilisateur.role === "VENDEUR" && (
+          <Link href="/compte/annonces" className="btn-secondary" style={{ display: "inline-block", marginTop: 24, textDecoration: "none" }}>
+            Voir mes annonces →
+          </Link>
+        )}
 
         <form action={logoutAction} style={{ marginTop: 32 }}>
           <button type="submit" className="btn-ghost">Se déconnecter</button>

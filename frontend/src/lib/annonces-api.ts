@@ -7,7 +7,9 @@
 
 import { cookies } from "next/headers";
 import { ApiError, lireErreur } from "./api";
+import { mapAnnonceToAnnonceProprietaire, type AnnonceListDTO } from "./mapAnnonceToParcelle";
 import type { AnnonceEcriture, ParcelleEcriture } from "@/types/depot-annonce";
+import type { AnnonceProprietaire } from "@/types/parcelle";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
 
@@ -103,6 +105,19 @@ export async function getBrouillon(id: string): Promise<AnnonceEcriture> {
   });
   if (!res.ok) await lireOuLeverErreur(res);
   return (await res.json()) as AnnonceEcriture;
+}
+
+// Toutes les annonces du propriétaire connecté, tous statuts (dashboard) —
+// [] si non authentifié plutôt que de lever, même convention que
+// favoris-api.ts (l'appelant décide quoi faire).
+export async function getMesAnnonces(): Promise<AnnonceProprietaire[]> {
+  const res = await fetch(`${API_URL}/annonces/mes-annonces/`, {
+    headers: { Cookie: await cookieHeader() },
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const annonces = (await res.json()) as AnnonceListDTO[];
+  return annonces.map(mapAnnonceToAnnonceProprietaire);
 }
 
 // Restreint aux brouillons (statut BROUILLON) côté serveur — l'édition

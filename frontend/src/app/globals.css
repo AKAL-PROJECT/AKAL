@@ -127,6 +127,15 @@
   .badge-habous      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: #F5EEF8; color: #7D3C98; }
   .badge-immatricule { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-rosee); color: var(--color-nuit); }
 
+  /* Statut de l'annonce (cycle de vie) — vocabulaire distinct des badges
+     de statut foncier ci-dessus, préfixé badge-annonce-* pour ne jamais
+     les confondre (cf. BadgeStatutAnnonce.tsx). */
+  .badge-annonce-brouillon   { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-fond-input); color: var(--color-secondaire); }
+  .badge-annonce-en-attente  { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-parchemin); color: var(--color-ble); }
+  .badge-annonce-en-ligne    { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-rosee); color: var(--color-foret); }
+  .badge-annonce-archivee    { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-bordure); color: var(--color-tertiaire); }
+  .badge-annonce-vendue      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: #FEF3EE; color: var(--color-terre); }
+
   .tifinagh { font-family: var(--font-tifinagh); }
 
   /* --- Helpers responsive --- */
