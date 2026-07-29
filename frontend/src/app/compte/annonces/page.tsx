@@ -96,6 +96,37 @@ export default async function MesAnnoncesPage() {
                   {formatMAD.format(a.prix)} MAD
                 </span>
               </div>
+
+              {a.statut === "brouillon" ? (
+                <Link
+                  href={`/publier?id=${a.id}`}
+                  className="btn-secondary"
+                  style={{ flexShrink: 0, padding: "6px 14px", fontSize: "13px", textDecoration: "none" }}
+                >
+                  Modifier
+                </Link>
+              ) : (
+                // Capacité backend déjà officialisée (PATCH sans restriction
+                // de statut sur le contenu, P1 #4), mais /publier?id= ne sait
+                // reprendre qu'un brouillon (EtapePhotosPublication affiche
+                // l'écran "déjà publiée" pour une annonce en_ligne) — pas
+                // d'écran d'édition pour les autres statuts pour l'instant.
+                <span
+                  title="Bientôt disponible"
+                  style={{
+                    flexShrink: 0,
+                    padding: "6px 14px",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "var(--color-tertiaire)",
+                    border: "2px solid var(--color-bordure)",
+                    borderRadius: "var(--radius-btn)",
+                    cursor: "not-allowed",
+                  }}
+                >
+                  Modifier
+                </span>
+              )}
             </div>
           ))}
         </div>

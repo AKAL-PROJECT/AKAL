@@ -8,12 +8,19 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
       propriétaire connecté, tous statuts confondus (dashboard propriétaire,
       hors contrat F03 initial — ajout du 2026-07-29)
     - GET  /api/annonces/<slug>/  → Détail complet d'une annonce (public, en_ligne)
-    - GET/PATCH /api/annonces/<uuid:pk>/ → Lecture/édition du brouillon par son
-      propriétaire (F03) — jamais scopé à en_ligne(), contrairement au détail
-      public ci-dessus. La transition brouillon → en_ligne passe par un PATCH
-      {"statut": "en_ligne"} sur cet endpoint (validée par Annonce.can_publish(),
-      cf. serializers.py) — pas d'endpoint /publish/ dédié, pour rester
-      conforme à la charte de nommage §4.1 ("jamais de verbe dans l'URL").
+    - GET/PATCH /api/annonces/<uuid:pk>/ → Lecture/édition par son propriétaire
+      (F03) — jamais scopé à en_ligne(), contrairement au détail public
+      ci-dessus : ceci reste vrai quel que soit le statut de l'annonce.
+      Règle officialisée le 2026-07-29 (dashboard propriétaire, P1 #4) :
+        - édition de CONTENU (titre, description, prix, parcelle, photos) →
+          autorisée sur une annonce à n'importe quel statut, via ce PATCH ;
+        - changement de STATUT → gouverné exclusivement par
+          AnnonceEcritureSerializer.validate_statut() (aujourd'hui : seule la
+          transition brouillon → en_ligne est autorisée, validée par
+          Annonce.can_publish(), cf. serializers.py). Les transitions futures
+          (archivée/vendue) viendront étendre validate_statut(), jamais
+          contourner ce PATCH par un endpoint /publish/ ou /archive/ dédié —
+          conforme à la charte de nommage §4.1 ("jamais de verbe dans l'URL").
     - DELETE /api/annonces/<uuid:annonce_id>/photos/<uuid:photo_id>/ →
       Suppression d'une photo de brouillon par son propriétaire. Ajout du
       2026-07-28, hors contrat initial (4 endpoints validés à l'Étape 0/1) :
@@ -264,11 +271,19 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
     """
     GET/PATCH /api/annonces/<uuid:pk>/
 
-    Lecture/édition du brouillon par son propriétaire (F03) — jamais scopé à
-    en_ligne(), contrairement à AnnonceDetailAPIView (accès public par
-    slug). Enregistrée AVANT la route <slug:slug>/ dans api_urls.py : un
-    UUID est syntaxiquement aussi un slug valide, Django résout dans l'ordre
-    de déclaration.
+    Lecture/édition par son propriétaire (F03) — jamais scopé à en_ligne(),
+    contrairement à AnnonceDetailAPIView (accès public par slug) : le
+    propriétaire retrouve/édite ses annonces quel que soit leur statut.
+    Enregistrée AVANT la route <slug:slug>/ dans api_urls.py : un UUID est
+    syntaxiquement aussi un slug valide, Django résout dans l'ordre de
+    déclaration.
+
+    Édition de CONTENU vs. changement de STATUT (officialisé 2026-07-29,
+    dashboard propriétaire P1 #4) — deux choses distinctes gérées par ce même
+    PATCH mais gouvernées par des règles différentes : le contenu (titre,
+    description, prix, parcelle, photos) est éditable sans restriction de
+    statut ; le champ `statut` lui-même reste seul soumis à
+    AnnonceEcritureSerializer.validate_statut().
 
     PATCH accepte deux natures de contenu, combinables dans une même requête
     multipart :

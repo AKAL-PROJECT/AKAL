@@ -342,6 +342,11 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'slug']
 
+    # Seule barrière sur le champ `statut` — volontairement séparée de
+    # l'édition du reste du contenu (titre, prix, parcelle, photos), qui
+    # n'est soumise à aucune restriction de statut ici (cf. docstring
+    # AnnonceUpdateAPIView). Ne pas étendre cette méthode pour valider
+    # autre chose que des transitions de statut.
     def validate_statut(self, value):
         if self.instance is None:
             return value  # ignoré à la création (forcé BROUILLON par la vue)

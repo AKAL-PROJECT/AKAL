@@ -279,6 +279,42 @@ class PublicationTests(AnnoncesTestBase):
         ids = [a['id'] for a in liste.data['results']]
         self.assertNotIn(self.annonce_id, ids)
 
+    def test_proprietaire_peut_modifier_le_contenu_dune_annonce_en_ligne(self):
+        # Règle officialisée le 2026-07-29 (dashboard propriétaire, P1 #4) :
+        # PATCH = édition de contenu, sans restriction de statut. Verrouille
+        # ce comportement pour qu'il ne régresse pas silencieusement.
+        self.localiser(self.annonce_id)
+        self.uploader_une_photo()
+        self.publier()
+
+        response = self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Titre modifié après publication'},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['titre'], 'Titre modifié après publication')
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
+
+    def test_transition_de_statut_toujours_bloquee_hors_brouillon_vers_en_ligne(self):
+        # Pendant que PATCH=contenu est désormais sans restriction (test
+        # ci-dessus), le changement de STATUT reste, lui, strictement gouverné
+        # par validate_statut() — les transitions archivée/vendue (P2)
+        # n'existent pas encore.
+        self.localiser(self.annonce_id)
+        self.uploader_une_photo()
+        self.publier()
+
+        response = self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'archivee'},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
+
 
 class SuppressionPhotoTests(AnnoncesTestBase):
     def setUp(self):
