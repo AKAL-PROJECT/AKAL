@@ -52,6 +52,22 @@ export type ScoreCourant = {
   versionPonderation: string | null;
 };
 
+// Ligne d'annonce pour le dashboard propriétaire (GET /api/annonces/mes-annonces/).
+// Volontairement distinct de Parcelle : ne porte aucun champ géo/région
+// (latitude/longitude/region), non garantis tant que l'annonce n'a pas
+// passé l'étape "Localisation" de l'assistant de dépôt — contrairement à
+// Parcelle, qui suppose ces champs toujours présents (cf. mapAnnonceToParcelle).
+export type AnnonceProprietaire = {
+  id: string;
+  slug: string;
+  titre: string;
+  prix: number; // prix_mad
+  statut: StatutAnnonce;
+  surface: number; // surface_ha — toujours présent, dès la création du brouillon
+  createdAt: string;
+  photoPrincipale: string | null;
+};
+
 export type Parcelle = {
   id: string; // UUID
   slug: string; // routing détail : /parcelles/[slug]
