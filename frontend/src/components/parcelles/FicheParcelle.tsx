@@ -220,14 +220,14 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
 
             {/* CTAs */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <button
-                type="button"
+              <Link
+                href={`/messages/nouveau?annonce=${a.slug}`}
                 className="btn-primary"
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", textDecoration: "none" }}
               >
                 <MessageSquare size={15} />
                 Contacter le vendeur
-              </button>
+              </Link>
               <button
                 type="button"
                 className="btn-secondary"
@@ -369,14 +369,14 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
             {a.prixM2} MAD/m²
           </div>
         </div>
-        <button
-          type="button"
+        <Link
+          href={`/messages/nouveau?annonce=${a.slug}`}
           className="btn-primary"
-          style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}
+          style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, textDecoration: "none" }}
         >
           <MessageSquare size={14} />
           Contacter
-        </button>
+        </Link>
       </div>
     </div>
   );

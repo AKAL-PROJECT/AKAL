@@ -3,10 +3,17 @@ Vues API REST (DRF) de l'app messaging — F05 (messagerie interne, polling).
 
     GET  /api/conversations/                 → Inbox de l'utilisateur connecté
     POST /api/conversations/                 → Démarre un contact (get-or-create + 1er message)
+    GET  /api/conversations/<uuid:id>/       → Résumé d'un fil (annonce, autre participant)
     GET  /api/conversations/<uuid:id>/messages/ → Historique d'un fil, marque lu automatiquement
     POST /api/conversations/<uuid:id>/messages/ → Répond dans un fil déjà ouvert
 
-Pas de WebSocket dans ce MVP (décision F05) : ces deux GET sont conçus pour
+ConversationDetailAPIView (résumé par id) est un ajout post-commit initial
+F05 : nécessaire pour l'en-tête de la vue thread côté front (savoir de quelle
+annonce / avec qui, sans reparcourir toute la liste paginée pour retrouver un
+id) — découvert seulement en construisant le consommateur front, comme pour
+les endpoints geo pendant F03.
+
+Pas de WebSocket dans ce MVP (décision F05) : les GET sont conçus pour
 être interrogés en polling périodique côté front, pas de push serveur.
 
 Le marquage lu est un effet de bord du GET messages/ (décision F05 du
@@ -56,6 +63,23 @@ class ConversationListCreateAPIView(generics.ListCreateAPIView):
             .select_related('annonce', 'annonce__proprietaire', 'initiateur')
             .prefetch_related('messages', 'annonce__photos')
             .order_by('-updated_at')
+        )
+
+
+class ConversationDetailAPIView(generics.RetrieveAPIView):
+    """GET /api/conversations/<uuid:id>/ → Résumé d'un fil (même forme que la liste)."""
+
+    serializer_class = ConversationListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = 'conversation_id'
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Conversation.objects.none()
+        return (
+            _conversations_de(self.request.user)
+            .select_related('annonce', 'annonce__proprietaire', 'initiateur')
+            .prefetch_related('messages', 'annonce__photos')
         )
 
 

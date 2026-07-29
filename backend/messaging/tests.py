@@ -167,6 +167,34 @@ class InboxTests(MessagingTestBase):
         self.assertEqual(response.data['results'][0]['annonce']['titre'], 'Autre parcelle')
 
 
+class ConversationDetailTests(MessagingTestBase):
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier('vendeur@akal.ma')
+        self.client.logout()
+        self.annonce = self.creer_annonce(self.vendeur)
+        self.acheteur = self.authentifier('acheteur@akal.ma')
+        demarrage = self.client.post(
+            CONVERSATIONS_URL, {'annonce': str(self.annonce.id), 'contenu': 'Bonjour !'},
+            format='json', **self.csrf_headers(),
+        )
+        self.conversation_id = demarrage.data['id']
+
+    def test_participant_peut_lire_le_resume(self):
+        response = self.client.get(f'{CONVERSATIONS_URL}{self.conversation_id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['annonce']['titre'], self.annonce.titre)
+        self.assertEqual(response.data['autre_participant']['prenom'], self.vendeur.prenom)
+
+    def test_tiers_non_participant_recoit_404(self):
+        self.authentifier('tiers-detail@akal.ma')
+
+        response = self.client.get(f'{CONVERSATIONS_URL}{self.conversation_id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
 class RepondreEtLireTests(MessagingTestBase):
     def setUp(self):
         super().setUp()
