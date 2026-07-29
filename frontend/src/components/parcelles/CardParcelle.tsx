@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Parcelle } from "@/types/parcelle";
@@ -12,6 +12,8 @@ type Props = {
   parcelle: Parcelle;
   enComparaison: boolean;
   onToggleComparaison: (id: string) => void;
+  favori: boolean;
+  onToggleFavori: (id: string) => void;
   // Position dans la grille — pilote le délai de l'entrée en cascade
   // (.akal-card-cascade, globals.css). Optionnel : une carte isolée hors
   // grille (ex. future page "favoris") s'anime simplement sans délai.
@@ -20,8 +22,7 @@ type Props = {
 
 const formatMAD = new Intl.NumberFormat("fr-MA");
 
-export default function CardParcelle({ parcelle, enComparaison, onToggleComparaison, index }: Props) {
-  const [favori, setFavori] = useState(false);
+export default function CardParcelle({ parcelle, enComparaison, onToggleComparaison, favori, onToggleFavori, index }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
   const a = parcelle;
   const image = a.photoPrincipale ?? a.photos[0] ?? null;
@@ -86,13 +87,13 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
           <BadgeStatut statut={a.parcelle.statutFoncier} />
         </div>
 
-        {/* Favori — favoris non branchés côté back pour l'instant : visuel
-            décoratif local (aucun appel API, aucune persistance). */}
+        {/* Favori — persisté côté API, redirige vers /connexion si non
+            authentifié (cf. hooks/useFavorisIds.ts). */}
         <button
           type="button"
           aria-label={favori ? "Retirer des favoris" : "Ajouter aux favoris"}
           aria-pressed={favori}
-          onClick={() => setFavori((v) => !v)}
+          onClick={() => onToggleFavori(a.id)}
           style={{
             position: "absolute",
             top: "8px",
