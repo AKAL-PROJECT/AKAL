@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Parcelle } from "@/types/parcelle";
 import { X } from "@/components/icons/Icons";
+import { COMPARATEUR_STORAGE_KEY } from "./comparateurStorage";
 
 type Props = {
   parcelles: Parcelle[];
@@ -11,7 +12,18 @@ type Props = {
 };
 
 export default function BarreComparateur({ parcelles, onRetirer }: Props) {
+  const router = useRouter();
+
   if (parcelles.length === 0) return null;
+
+  // Les Parcelle complètes sont déjà en mémoire ici (chargées par le
+  // catalogue) — on les transmet telles quelles via sessionStorage plutôt
+  // que de les refaire fetcher par /comparateur (pas de nouvel endpoint,
+  // pas de round-trip réseau superflu pour des données déjà disponibles).
+  const ouvrirComparateur = () => {
+    sessionStorage.setItem(COMPARATEUR_STORAGE_KEY, JSON.stringify(parcelles));
+    router.push("/comparateur");
+  };
 
   return (
     <div
@@ -121,8 +133,9 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
           Comparer maintenant
         </button>
       ) : (
-        <Link
-          href={`/comparateur?ids=${parcelles.map((p) => p.id).join(",")}`}
+        <button
+          type="button"
+          onClick={ouvrirComparateur}
           style={{
             padding: "12px 24px",
             fontSize: "14px",
@@ -130,13 +143,14 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
             color: "white",
             backgroundColor: "var(--color-prairie)",
             borderRadius: "var(--radius-btn)",
-            textDecoration: "none",
+            border: "none",
+            cursor: "pointer",
             whiteSpace: "nowrap",
             transition: "opacity 200ms ease",
           }}
         >
           Comparer maintenant
-        </Link>
+        </button>
       )}
     </div>
   );

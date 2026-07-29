@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/geo/', include('geo.urls')),
     path('api/auth/', include('accounts.urls')),
     path('api/conversations/', include('messaging.api_urls')),
+    path('api/favoris/', include('messaging.urls')),
 
     # ── OpenAPI / Swagger (drf-spectacular) ──
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

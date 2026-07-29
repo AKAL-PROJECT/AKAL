@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Parcelle } from "@/types/parcelle";
@@ -9,6 +8,7 @@ import ScoreBar from "./ScoreBar";
 import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
 import SimulateurROI from "./SimulateurROI";
+import { useFavorisIds } from "@/hooks/useFavorisIds";
 import {
   MapPin,
   Heart,
@@ -50,7 +50,8 @@ function agriScoreLegende(score: number | null): string {
 }
 
 export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
-  const [favori, setFavori] = useState(false);
+  const { favorisIds, toggleFavori } = useFavorisIds();
+  const favori = favorisIds.has(a.id);
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px 20px 64px" }}>
@@ -298,7 +299,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
               <button
                 type="button"
                 aria-pressed={favori}
-                onClick={() => setFavori((v) => !v)}
+                onClick={() => toggleFavori(a.id)}
                 style={{
                   flex: 1,
                   display: "flex",

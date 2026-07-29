@@ -266,7 +266,17 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
           {vedettes.map((p, i) => (
             <div key={p.id} className="akal-card-cascade" style={{ animationDelay: `${i * 60}ms` }}>
-              <CardParcelle parcelle={p} enComparaison={false} onToggleComparaison={() => {}} />
+              {/* vedettes = PARCELLES (mock figé, cf. data/parcelles.ts), pas
+                  de vraie Annonce en base — comparateur et favori restent
+                  décoratifs ici pour la même raison (aucun id réel à
+                  persister), comme sur le reste de cette page. */}
+              <CardParcelle
+                parcelle={p}
+                enComparaison={false}
+                onToggleComparaison={() => {}}
+                favori={false}
+                onToggleFavori={() => {}}
+              />
             </div>
           ))}
         </div>

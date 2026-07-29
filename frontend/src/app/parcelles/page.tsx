@@ -16,6 +16,7 @@ import {
   type Tri,
 } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
+import { useFavorisIds } from "@/hooks/useFavorisIds";
 import CardParcelleSkeleton from "@/components/parcelles/CardParcelleSkeleton";
 import FiltresSidebar from "@/components/parcelles/FiltresSidebar";
 import BarreComparateur from "@/components/parcelles/BarreComparateur";
@@ -93,6 +94,7 @@ function Catalogue() {
   const [filtres, setFiltres] = useState<FiltresState>(initial.filtres);
   const [sidebarOuverte, setSidebarOuverte] = useState(false);
   const [comparaison, setComparaison] = useState<string[]>([]);
+  const { favorisIds, toggleFavori } = useFavorisIds();
 
   const [regions, setRegions] = useState<Region[]>([]);
   const [donnees, setDonnees] = useState<ParcellesPage | null>(null);
@@ -320,6 +322,8 @@ function Catalogue() {
                 key={p.id}
                 parcelle={p}
                 index={i}
+                favori={favorisIds.has(p.id)}
+                onToggleFavori={toggleFavori}
                 enComparaison={comparaison.includes(p.id)}
                 onToggleComparaison={toggleComparaison}
               />

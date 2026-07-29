@@ -1,5 +1,5 @@
 """
-Serializers DRF pour l'app messaging — F05 (messagerie interne, polling).
+Serializers DRF pour l'app messaging — F05 (messagerie interne, polling) et Favoris.
 
 Vocabulaire (décision F05 du 2026-07-28) : on garde `initiateur` tel quel,
 jamais traduit en acheteur/vendeur — le second participant d'une conversation
@@ -11,6 +11,7 @@ est toujours déduit via `conversation.annonce.proprietaire`, jamais stocké.
     - ConversationListSerializer  → un fil, tel que listé dans l'inbox
     - EnvoyerMessageSerializer    → POST /api/conversations/ (démarre un fil, get-or-create)
     - EnvoyerReponseSerializer    → POST /api/conversations/<id>/messages/ (répond dans un fil existant)
+    - FavoriSerializer            → un favori (lecture)
 """
 
 from django.db import transaction
@@ -18,8 +19,12 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from annonces.models import Annonce
-from .models import Conversation, Message
+from .models import Conversation, Favori, Message
 
+
+# ──────────────────────────────────────────────
+# Conversations / Messages (F05)
+# ──────────────────────────────────────────────
 
 class ParticipantSerializer(serializers.Serializer):
     """
@@ -213,3 +218,14 @@ class EnvoyerReponseSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return MessageSerializer(instance, context=self.context).data
+
+
+# ──────────────────────────────────────────────
+# Favoris
+# ──────────────────────────────────────────────
+
+class FavoriSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favori
+        fields = ['id', 'annonce', 'created_at']
+        read_only_fields = ['id', 'created_at']
