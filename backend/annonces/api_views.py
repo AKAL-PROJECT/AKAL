@@ -4,6 +4,9 @@ Vues API REST (DRF) de l'app annonces.
 Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
     - GET  /api/annonces/         → Liste paginée avec filtres
     - POST /api/annonces/         → Création (dépôt F03) — statut forcé BROUILLON
+    - GET  /api/annonces/mes-annonces/ → Liste de toutes les annonces du
+      propriétaire connecté, tous statuts confondus (dashboard propriétaire,
+      hors contrat F03 initial — ajout du 2026-07-29)
     - GET  /api/annonces/<slug>/  → Détail complet d'une annonce (public, en_ligne)
     - GET/PATCH /api/annonces/<uuid:pk>/ → Lecture/édition du brouillon par son
       propriétaire (F03) — jamais scopé à en_ligne(), contrairement au détail
@@ -202,6 +205,31 @@ class AnnonceDetailAPIView(generics.RetrieveAPIView):
         return (
             Annonce.objects
             .en_ligne()
+            .with_relations()
+            .prefetch_related('parcelle__scores')
+        )
+
+
+class MesAnnoncesListAPIView(generics.ListAPIView):
+    """
+    GET /api/annonces/mes-annonces/
+
+    Liste de TOUTES les annonces du propriétaire connecté, quel que soit leur
+    statut (brouillon, en_attente, en_ligne, archivee, vendue) — contrairement
+    à AnnonceListCreateAPIView (GET), qui ne retourne que les annonces
+    en_ligne. Alimente le dashboard propriétaire (« Mes annonces »).
+
+    Pas de pagination : le volume attendu par vendeur reste faible pour le MVP.
+    """
+
+    serializer_class = AnnonceListSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            Annonce.objects
+            .filter(proprietaire=self.request.user)
             .with_relations()
             .prefetch_related('parcelle__scores')
         )

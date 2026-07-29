@@ -324,3 +324,50 @@ class SuppressionPhotoTests(AnnoncesTestBase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(Photo.objects.filter(annonce_id=self.annonce_id).count(), 3)
+
+
+class MesAnnoncesTests(AnnoncesTestBase):
+    """GET /api/annonces/mes-annonces/ — dashboard propriétaire (tous statuts)."""
+
+    def test_refuse_si_non_authentifie(self):
+        response = self.client.get(f'{ANNONCES_URL}mes-annonces/')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_liste_les_annonces_du_proprietaire_quel_que_soit_le_statut(self):
+        self.authentifier()
+        brouillon_id = self.creer_brouillon(titre='Brouillon en cours').data['id']
+        annonce_publiee_id = self.creer_brouillon(titre='Annonce publiée').data['id']
+        self.localiser(annonce_publiee_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_publiee_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_publiee_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+
+        response = self.client.get(f'{ANNONCES_URL}mes-annonces/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [a['id'] for a in response.data]
+        self.assertIn(brouillon_id, ids)
+        self.assertIn(annonce_publiee_id, ids)
+        statuts = {a['id']: a['statut'] for a in response.data}
+        self.assertEqual(statuts[brouillon_id], 'brouillon')
+        self.assertEqual(statuts[annonce_publiee_id], 'en_ligne')
+
+    def test_n_inclut_pas_les_annonces_d_un_autre_proprietaire(self):
+        self.authentifier(email='vendeur-a@akal.ma')
+        annonce_a_id = self.creer_brouillon().data['id']
+
+        self.client.logout()
+        self.authentifier(email='vendeur-b@akal.ma')
+        self.creer_brouillon(titre='Annonce du vendeur B')
+
+        response = self.client.get(f'{ANNONCES_URL}mes-annonces/')
+
+        ids = [a['id'] for a in response.data]
+        self.assertNotIn(annonce_a_id, ids)
+        self.assertEqual(len(response.data), 1)
