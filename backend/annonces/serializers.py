@@ -20,6 +20,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
+from . import transitions
 from .models import Annonce, AgriScore, Parcelle, Photo
 
 
@@ -318,10 +319,12 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
 
     - Le statut n'est jamais choisi par le client à la création : forcé
       BROUILLON côté vue (AnnonceListCreateAPIView.perform_create).
-    - En PATCH, la seule transition de statut autorisée par ce serializer
-      est brouillon -> en_ligne (publication) — validée par
-      Annonce.can_publish() (contrat §6.1). Toute autre valeur de `statut`
-      est rejetée : archivee/vendue sont hors périmètre F03.
+    - En PATCH, les transitions de statut autorisées sont gouvernées par le
+      graphe unique de annonces/transitions.py (P2 — 2026-07-30) — jamais
+      vérifiées ici. Toute transition entrante vers en_ligne (quelle que
+      soit son origine dans le graphe) reste en plus soumise à
+      Annonce.can_publish() (contrat §6.1, géoloc/photo/prix), cf. update()
+      ci-dessous.
     - `parcelle` est un sous-objet imbriqué (même forme que les serializers
       de lecture) ; latitude/longitude sont converties en géométrie
       PostGIS ici, jamais exposées en écriture brute côté Parcelle.
@@ -346,15 +349,16 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
     # l'édition du reste du contenu (titre, prix, parcelle, photos), qui
     # n'est soumise à aucune restriction de statut ici (cf. docstring
     # AnnonceUpdateAPIView). Ne pas étendre cette méthode pour valider
-    # autre chose que des transitions de statut.
+    # autre chose que des transitions de statut — le graphe lui-même vit
+    # dans annonces/transitions.py, pas ici.
     def validate_statut(self, value):
         if self.instance is None:
             return value  # ignoré à la création (forcé BROUILLON par la vue)
         if value == self.instance.statut:
             return value
-        if self.instance.statut != Annonce.StatutAnnonce.BROUILLON or value != Annonce.StatutAnnonce.EN_LIGNE:
+        if not transitions.transition_autorisee(self.instance.statut, value):
             raise serializers.ValidationError(
-                "Seule la transition brouillon → en_ligne est autorisée via cet endpoint."
+                f"Transition « {self.instance.statut} → {value} » non autorisée."
             )
         return value
 

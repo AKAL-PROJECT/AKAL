@@ -8,12 +8,14 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 import io
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase
 from PIL import Image
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import User
 from geo.models import Commune, Province, Region
+from . import transitions
 from .models import Annonce, Photo
 
 ANNONCES_URL = '/api/annonces/'
@@ -297,17 +299,18 @@ class PublicationTests(AnnoncesTestBase):
         annonce = Annonce.objects.get(id=self.annonce_id)
         self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
 
-    def test_transition_de_statut_toujours_bloquee_hors_brouillon_vers_en_ligne(self):
+    def test_transition_vers_brouillon_toujours_bloquee_depuis_en_ligne(self):
         # Pendant que PATCH=contenu est désormais sans restriction (test
         # ci-dessus), le changement de STATUT reste, lui, strictement gouverné
-        # par validate_statut() — les transitions archivée/vendue (P2)
-        # n'existent pas encore.
+        # par le graphe de transitions.py — en_ligne → archivee/vendue sont
+        # devenues des arêtes valides avec le P2 (cf. TransitionsStatutTests),
+        # mais en_ligne → brouillon n'en a jamais fait partie.
         self.localiser(self.annonce_id)
         self.uploader_une_photo()
         self.publier()
 
         response = self.client.patch(
-            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'archivee'},
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'brouillon'},
             format='json', **self.csrf_headers(),
         )
 
@@ -407,3 +410,91 @@ class MesAnnoncesTests(AnnoncesTestBase):
         ids = [a['id'] for a in response.data]
         self.assertNotIn(annonce_a_id, ids)
         self.assertEqual(len(response.data), 1)
+
+
+class TransitionsAutoriseesTests(SimpleTestCase):
+    """Tests purs sur annonces/transitions.py — sans base de données."""
+
+    def test_transitions_attendues_sont_autorisees(self):
+        cas = [
+            ('brouillon', 'en_ligne'),
+            ('brouillon', 'en_attente'),
+            ('en_attente', 'en_ligne'),
+            ('en_attente', 'brouillon'),
+            ('en_ligne', 'archivee'),
+            ('en_ligne', 'vendue'),
+            ('archivee', 'en_ligne'),
+        ]
+        for depuis, vers in cas:
+            with self.subTest(depuis=depuis, vers=vers):
+                self.assertTrue(transitions.transition_autorisee(depuis, vers))
+
+    def test_vendue_est_un_etat_terminal(self):
+        for cible in ('brouillon', 'en_attente', 'en_ligne', 'archivee', 'vendue'):
+            with self.subTest(cible=cible):
+                self.assertFalse(transitions.transition_autorisee('vendue', cible))
+
+    def test_archivee_vers_vendue_non_autorise_directement(self):
+        # Doit d'abord repasser par en_ligne (réactivation) — cf. docstring
+        # transitions.py.
+        self.assertFalse(transitions.transition_autorisee('archivee', 'vendue'))
+
+
+class TransitionsStatutTests(AnnoncesTestBase):
+    """Vérifie le graphe P2 bout en bout via l'API (pas seulement transitions.py)."""
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+        self.localiser(self.annonce_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+
+    def _patch_statut(self, statut):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': statut},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_en_ligne_vers_archivee(self):
+        response = self._patch_statut('archivee')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.ARCHIVEE)
+
+    def test_en_ligne_vers_vendue_directement(self):
+        response = self._patch_statut('vendue')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.VENDUE)
+
+    def test_archivee_vers_en_ligne_reactivation_immediate(self):
+        self._patch_statut('archivee')
+
+        response = self._patch_statut('en_ligne')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.EN_LIGNE)
+
+    def test_archivee_vers_vendue_rejete_sans_reactivation(self):
+        self._patch_statut('archivee')
+
+        response = self._patch_statut('vendue')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.ARCHIVEE)
+
+    def test_vendue_est_terminal_via_api(self):
+        self._patch_statut('vendue')
+
+        response = self._patch_statut('en_ligne')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.VENDUE)

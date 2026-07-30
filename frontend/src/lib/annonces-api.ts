@@ -9,7 +9,7 @@ import { cookies } from "next/headers";
 import { ApiError, lireErreur } from "./api";
 import { mapAnnonceToAnnonceProprietaire, type AnnonceListDTO } from "./mapAnnonceToParcelle";
 import type { AnnonceEcriture, ParcelleEcriture } from "@/types/depot-annonce";
-import type { AnnonceProprietaire } from "@/types/parcelle";
+import type { AnnonceProprietaire, StatutAnnonce } from "@/types/parcelle";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
 
@@ -56,7 +56,11 @@ export type PatchBrouillonInput = Partial<{
   titre: string;
   description: string;
   prix_mad: number;
-  statut: "brouillon" | "en_ligne";
+  // Élargi aux 5 statuts (P2 — 2026-07-30, machine d'états annonces/transitions.py
+  // côté backend) : ce type couvre aussi bien le PATCH du wizard de dépôt
+  // (toujours brouillon|en_ligne en pratique) que les actions du dashboard
+  // propriétaire (archiver/marquer vendue/réactiver, cf. app/actions/annonces.ts).
+  statut: StatutAnnonce;
   loc_confidentielle: boolean;
   parcelle: Partial<ParcelleEcriture>;
 }>;
