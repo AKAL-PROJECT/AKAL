@@ -7,6 +7,7 @@ import { getMesAnnonces } from "@/lib/annonces-api";
 import { archiverAnnonceAction, marquerVendueAnnonceAction, reactiverAnnonceAction } from "@/app/actions/annonces";
 import BadgeStatutAnnonce from "@/components/parcelles/BadgeStatutAnnonce";
 import { MountainEmpty } from "@/components/icons/Icons";
+import BoutonAvecConfirmation from "./BoutonAvecConfirmation";
 
 const ACTION_BTN_STYLE: React.CSSProperties = { padding: "6px 14px", fontSize: "13px", whiteSpace: "nowrap" };
 
@@ -135,16 +136,18 @@ export default async function MesAnnoncesPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
                   {a.statut === "en_ligne" && (
                     <>
-                      <form action={archiverAnnonceAction.bind(null, a.id)}>
-                        <button type="submit" className="btn-ghost" style={ACTION_BTN_STYLE}>
-                          Archiver
-                        </button>
-                      </form>
-                      <form action={marquerVendueAnnonceAction.bind(null, a.id)}>
-                        <button type="submit" className="btn-accent" style={ACTION_BTN_STYLE}>
-                          Marquer vendue
-                        </button>
-                      </form>
+                      <BoutonAvecConfirmation
+                        action={archiverAnnonceAction.bind(null, a.id)}
+                        label="Archiver"
+                        className="btn-ghost"
+                        confirmMessage={`Archiver « ${a.titre} » ? Elle ne sera plus visible dans le catalogue public. Vous pourrez la réactiver plus tard.`}
+                      />
+                      <BoutonAvecConfirmation
+                        action={marquerVendueAnnonceAction.bind(null, a.id)}
+                        label="Marquer vendue"
+                        className="btn-accent"
+                        confirmMessage={`Marquer « ${a.titre} » comme vendue ? Cette action est définitive : il ne sera plus possible de la remettre en ligne.`}
+                      />
                     </>
                   )}
                   {a.statut === "archivee" && (

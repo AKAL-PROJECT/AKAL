@@ -147,6 +147,19 @@
     .hidden-desktop { display: flex !important; }
   }
 
+  /* Bouton retirer (barre comparateur) — visible par défaut (pas seulement
+     au survol) pour rester utilisable au tactile, pas seulement à la souris. */
+  .btn-retirer-comparateur {
+    background-color: rgba(27, 58, 45, 0.45);
+    color: white;
+    transition: background-color 150ms ease;
+  }
+
+  .btn-retirer-comparateur:hover,
+  .btn-retirer-comparateur:focus-visible {
+    background-color: rgba(27, 58, 45, 0.75);
+  }
+
   /* --- Sidebar de filtres du catalogue --- */
   .filtres-sidebar {
     position: sticky;

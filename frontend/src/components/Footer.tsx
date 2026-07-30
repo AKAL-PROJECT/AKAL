@@ -33,8 +33,9 @@ export default function Footer() {
             <Link href="/parcelles" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Parcelles
             </Link>
-            <span style={{ fontSize: "14px", color: "var(--color-menthe)", opacity: 0.7 }}>Carte</span>
-            <span style={{ fontSize: "14px", color: "var(--color-menthe)", opacity: 0.7 }}>Régions</span>
+            <Link href="/parcelles" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+              Carte
+            </Link>
           </div>
         </div>
 
