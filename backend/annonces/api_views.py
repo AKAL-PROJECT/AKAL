@@ -14,13 +14,12 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
       Règle officialisée le 2026-07-29 (dashboard propriétaire, P1 #4) :
         - édition de CONTENU (titre, description, prix, parcelle, photos) →
           autorisée sur une annonce à n'importe quel statut, via ce PATCH ;
-        - changement de STATUT → gouverné exclusivement par
-          AnnonceEcritureSerializer.validate_statut() (aujourd'hui : seule la
-          transition brouillon → en_ligne est autorisée, validée par
-          Annonce.can_publish(), cf. serializers.py). Les transitions futures
-          (archivée/vendue) viendront étendre validate_statut(), jamais
-          contourner ce PATCH par un endpoint /publish/ ou /archive/ dédié —
-          conforme à la charte de nommage §4.1 ("jamais de verbe dans l'URL").
+        - changement de STATUT → gouverné exclusivement par le graphe de
+          transitions de annonces/transitions.py (P2 — 2026-07-30), consulté
+          par AnnonceEcritureSerializer.validate_statut(). Toute nouvelle
+          transition future s'ajoute dans ce module, jamais en contournant ce
+          PATCH par un endpoint /publish/ ou /archive/ dédié — conforme à la
+          charte de nommage §4.1 ("jamais de verbe dans l'URL").
     - DELETE /api/annonces/<uuid:annonce_id>/photos/<uuid:photo_id>/ →
       Suppression d'une photo de brouillon par son propriétaire. Ajout du
       2026-07-28, hors contrat initial (4 endpoints validés à l'Étape 0/1) :
@@ -282,7 +281,8 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
     dashboard propriétaire P1 #4) — deux choses distinctes gérées par ce même
     PATCH mais gouvernées par des règles différentes : le contenu (titre,
     description, prix, parcelle, photos) est éditable sans restriction de
-    statut ; le champ `statut` lui-même reste seul soumis à
+    statut ; le champ `statut` lui-même reste seul soumis au graphe de
+    annonces/transitions.py, consulté par
     AnnonceEcritureSerializer.validate_statut().
 
     PATCH accepte deux natures de contenu, combinables dans une même requête

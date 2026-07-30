@@ -4,8 +4,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-api";
 import { getMesAnnonces } from "@/lib/annonces-api";
+import { archiverAnnonceAction, marquerVendueAnnonceAction, reactiverAnnonceAction } from "@/app/actions/annonces";
 import BadgeStatutAnnonce from "@/components/parcelles/BadgeStatutAnnonce";
 import { MountainEmpty } from "@/components/icons/Icons";
+
+const ACTION_BTN_STYLE: React.CSSProperties = { padding: "6px 14px", fontSize: "13px", whiteSpace: "nowrap" };
 
 export const metadata: Metadata = {
   title: "Mes annonces • AKAL",
@@ -126,6 +129,32 @@ export default async function MesAnnoncesPage() {
                 >
                   Modifier
                 </span>
+              )}
+
+              {(a.statut === "en_ligne" || a.statut === "archivee") && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                  {a.statut === "en_ligne" && (
+                    <>
+                      <form action={archiverAnnonceAction.bind(null, a.id)}>
+                        <button type="submit" className="btn-ghost" style={ACTION_BTN_STYLE}>
+                          Archiver
+                        </button>
+                      </form>
+                      <form action={marquerVendueAnnonceAction.bind(null, a.id)}>
+                        <button type="submit" className="btn-accent" style={ACTION_BTN_STYLE}>
+                          Marquer vendue
+                        </button>
+                      </form>
+                    </>
+                  )}
+                  {a.statut === "archivee" && (
+                    <form action={reactiverAnnonceAction.bind(null, a.id)}>
+                      <button type="submit" className="btn-secondary" style={ACTION_BTN_STYLE}>
+                        Réactiver
+                      </button>
+                    </form>
+                  )}
+                </div>
               )}
             </div>
           ))}
