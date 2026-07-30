@@ -1,33 +1,47 @@
-// Garde de session pour les routes protégées (audit du 2026-07-30, plan de
-// résolution refresh/rotation) — responsabilité UNIQUE : gérer la session
-// avant que la page ne se rende. Ne connaît ni favoris, ni annonces, ni
-// messages.
+// Garde de session — responsabilité UNIQUE : gérer la session avant que la
+// page ne se rende. Ne connaît ni favoris, ni annonces, ni messages.
 //
 // Depuis Next.js 16, ce fichier s'appelle `proxy.ts` (anciennement
 // `middleware.ts`) — cf. node_modules/next/dist/docs/.../16-proxy.md.
 //
-// Flux :
-//   route protégée ? -- non --> next()
-//        |
-//       oui
-//        |
-//   access_token valide (exp non expiré, lu localement, PAS vérifié
-//   cryptographiquement ici — cf. estEncoreValide) ?
-//        |                                    |
-//       oui                                  non
-//        |                                    |
-//     next()                    refresh_token présent ?
-//                                     |            |
-//                                    non           oui
-//                                     |            |
-//                              redirect      POST /api/auth/refresh/
-//                              /connexion         |
-//                                            succès ?
-//                                          /          \
-//                                        oui           non
-//                                         |              |
-//                              cookies mis à jour   redirect /connexion
-//                              (NextResponse) + next()
+// Révision du 2026-07-30 (audit indépendant) : la première version ne
+// s'exécutait que sur un sous-ensemble de routes (/compte, /publier,
+// /messages, /favoris, /bienvenue), alors que getCurrentUser() — devenu un
+// lecteur pur, cf. lib/auth-api.ts — est consulté par TOUTE page (via
+// app/layout.tsx). Sur les pages hors de cet ancien périmètre (/, /parcelles,
+// /comparateur...), un access_token expiré faisait apparaître l'utilisateur
+// comme déconnecté dans le Navbar alors que son refresh_token était valide,
+// et une Server Action déclenchée depuis ces pages (ex. toggleFavoriAction)
+// redirigeait vers /connexion avant même d'atteindre la logique de refresh
+// de fetchWithAuth(). Constaté par reproduction réelle, pas supposé.
+//
+// Le proxy s'exécute maintenant sur toute page HTML (cf. `config.matcher`
+// ci-dessous, qui exclut seulement assets/API), mais son comportement
+// diverge selon que la route est protégée ou non :
+//
+//   route protégée (ROUTES_PROTEGEES) ?
+//     |                                    |
+//    oui                                  non (page publique)
+//     |                                    |
+//   access valide ?                    access valide ?
+//   oui -> next()                      oui -> next()
+//   non -> refresh possible ?          non -> refresh possible ?
+//            oui -> cookies à jour +           oui -> cookies à jour + next()
+//                   next()                     non -> next() QUAND MÊME,
+//            non -> redirect /connexion                sans cookies à jour
+//                                                       (rendu anonyme, PAS
+//                                                       de redirection —
+//                                                       une page publique ne
+//                                                       doit jamais exiger
+//                                                       de session)
+//
+// getCurrentUser() (lib/auth-api.ts) ne tente plus jamais de refresh lui-même
+// et ne modifie jamais les cookies — il lit l'état de session tel qu'il
+// arrive au rendu, déjà à jour grâce à ce proxy. Cela évite entièrement le
+// problème de rotation des refresh tokens dans un Server Component (un
+// refresh qui réussirait sans pouvoir persister le nouveau cookie
+// blackliste l'ancien sans que le navigateur reçoive le nouveau — reproduit
+// expérimentalement lors du tour précédent de cette investigation).
 //
 // Ce fast-path (décoder l'exp sans vérifier la signature) ne remplace pas
 // la vérification réelle : le backend revalide le JWT à chaque appel API
@@ -35,6 +49,20 @@
 // Le rôle de ce middleware est UX seulement : éviter qu'une page entière se
 // rende avant de découvrir, une fois le premier appel API fait, que la
 // session a expiré.
+
+// Routes qui exigent réellement une session — chaque page correspondante
+// fait déjà son propre `if (!utilisateur) redirect(...)` (cf. lib/auth-api.ts
+// getCurrentUser(), maintenant un lecteur pur). Toute autre route matchée
+// par `config.matcher` est traitée comme publique : le refresh y est
+// tenté par confort (pour que le Navbar reflète une session valide) mais
+// son échec ne redirige JAMAIS — /connexion et /inscription ont d'ailleurs
+// la logique inverse (redirigent SI une session existe), gérée par les
+// pages elles-mêmes, pas ici.
+const ROUTES_PROTEGEES = [/^\/compte(\/|$)/, /^\/bienvenue(\/|$)/, /^\/publier(\/|$)/, /^\/messages(\/|$)/, /^\/favoris(\/|$)/];
+
+function estRouteProtegee(pathname: string): boolean {
+  return ROUTES_PROTEGEES.some((re) => re.test(pathname));
+}
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -100,6 +128,7 @@ async function tenterRefreshEdge(
 }
 
 export async function proxy(request: NextRequest) {
+  const protegee = estRouteProtegee(request.nextUrl.pathname);
   const accessToken = request.cookies.get("access_token")?.value;
 
   if (accessToken && accessEncoreValide(accessToken)) {
@@ -108,7 +137,11 @@ export async function proxy(request: NextRequest) {
 
   const cookiesRafraichis = await tenterRefreshEdge(request);
   if (!cookiesRafraichis) {
-    return rediriger(request);
+    // Refresh impossible (pas de refresh_token) ou refusé (expiré/blacklisté).
+    // Route protégée -> fin de session réelle, redirection. Route publique
+    // -> laisser passer quand même, rendu anonyme (jamais de redirection
+    // sur une page qui n'a jamais exigé de session).
+    return protegee ? rediriger(request) : NextResponse.next();
   }
 
   const response = NextResponse.next();
@@ -118,18 +151,11 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
-// IMPORTANT : jamais /:path*. Uniquement les routes qui exigent réellement
-// une session (chaque page correspondante fait déjà son propre
-// `if (!utilisateur) redirect(...)`, cf. audit du 2026-07-30) — pas les
-// assets (JS/CSS/images/favicon) ni les endpoints API. /favoris ajoutée
-// au-delà de l'exemple donné : app/favoris/page.tsx exige aussi une session
-// (même pattern que /compte, /publier, /messages).
+// Toute page HTML — exclut uniquement les assets Next.js (_next/static,
+// _next/image), le favicon, les fichiers statiques (extensions courantes,
+// couvre notamment public/uploads/*.svg) et un éventuel /api/ futur (aucun
+// Route Handler Next.js n'existe aujourd'hui, le backend Django est sur une
+// origine séparée — exclusion conservée par précaution/convention standard).
 export const config = {
-  matcher: [
-    "/compte/:path*",
-    "/bienvenue/:path*",
-    "/publier/:path*",
-    "/messages/:path*",
-    "/favoris/:path*",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };
