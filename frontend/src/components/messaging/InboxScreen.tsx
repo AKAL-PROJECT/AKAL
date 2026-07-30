@@ -27,14 +27,14 @@ export function InboxScreen({ inboxInitiale }: { inboxInitiale: Paginated<Conver
       <h1 style={{ fontSize: 24, marginBottom: 24 }}>Messages</h1>
 
       {conversations.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "56px 20px" }}>
+        <div className="akal-fade-in" style={{ textAlign: "center", padding: "56px 20px" }}>
           <p style={{ color: "var(--color-secondaire)", marginBottom: 16 }}>Aucune conversation pour l&apos;instant.</p>
           <Link href="/parcelles" className="btn-secondary" style={{ textDecoration: "none" }}>
             Explorer les parcelles
           </Link>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="akal-stagger" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {conversations.map((conversation) => (
             <ConversationCard key={conversation.id} conversation={conversation} />
           ))}
@@ -95,6 +95,7 @@ function ConversationCard({ conversation }: { conversation: Conversation }) {
 
       {nonLu && (
         <span
+          className="akal-notify-dot"
           style={{
             flexShrink: 0,
             minWidth: 20,

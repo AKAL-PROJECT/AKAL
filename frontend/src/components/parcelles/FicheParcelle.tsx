@@ -81,6 +81,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
       {/* Fil d'Ariane */}
       <nav
         aria-label="Fil d'Ariane"
+        className="akal-fade-in"
         style={{
           display: "flex",
           alignItems: "center",
@@ -119,10 +120,12 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "28px" }}>
 
           {/* Carrousel photos */}
-          <CarrouselPhotos photos={a.photos} titre={a.titre} badge={a.badge} />
+          <div className="akal-fade-in">
+            <CarrouselPhotos photos={a.photos} titre={a.titre} badge={a.badge} />
+          </div>
 
           {/* Titre + localisation + badges */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div className="akal-fade-in" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               <BadgeStatut statut={a.parcelle.statutFoncier} />
               {a.parcelle.accesEau !== "bour" && (
@@ -227,7 +230,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
 
         {/* ── Colonne contact (sticky) ─────────────────────────── */}
         <aside className="fiche-aside">
-          <div className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div className="card akal-fade-in" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px", animationDelay: "80ms" }}>
 
             {/* Prix */}
             <div>
@@ -261,6 +264,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                 type="button"
                 aria-pressed={favori}
                 onClick={() => toggleFavori(a.id)}
+                className="akal-focusable"
                 style={{
                   flex: 1,
                   display: "flex",
@@ -283,6 +287,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
               <button
                 type="button"
                 onClick={partager}
+                className="akal-focusable"
                 style={{
                   flex: 1,
                   display: "flex",
@@ -309,7 +314,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
 
       {/* ── Barre contact fixe mobile ──────────────────────────── */}
       <div
-        className="hidden-desktop"
+        className="hidden-desktop akal-bar-in"
         style={{
           position: "fixed",
           bottom: 0,

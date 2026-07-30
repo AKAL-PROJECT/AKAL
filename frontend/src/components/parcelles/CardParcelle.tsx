@@ -94,6 +94,7 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
           aria-label={favori ? "Retirer des favoris" : "Ajouter aux favoris"}
           aria-pressed={favori}
           onClick={() => onToggleFavori(a.id)}
+          className="btn-icone-rond akal-focusable"
           style={{
             position: "absolute",
             top: "8px",
@@ -107,7 +108,6 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: "rgba(255,255,255,0.9)",
-            transition: "background-color 200ms ease",
           }}
         >
           <Heart

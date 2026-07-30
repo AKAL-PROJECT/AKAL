@@ -195,6 +195,7 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
           role="dialog"
           aria-modal="true"
           aria-label={`Photos de ${titre}`}
+          className="akal-pop-in"
           style={{
             position: "fixed",
             inset: 0,
@@ -212,6 +213,7 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
               type="button"
               onClick={() => setOuvert(false)}
               aria-label="Fermer la visionneuse"
+              className="btn-icone-rond akal-focusable"
               style={{
                 width: "36px", height: "36px", borderRadius: "50%", border: "none",
                 backgroundColor: "rgba(255,255,255,0.12)", color: "white", cursor: "pointer",
@@ -237,8 +239,9 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
                   type="button"
                   onClick={precedent}
                   aria-label="Photo précédente"
+                  className="btn-icone-rond akal-focusable"
                   style={{
-                    position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)",
+                    position: "absolute", left: "16px", top: "50%", marginTop: "-20px",
                     width: "40px", height: "40px", borderRadius: "50%", border: "none",
                     backgroundColor: "rgba(255,255,255,0.88)", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -250,8 +253,9 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
                   type="button"
                   onClick={suivant}
                   aria-label="Photo suivante"
+                  className="btn-icone-rond akal-focusable"
                   style={{
-                    position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)",
+                    position: "absolute", right: "16px", top: "50%", marginTop: "-20px",
                     width: "40px", height: "40px", borderRadius: "50%", border: "none",
                     backgroundColor: "rgba(255,255,255,0.88)", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",

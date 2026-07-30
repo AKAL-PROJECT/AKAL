@@ -68,7 +68,7 @@ export default function ComparateurScreen() {
 
   if (parcelles.length === 0) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "120px 20px", gap: "20px", textAlign: "center" }}>
+      <div className="akal-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "120px 20px", gap: "20px", textAlign: "center" }}>
         <span style={{ color: "var(--color-foret)" }}>
           <MountainEmpty size={64} />
         </span>
@@ -85,7 +85,7 @@ export default function ComparateurScreen() {
   }
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "32px 20px 64px" }}>
+    <div className="akal-fade-in" style={{ maxWidth: "1000px", margin: "0 auto", padding: "32px 20px 64px" }}>
       <h1 style={{ fontSize: "24px", fontWeight: 500, margin: "0 0 24px" }}>Comparateur</h1>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: `${280 + parcelles.length * 220}px` }}>

@@ -14,9 +14,9 @@ const CarteLeaflet = dynamic(() => import("./CarteLeaflet"), {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#e5e7eb",
+        backgroundColor: "var(--color-menthe)",
         borderRadius: "var(--radius-card)",
-        color: "var(--color-tertiaire)",
+        color: "var(--color-foret)",
         fontSize: "14px",
       }}
     >

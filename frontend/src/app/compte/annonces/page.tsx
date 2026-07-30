@@ -31,6 +31,7 @@ export default async function MesAnnoncesPage() {
 
       {annonces.length === 0 ? (
         <div
+          className="akal-fade-in"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -51,7 +52,7 @@ export default async function MesAnnoncesPage() {
           </Link>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="akal-stagger" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {annonces.map((a) => (
             <div
               key={a.id}

@@ -205,7 +205,7 @@ function Catalogue() {
             <button
               type="button"
               onClick={() => setSidebarOuverte(true)}
-              className="hidden-desktop btn-toggle-filtres"
+              className="hidden-desktop btn-toggle-filtres akal-focusable"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -217,6 +217,7 @@ function Catalogue() {
                 backgroundColor: "white",
                 cursor: "pointer",
                 color: "var(--color-texte)",
+                transition: "background-color 150ms ease, border-color 150ms ease",
               }}
             >
               <Filter size={14} /> Filtres
@@ -256,7 +257,8 @@ function Catalogue() {
                 onClick={() => setMode("grille")}
                 aria-pressed={mode === "grille"}
                 aria-label="Vue grille"
-                style={{ padding: "8px 12px", border: "none", cursor: "pointer", display: "flex", backgroundColor: mode === "grille" ? "var(--color-rosee)" : "white" }}
+                className="akal-focusable"
+                style={{ padding: "8px 12px", border: "none", cursor: "pointer", display: "flex", backgroundColor: mode === "grille" ? "var(--color-rosee)" : "white", transition: "background-color 150ms ease" }}
               >
                 <Grid size={15} style={{ color: mode === "grille" ? "var(--color-foret)" : "var(--color-tertiaire)" }} />
               </button>
@@ -265,7 +267,8 @@ function Catalogue() {
                 onClick={() => setMode("carte")}
                 aria-pressed={mode === "carte"}
                 aria-label="Vue carte"
-                style={{ padding: "8px 12px", border: "none", borderLeft: "1px solid var(--color-bordure)", cursor: "pointer", display: "flex", backgroundColor: mode === "carte" ? "var(--color-rosee)" : "white" }}
+                className="akal-focusable"
+                style={{ padding: "8px 12px", border: "none", borderLeft: "1px solid var(--color-bordure)", cursor: "pointer", display: "flex", backgroundColor: mode === "carte" ? "var(--color-rosee)" : "white", transition: "background-color 150ms ease" }}
               >
                 <Map size={15} style={{ color: mode === "carte" ? "var(--color-foret)" : "var(--color-tertiaire)" }} />
               </button>
@@ -277,6 +280,7 @@ function Catalogue() {
         {erreur ? (
           <div
             role="alert"
+            className="akal-alert-in"
             style={{
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               gap: "12px", padding: "64px 20px", textAlign: "center",
@@ -299,6 +303,7 @@ function Catalogue() {
           </div>
         ) : resultatsAffiches.length === 0 ? (
           <div
+            className="akal-fade-in"
             style={{
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               gap: "16px", padding: "80px 20px", textAlign: "center", color: "var(--color-tertiaire)",

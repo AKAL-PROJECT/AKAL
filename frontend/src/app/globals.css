@@ -386,4 +386,96 @@
       animation: none !important;
     }
   }
+
+  /* --- Système de motion partagé (vague 4 : cohérence transverse) ---
+     Vocabulaire commun à tous les écrans, au-delà de l'accueil et de la
+     connexion : retour tactile, entrées d'éléments, cascades de listes,
+     alertes, notifications, focus clavier. */
+
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-accent:active,
+  .btn-ghost:active {
+    transform: scale(0.97);
+  }
+
+  @keyframes akal-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .akal-fade-in { animation: akal-fade-in 0.35s ease-out both; }
+
+  @keyframes akal-pop-in {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .akal-pop-in { animation: akal-pop-in 0.25s cubic-bezier(.2,.7,.2,1) both; }
+
+  /* Cascade automatique pour les listes/grilles issues d'un .map() : le délai
+     est porté par nth-child, pas besoin d'indexer chaque enfant en JS. */
+  .akal-stagger > * { animation: akal-fade-in 0.4s ease-out both; }
+  .akal-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .akal-stagger > *:nth-child(2) { animation-delay: 40ms; }
+  .akal-stagger > *:nth-child(3) { animation-delay: 80ms; }
+  .akal-stagger > *:nth-child(4) { animation-delay: 120ms; }
+  .akal-stagger > *:nth-child(5) { animation-delay: 160ms; }
+  .akal-stagger > *:nth-child(6) { animation-delay: 200ms; }
+  .akal-stagger > *:nth-child(n+7) { animation-delay: 240ms; }
+
+  @keyframes akal-alert-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .akal-alert-in { animation: akal-alert-in 0.3s ease-out both; }
+
+  /* Pastille de notification (message/annonce non lue) — anneau qui pulse,
+     dans la teinte terre déjà utilisée pour ces badges (non-lu, favori). */
+  @keyframes akal-notify-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(196,98,45,0.4); }
+    100% { box-shadow: 0 0 0 6px rgba(196,98,45,0); }
+  }
+  .akal-notify-dot { position: relative; animation: akal-notify-ring 1.8s ease-out infinite; }
+
+  /* Anneau de focus clavier pour les éléments interactifs sans style natif
+     (marker de carte, icône cliquable) — visible seulement au clavier. */
+  .akal-focusable:focus-visible {
+    outline: 2px solid var(--color-foret);
+    outline-offset: 2px;
+    border-radius: var(--radius-btn);
+  }
+
+  /* Bouton circulaire icône (favori, fermer, etc.) — réagit au survol/clic. */
+  .btn-icone-rond {
+    transition: transform 150ms ease, background-color 200ms ease;
+  }
+  .btn-icone-rond:hover { transform: scale(1.08); }
+  .btn-icone-rond:active { transform: scale(0.9); }
+
+  /* Barre fixe (comparateur, CTA mobile fiche) — glisse depuis le bas. */
+  @keyframes akal-bar-in {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .akal-bar-in { animation: akal-bar-in 0.3s ease-out both; }
+
+  /* CTA pleine couleur hors variantes .btn-* standards (ex. "Comparer
+     maintenant", vert prairie) — même retour tactile que les .btn-*. */
+  .btn-cta-verte {
+    transition: transform 150ms ease, opacity 200ms ease, background-color 200ms ease;
+  }
+  .btn-cta-verte:hover { background-color: var(--color-foret); }
+  .btn-cta-verte:active { transform: scale(0.97); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .akal-bar-in { animation: none !important; transform: none !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .akal-fade-in, .akal-pop-in, .akal-alert-in, .akal-stagger > * {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .akal-notify-dot { animation: none !important; }
+  }
 }

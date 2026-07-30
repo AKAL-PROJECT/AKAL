@@ -232,6 +232,15 @@ export function Images({ size, className, style, strokeWidth }: IconProps) {
   );
 }
 
+export function User({ size, className, style, strokeWidth }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} className={className} style={style}>
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
 export function Mail({ size, className, style, strokeWidth }: IconProps) {
   return (
     <svg {...base(size, strokeWidth)} className={className} style={style}>

@@ -27,6 +27,7 @@ export function Stepper({ etapes, etapeActive }: { etapes: readonly string[]; et
               backgroundColor: i <= etapeActive ? "var(--color-foret)" : "var(--color-fond-input)",
               color: i <= etapeActive ? "white" : "var(--color-tertiaire)",
               boxShadow: i === etapeActive ? "0 0 0 3px var(--color-menthe)" : "none",
+              transition: "background-color 250ms ease, color 250ms ease, box-shadow 250ms ease",
             }}
           >
             {i < etapeActive ? <Check size={16} /> : i + 1}
@@ -48,6 +49,7 @@ export function Stepper({ etapes, etapeActive }: { etapes: readonly string[]; et
                 height: 2,
                 backgroundColor: i < etapeActive ? "var(--color-foret)" : "var(--color-bordure)",
                 margin: "0 4px",
+                transition: "background-color 250ms ease",
               }}
             />
           )}

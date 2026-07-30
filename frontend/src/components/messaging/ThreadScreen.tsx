@@ -126,14 +126,14 @@ export function ThreadScreen({
           Envoyer
         </button>
       </form>
-      {erreur && <p style={{ color: "#C0392B", fontSize: 13, margin: "0 0 16px" }}>{erreur}</p>}
+      {erreur && <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 13, margin: "0 0 16px" }}>{erreur}</p>}
     </div>
   );
 }
 
 function MessageBubble({ message, estMoi }: { message: Message; estMoi: boolean }) {
   return (
-    <div style={{ display: "flex", justifyContent: estMoi ? "flex-end" : "flex-start" }}>
+    <div className="akal-fade-in" style={{ display: "flex", justifyContent: estMoi ? "flex-end" : "flex-start" }}>
       <div
         style={{
           maxWidth: "75%",

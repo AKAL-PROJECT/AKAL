@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import type { User } from "@/lib/auth-api";
 
 // Routes qui gèrent leur propre habillage plein écran (pas de Navbar/Footer du site).
-const CHROMELESS_ROUTES = ["/connexion"];
+const CHROMELESS_ROUTES = ["/connexion", "/inscription"];
 
 export default function SiteChrome({
   children,

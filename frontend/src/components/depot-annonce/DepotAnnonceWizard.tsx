@@ -47,32 +47,34 @@ export function DepotAnnonceWizard({ annonceInitiale }: { annonceInitiale: Annon
       </div>
 
       <div className="card" style={{ padding: 32 }}>
-        {etape === 0 && (
-          <EtapeInfosGenerales
-            annonce={annonce}
-            onSuivant={(a) => {
-              definirAnnonce(a);
-              setEtape(1);
-            }}
-          />
-        )}
-        {etape === 1 && annonce && (
-          <EtapeLocalisation
-            annonce={annonce}
-            onPrecedent={() => setEtape(0)}
-            onSuivant={(a) => {
-              definirAnnonce(a);
-              setEtape(2);
-            }}
-          />
-        )}
-        {etape === 2 && annonce && (
-          <EtapePhotosPublication
-            annonce={annonce}
-            onPrecedent={() => setEtape(1)}
-            onAnnonceMiseAJour={definirAnnonce}
-          />
-        )}
+        <div key={etape} className="akal-fade-in">
+          {etape === 0 && (
+            <EtapeInfosGenerales
+              annonce={annonce}
+              onSuivant={(a) => {
+                definirAnnonce(a);
+                setEtape(1);
+              }}
+            />
+          )}
+          {etape === 1 && annonce && (
+            <EtapeLocalisation
+              annonce={annonce}
+              onPrecedent={() => setEtape(0)}
+              onSuivant={(a) => {
+                definirAnnonce(a);
+                setEtape(2);
+              }}
+            />
+          )}
+          {etape === 2 && annonce && (
+            <EtapePhotosPublication
+              annonce={annonce}
+              onPrecedent={() => setEtape(1)}
+              onAnnonceMiseAJour={definirAnnonce}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

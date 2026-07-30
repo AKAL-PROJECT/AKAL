@@ -42,6 +42,7 @@ export function FavorisScreen({ parcellesInitiales }: { parcellesInitiales: Parc
 
       {parcelles.length === 0 ? (
         <div
+          className="akal-fade-in"
           style={{
             display: "flex",
             flexDirection: "column",

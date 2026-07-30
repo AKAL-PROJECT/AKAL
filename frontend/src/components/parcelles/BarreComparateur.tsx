@@ -27,6 +27,7 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
 
   return (
     <div
+      className="akal-bar-in"
       style={{
         position: "fixed",
         bottom: 0,
@@ -126,6 +127,7 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
         <button
           type="button"
           onClick={ouvrirComparateur}
+          className="btn-cta-verte akal-focusable"
           style={{
             padding: "12px 24px",
             fontSize: "14px",
@@ -136,7 +138,6 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
             border: "none",
             cursor: "pointer",
             whiteSpace: "nowrap",
-            transition: "opacity 200ms ease",
           }}
         >
           Comparer maintenant
