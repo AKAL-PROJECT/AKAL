@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PARCELLES } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
@@ -47,76 +46,6 @@ const RAISONS = [
     desc: "Un espace pour mettre en relation propriétaires et acheteurs, sans intermédiaire.",
   },
 ];
-
-const TEMOIGNAGES = [
-  {
-    texte: "AKAL m'a permis de trouver une oliveraie à Fès en deux semaines, avec un passeport foncier clair dès la première visite.",
-    nom: "Rachid Bennani",
-    role: "Acheteur, Fès",
-  },
-  {
-    texte: "J'ai vendu ma parcelle de Meknès sans intermédiaire, en échangeant directement avec l'acheteur.",
-    nom: "Khadija Tazi",
-    role: "Vendeuse, Meknès",
-  },
-  {
-    texte: "Le comparateur m'a évité une erreur : deux parcelles semblaient identiques, l'AgriScore a tout changé.",
-    nom: "Youssef Idrissi",
-    role: "Acheteur, Agadir",
-  },
-];
-
-function useCompteurAnime(cible: number, actif: boolean) {
-  const [valeur, setValeur] = useState(0);
-  useEffect(() => {
-    if (!actif) return;
-    const debut = performance.now();
-    const duree = 1200;
-    let frame: number;
-    const tick = (maintenant: number) => {
-      const t = Math.min(1, (maintenant - debut) / duree);
-      const easedT = 1 - Math.pow(1 - t, 3);
-      setValeur(Math.round(cible * easedT));
-      if (t < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [actif, cible]);
-  return valeur;
-}
-
-function StatsAnimees() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setVisible(true);
-      },
-      { threshold: 0.4 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const parcelles = useCompteurAnime(142, visible);
-  const regions = useCompteurAnime(8, visible);
-  const cultures = useCompteurAnime(12, visible);
-
-  return (
-    <div ref={ref} style={{ display: "flex", justifyContent: "center", gap: "80px", flexWrap: "wrap" }}>
-      {([[parcelles, "parcelles"], [regions, "régions"], [cultures, "cultures"]] as const).map(([n, l]) => (
-        <div key={l} style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "44px", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>{n}</div>
-          <div style={{ fontSize: "14px", color: "var(--color-secondaire)", marginTop: "4px" }}>{l}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function Home() {
   const vedettes = PARCELLES.slice(0, 3);
@@ -287,12 +216,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ───── Stats ───── */}
-      <div style={{ padding: "80px 20px" }}>
-        <StatsAnimees />
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: "16px", maxWidth: "720px", margin: "0 auto 60px", padding: "0 20px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "16px", maxWidth: "720px", margin: "80px auto 60px", padding: "0 20px" }}>
         <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-bordure)" }} />
         <span style={{ color: "var(--color-prairie)", fontSize: "14px" }}>▲</span>
         <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-bordure)" }} />
@@ -370,32 +294,6 @@ export default function Home() {
             <div key={r.titre} style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
               <div style={{ fontSize: "16px", fontWeight: 500 }}>{r.titre}</div>
               <div style={{ fontSize: "14px", color: "var(--color-secondaire)", lineHeight: 1.5 }}>{r.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ───── Témoignages ───── */}
-      <section style={{ padding: "0 20px 100px", maxWidth: "1000px", margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", maxWidth: "720px", margin: "0 auto 48px" }}>
-          <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-bordure)" }} />
-          <span style={{ color: "var(--color-prairie)", fontSize: "14px" }}>▲</span>
-          <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-bordure)" }} />
-        </div>
-        <h2 style={{ textAlign: "center", fontSize: "28px", fontWeight: 500, letterSpacing: "-0.5px", margin: "0 0 40px" }}>Ils ont trouvé leur terre</h2>
-        <div style={{ display: "flex", gap: "24px", overflowX: "auto", scrollSnapType: "x mandatory", paddingBottom: "8px" }}>
-          {TEMOIGNAGES.map((t) => (
-            <div key={t.nom} className="card" style={{ scrollSnapAlign: "start", flex: "none", width: "320px", padding: "24px" }}>
-              <p style={{ fontSize: "15px", color: "var(--color-texte)", lineHeight: 1.6, margin: "0 0 16px" }}>&quot;{t.texte}&quot;</p>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "var(--color-menthe)", color: "var(--color-nuit)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 500, flexShrink: 0 }}>
-                  {t.nom.charAt(0)}
-                </div>
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: 500 }}>{t.nom}</div>
-                  <div style={{ fontSize: "12px", color: "var(--color-secondaire)" }}>{t.role}</div>
-                </div>
-              </div>
             </div>
           ))}
         </div>

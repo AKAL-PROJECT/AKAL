@@ -216,70 +216,28 @@ export default function ConnexionScreen({ next }: { next: string }) {
           }}
           className="akal-stat-in"
         >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              background: "rgba(255,255,255,0.7)",
-              border: "1px solid rgba(45,106,79,0.16)",
-              borderRadius: 12,
-              padding: "14px 16px",
-              boxShadow: "0 2px 10px rgba(27,58,45,0.05)",
-            }}
-          >
-            <span style={{ fontSize: 24, fontWeight: 700, color: "#2D6A4F", letterSpacing: "-0.5px" }}>2 500+</span>
-            <span style={{ fontSize: 12, color: "#5B6B60" }}>parcelles analysées</span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              background: "rgba(255,255,255,0.7)",
-              border: "1px solid rgba(45,106,79,0.16)",
-              borderRadius: 12,
-              padding: "14px 16px",
-              boxShadow: "0 2px 10px rgba(27,58,45,0.05)",
-            }}
-          >
-            <span style={{ fontSize: 24, fontWeight: 700, color: "#2D6A4F", letterSpacing: "-0.5px" }}>98%</span>
-            <span style={{ fontSize: 12, color: "#5B6B60" }}>précision moyenne · AgriScore IA</span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 9,
-              background: "rgba(255,255,255,0.7)",
-              border: "1px solid rgba(45,106,79,0.16)",
-              borderRadius: 12,
-              padding: "12px 16px",
-              boxShadow: "0 2px 10px rgba(27,58,45,0.05)",
-            }}
-          >
-            <span style={{ display: "flex", flexShrink: 0, color: "#2D6A4F" }}>
-              <Check size={18} strokeWidth={2} />
-            </span>
-            <span style={{ fontSize: 13, color: "#1B3A2D", fontWeight: 500 }}>Données satellitaires</span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 9,
-              background: "rgba(255,255,255,0.7)",
-              border: "1px solid rgba(45,106,79,0.16)",
-              borderRadius: 12,
-              padding: "12px 16px",
-              boxShadow: "0 2px 10px rgba(27,58,45,0.05)",
-            }}
-          >
-            <span style={{ display: "flex", flexShrink: 0, color: "#2D6A4F" }}>
-              <Check size={18} strokeWidth={2} />
-            </span>
-            <span style={{ fontSize: 13, color: "#1B3A2D", fontWeight: 500 }}>Prix estimé automatiquement</span>
-          </div>
+          {/* Mêmes affirmations que la Home (app/page.tsx) — délibérément pas de
+              chiffre ni de capacité IA/satellite non disponible dans le MVP. */}
+          {["Statut foncier vérifié", "Sans intermédiaire", "Couverture nationale"].map((texte) => (
+            <div
+              key={texte}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                background: "rgba(255,255,255,0.7)",
+                border: "1px solid rgba(45,106,79,0.16)",
+                borderRadius: 12,
+                padding: "12px 16px",
+                boxShadow: "0 2px 10px rgba(27,58,45,0.05)",
+              }}
+            >
+              <span style={{ display: "flex", flexShrink: 0, color: "#2D6A4F" }}>
+                <Check size={18} strokeWidth={2} />
+              </span>
+              <span style={{ fontSize: 13, color: "#1B3A2D", fontWeight: 500 }}>{texte}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

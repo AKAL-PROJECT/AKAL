@@ -59,7 +59,7 @@ export default function CarteLeafletFiche({ parcelle }: { parcelle: Parcelle }) 
         <span style={{ fontSize: "14px", flexShrink: 0 }}>&#128274;</span>
         <span>
           <strong style={{ color: "var(--color-texte)" }}>Localisation approximative</strong>
-          {" "}— la position exacte de la parcelle est communiquée après contact avec un conseiller AKAL.
+          {" "}— la position exacte de la parcelle peut être communiquée directement par le vendeur après contact.
         </span>
       </div>
     </div>

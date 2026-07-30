@@ -13,7 +13,6 @@ import {
   MapPin,
   Heart,
   Droplets,
-  Phone,
   Share2,
   FileText,
   ChevronLeft,
@@ -237,59 +236,6 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                 <FileText size={15} />
                 Télécharger la fiche PDF
               </button>
-            </div>
-
-            <div style={{ height: "1px", backgroundColor: "var(--color-bordure)" }} />
-
-            {/* Conseiller */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <span
-                style={{
-                  fontSize: "10px",
-                  color: "var(--color-tertiaire)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                Votre conseiller AKAL
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    backgroundColor: "var(--color-menthe)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    color: "var(--color-nuit)",
-                  }}
-                >
-                  YA
-                </div>
-                <div>
-                  <div style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-nuit)" }}>
-                    Youssef Aït Brahim
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      fontSize: "13px",
-                      color: "var(--color-tertiaire)",
-                      marginTop: "2px",
-                    }}
-                  >
-                    <Phone size={12} />
-                    +212 6 12 34 56 78
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div style={{ height: "1px", backgroundColor: "var(--color-bordure)" }} />
