@@ -394,6 +394,47 @@ class FavoriToggleTests(FavorisTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_toggle_brouillon_dautrui_returns_404(self):
+        # Audit du 2026-07-30 : un brouillon n'est visible que de son
+        # propriétaire — le mettre en favori ne doit pas être possible même
+        # en connaissant/devinant son UUID.
+        proprietaire = User.objects.create_user(
+            email='vendeur-brouillon@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Test', prenom='Vendeur',
+        )
+        parcelle = Parcelle.objects.create(
+            surface_ha=3, statut_foncier=Parcelle.StatutFoncier.MELKIA,
+            acces_eau=Parcelle.AccesEau.IRRIGUEE, topographie=Parcelle.Topographie.PLAT,
+            acces_routier=Parcelle.AccesRoutier.GOUDRON,
+        )
+        brouillon = Annonce.objects.create(
+            parcelle=parcelle, proprietaire=proprietaire, titre='Brouillon privé',
+            description='Jamais publié.', prix_mad=100000,
+            statut=Annonce.StatutAnnonce.BROUILLON,
+        )
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(TOGGLE_URL, {'annonce': str(brouillon.id)})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(Favori.objects.filter(user=self.user, annonce=brouillon).exists())
+
+    def test_toggle_retire_un_favori_meme_si_annonce_devenue_archivee(self):
+        # Le filtre en_ligne() (test ci-dessus) ne doit s'appliquer qu'à
+        # l'AJOUT — un favori déjà existant doit rester retirable même si
+        # l'annonce a depuis été archivée/vendue, sinon il resterait
+        # définitivement "coincé" dans la liste de l'utilisateur.
+        self.client.force_authenticate(self.user)
+        Favori.objects.create(user=self.user, annonce=self.annonce)
+        self.annonce.statut = Annonce.StatutAnnonce.ARCHIVEE
+        self.annonce.save(update_fields=['statut'])
+
+        response = self.client.post(TOGGLE_URL, {'annonce': str(self.annonce.id)})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['is_favori'])
+        self.assertFalse(Favori.objects.filter(user=self.user, annonce=self.annonce).exists())
+
 
 class FavoriListTests(FavorisTestCase):
     def test_list_requires_authentication(self):

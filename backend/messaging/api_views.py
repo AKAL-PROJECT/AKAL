@@ -192,15 +192,29 @@ class FavoriToggleAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Retrait : ne dépend jamais du statut actuel de l'annonce — un favori
+        # déjà existant doit rester retirable même si l'annonce a depuis été
+        # archivée/vendue, pour ne jamais laisser un favori "coincé".
         try:
-            annonce = Annonce.objects.get(pk=annonce_id)
-        except (Annonce.DoesNotExist, ValidationError, ValueError):
+            favori = Favori.objects.filter(user=request.user, annonce_id=annonce_id).first()
+        except (ValidationError, ValueError):
             return Response({'detail': 'Annonce introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
-        favori = Favori.objects.filter(user=request.user, annonce=annonce).first()
         if favori:
             favori.delete()
-            return Response({'is_favori': False, 'annonce': str(annonce.id)})
+            return Response({'is_favori': False, 'annonce': str(annonce_id)})
+
+        # Ajout : restreint aux annonces publiées (audit du 2026-07-30) — même
+        # restriction que EnvoyerMessageSerializer.annonce (messaging/
+        # serializers.py). Sans ce filtre, un utilisateur connaissant/devinant
+        # l'UUID du brouillon d'un autre pouvait le mettre en favori puis en
+        # lire titre/prix/photo via GET /api/favoris/ (FavoriSerializer nest
+        # AnnonceListSerializer en entier), alors que ce brouillon n'est censé
+        # être visible que de son propriétaire.
+        try:
+            annonce = Annonce.objects.en_ligne().get(pk=annonce_id)
+        except (Annonce.DoesNotExist, ValidationError, ValueError):
+            return Response({'detail': 'Annonce introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
         Favori.objects.create(user=request.user, annonce=annonce)
         return Response({'is_favori': True, 'annonce': str(annonce.id)}, status=status.HTTP_201_CREATED)
