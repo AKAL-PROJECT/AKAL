@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Parcelle } from "@/types/parcelle";
@@ -14,7 +15,7 @@ import {
   Heart,
   Droplets,
   Share2,
-  FileText,
+  Check,
   ChevronLeft,
   MessageSquare,
 } from "@/components/icons/Icons";
@@ -51,6 +52,28 @@ function agriScoreLegende(score: number | null): string {
 export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
   const { favorisIds, toggleFavori } = useFavorisIds();
   const favori = favorisIds.has(a.id);
+  const [lienCopie, setLienCopie] = useState(false);
+
+  // navigator.share() (mobile/OS) avec repli sur la copie du lien — les deux
+  // sont des capacités déjà natives du navigateur, aucune dépendance ajoutée.
+  const partager = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: a.titre, url });
+      } catch {
+        // Partage annulé par l'utilisateur — rien à faire.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setLienCopie(true);
+      setTimeout(() => setLienCopie(false), 2000);
+    } catch {
+      // Presse-papiers indisponible — rien à faire de plus côté interface.
+    }
+  };
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px 20px 64px" }}>
@@ -228,14 +251,6 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                 <MessageSquare size={15} />
                 Contacter le vendeur
               </Link>
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-              >
-                <FileText size={15} />
-                Télécharger la fiche PDF
-              </button>
             </div>
 
             <div style={{ height: "1px", backgroundColor: "var(--color-bordure)" }} />
@@ -267,6 +282,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
               </button>
               <button
                 type="button"
+                onClick={partager}
                 style={{
                   flex: 1,
                   display: "flex",
@@ -283,8 +299,8 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                   transition: "background-color 200ms ease",
                 }}
               >
-                <Share2 size={14} />
-                Partager
+                {lienCopie ? <Check size={14} /> : <Share2 size={14} />}
+                {lienCopie ? "Lien copié !" : "Partager"}
               </button>
             </div>
           </div>

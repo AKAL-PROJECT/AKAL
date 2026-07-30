@@ -74,8 +74,12 @@ export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
         >
           Explorer
         </Link>
-        <span style={{ fontSize: "15px", color: "var(--color-texte)", opacity: 0.55, padding: "4px 0", cursor: "default" }}>Carte</span>
-        <span style={{ fontSize: "15px", color: "var(--color-texte)", opacity: 0.55, padding: "4px 0", cursor: "default" }}>Régions</span>
+        <Link
+          href="/parcelles"
+          style={{ fontSize: "15px", color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
+        >
+          Carte
+        </Link>
         <span
           style={{
             position: "absolute",

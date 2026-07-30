@@ -72,25 +72,15 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
                   type="button"
                   onClick={() => onRetirer(p.id)}
                   aria-label={`Retirer ${p.titre} de la comparaison`}
+                  className="btn-retirer-comparateur"
                   style={{
                     position: "absolute",
                     inset: 0,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: "rgba(27,58,45,0)",
                     border: "none",
                     cursor: "pointer",
-                    color: "transparent",
-                    transition: "background-color 150ms ease, color 150ms ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(27,58,45,0.65)";
-                    e.currentTarget.style.color = "white";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(27,58,45,0)";
-                    e.currentTarget.style.color = "transparent";
                   }}
                 >
                   <X size={14} />
