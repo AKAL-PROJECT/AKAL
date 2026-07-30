@@ -12,6 +12,7 @@
 
 import { cookies } from "next/headers";
 import { ApiError, lireErreur, type FieldErrors } from "./api";
+import { attrsVersOptions, parseSetCookie } from "./cookie-parsing";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
 
@@ -43,20 +44,10 @@ export type LoginInput = { email: string; password: string };
 
 const COOKIES_A_SUIVRE = new Set(["access_token", "refresh_token", "csrftoken"]);
 
-function parseSetCookie(raw: string) {
-  const [pair, ...attrParts] = raw.split(";").map((p) => p.trim());
-  const eq = pair.indexOf("=");
-  const name = pair.slice(0, eq);
-  const value = pair.slice(eq + 1);
-  const attrs: Record<string, string> = {};
-  for (const part of attrParts) {
-    const [k, v] = part.split("=");
-    attrs[k.toLowerCase()] = v ?? "true";
-  }
-  return { name, value, attrs };
-}
-
 // Reporte les Set-Cookie de la réponse backend sur le jar Next.js courant.
+// parseSetCookie/attrsVersOptions partagés avec lib/auth-refresh.ts et
+// proxy.ts (cf. lib/cookie-parsing.ts) — déduplication du 2026-07-30, aucun
+// changement de comportement.
 async function suivreCookies(res: Response) {
   const jar = await cookies();
   const setCookie = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
@@ -64,14 +55,7 @@ async function suivreCookies(res: Response) {
   for (const raw of setCookie) {
     const { name, value, attrs } = parseSetCookie(raw);
     if (!COOKIES_A_SUIVRE.has(name)) continue;
-
-    jar.set(name, value, {
-      httpOnly: "httponly" in attrs,
-      secure: "secure" in attrs,
-      sameSite: (attrs["samesite"]?.toLowerCase() as "lax" | "strict" | "none" | undefined) ?? "lax",
-      path: attrs["path"] ?? "/",
-      maxAge: attrs["max-age"] !== undefined ? Number(attrs["max-age"]) : undefined,
-    });
+    jar.set(name, value, attrsVersOptions(attrs));
   }
 }
 
@@ -125,26 +109,6 @@ export async function logout(): Promise<void> {
   await suivreCookies(res);
 }
 
-// Tente un /auth/refresh/ (rotation des cookies) — utilisé quand l'access
-// token a expiré mais qu'un refresh token est peut-être encore valide.
-async function tenterRefresh(): Promise<boolean> {
-  const jar = await cookies();
-  if (!jar.get("refresh_token")) return false;
-
-  const csrftoken = jar.get("csrftoken")?.value;
-  const res = await fetch(`${API_URL}/auth/refresh/`, {
-    method: "POST",
-    headers: {
-      Cookie: await cookieHeader(),
-      ...(csrftoken ? { "X-CSRFToken": csrftoken } : {}),
-    },
-    cache: "no-store",
-  });
-  if (!res.ok) return false;
-  await suivreCookies(res);
-  return true;
-}
-
 async function fetchMe(): Promise<Response> {
   return fetch(`${API_URL}/auth/me/`, {
     headers: { Cookie: await cookieHeader() },
@@ -152,17 +116,25 @@ async function fetchMe(): Promise<Response> {
   });
 }
 
-// Utilisateur courant, ou null si non authentifié. Tente un refresh
-// silencieux une fois si l'access token semble expiré (cf. flux #3 du
-// design) avant de conclure à une session invalide.
+// Utilisateur courant, ou null si non authentifié.
+//
+// Simplifié le 2026-07-30 : ne tente plus de refresh ici. Pour les routes
+// protégées, proxy.ts a déjà rafraîchi la session AVANT que ce Server
+// Component ne s'exécute (cf. proxy.ts) — l'access_token lu ici est donc
+// déjà à jour. Un 401 à ce stade signifie une vraie fin de session (refresh
+// expiré/absent/blacklisté, cf. audit rotation du 2026-07-30), pas un access
+// token simplement périmé : chaque page protégée gère déjà ce cas via son
+// propre `if (!utilisateur) redirect(...)`.
+//
+// Ne PAS réintroduire de refresh ici : appeler cookies().set() depuis un
+// Server Component lève "Cookies can only be modified in a Server Action or
+// Route Handler" (confirmé par test réel) — c'est ce bug précis que cette
+// simplification élimine.
 export async function getCurrentUser(): Promise<User | null> {
   const jar = await cookies();
   if (!jar.get("access_token") && !jar.get("refresh_token")) return null;
 
-  let res = await fetchMe();
-  if (res.status === 401 && (await tenterRefresh())) {
-    res = await fetchMe();
-  }
+  const res = await fetchMe();
   if (!res.ok) return null;
   return (await res.json()) as User;
 }

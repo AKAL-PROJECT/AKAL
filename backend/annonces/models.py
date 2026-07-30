@@ -142,6 +142,15 @@ class Annonce(models.Model):
         db_table = 'annonce'
         verbose_name = 'Annonce'
         verbose_name_plural = 'Annonces'
+        # Ordre par défaut réel (audit du 2026-07-30) : AnnonceListCreateAPIView
+        # déclarait `ordering = ['-date_publication']`, mais filter_backends ne
+        # contient que DjangoFilterBackend (pas rest_framework.filters.
+        # OrderingFilter) — cet attribut de vue n'a donc jamais été appliqué.
+        # Sans ?ordering= explicite, la pagination retombait sur l'ordre
+        # naturel de PostgreSQL, non garanti stable (UnorderedObjectListWarning).
+        # `id` en second critère : deux annonces publiées à la même seconde
+        # auraient sinon un ordre relatif non déterministe entre elles.
+        ordering = ['-date_publication', 'id']
 
     objects = AnnonceManager()
 

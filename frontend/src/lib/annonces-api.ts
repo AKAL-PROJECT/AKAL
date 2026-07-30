@@ -4,9 +4,23 @@
 // depuis le navigateur vers l'API (origine différente) n'attacherait jamais
 // ce cookie. On lit/renvoie donc explicitement les cookies de la requête
 // entrante ici, exactement comme auth-api.ts le fait pour login/signup.
+//
+// Migration du 2026-07-30 (plan refresh/rotation) : creerBrouillon,
+// patchBrouillon, uploaderPhotos et supprimerPhoto passent par
+// fetchWithAuth() (refresh automatique sur 401) car ils ne sont appelés que
+// depuis des Server Actions (app/actions/depot-annonce.ts,
+// app/actions/annonces.ts) — jamais depuis un Server Component.
+// getBrouillon() et getMesAnnonces() restent sur un fetch simple : la
+// première est appelée à la fois par une Server Action ET directement par
+// app/publier/page.tsx (Server Component) ; la seconde uniquement par
+// app/compte/annonces/page.tsx (Server Component). fetchWithAuth y lèverait
+// la même erreur cookies().set() que l'ancien getCurrentUser(). /publier et
+// /compte/annonces sont de toute façon couvertes par le matcher de
+// proxy.ts, donc l'access_token y est déjà rafraîchi avant exécution.
 
 import { cookies } from "next/headers";
 import { ApiError, lireErreur } from "./api";
+import { fetchWithAuth } from "./fetchWithAuth";
 import { mapAnnonceToAnnonceProprietaire, type AnnonceListDTO } from "./mapAnnonceToParcelle";
 import type { AnnonceEcriture, ParcelleEcriture } from "@/types/depot-annonce";
 import type { AnnonceProprietaire, StatutAnnonce } from "@/types/parcelle";
@@ -16,12 +30,6 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api")
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();
   return jar.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-}
-
-async function csrfHeader(): Promise<Record<string, string>> {
-  const jar = await cookies();
-  const token = jar.get("csrftoken")?.value;
-  return token ? { "X-CSRFToken": token } : {};
 }
 
 async function lireOuLeverErreur(res: Response): Promise<never> {
@@ -37,16 +45,12 @@ export type CreerBrouillonInput = {
   parcelle: Pick<ParcelleEcriture, "surface_ha" | "statut_foncier" | "acces_eau" | "topographie" | "acces_routier">;
 };
 
+// Appelée uniquement depuis app/actions/depot-annonce.ts (Server Action).
 export async function creerBrouillon(input: CreerBrouillonInput): Promise<AnnonceEcriture> {
-  const res = await fetch(`${API_URL}/annonces/`, {
+  const res = await fetchWithAuth(`${API_URL}/annonces/`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: await cookieHeader(),
-      ...(await csrfHeader()),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
-    cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);
   return (await res.json()) as AnnonceEcriture;
@@ -65,16 +69,13 @@ export type PatchBrouillonInput = Partial<{
   parcelle: Partial<ParcelleEcriture>;
 }>;
 
+// Appelée depuis app/actions/depot-annonce.ts et app/actions/annonces.ts
+// (Server Actions uniquement).
 export async function patchBrouillon(id: string, patch: PatchBrouillonInput): Promise<AnnonceEcriture> {
-  const res = await fetch(`${API_URL}/annonces/${id}/`, {
+  const res = await fetchWithAuth(`${API_URL}/annonces/${id}/`, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: await cookieHeader(),
-      ...(await csrfHeader()),
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
-    cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);
   return (await res.json()) as AnnonceEcriture;
@@ -82,26 +83,25 @@ export async function patchBrouillon(id: string, patch: PatchBrouillonInput): Pr
 
 // Photos compressées côté navigateur (browser-image-compression, Web Worker)
 // puis remontées ici en FormData — jamais de Content-Type manuel : fetch()
-// doit fixer lui-même la boundary multipart/form-data.
+// doit fixer lui-même la boundary multipart/form-data. Appelée uniquement
+// depuis app/actions/depot-annonce.ts (Server Action).
 export async function uploaderPhotos(id: string, fichiers: File[]): Promise<AnnonceEcriture> {
   const formData = new FormData();
   for (const fichier of fichiers) {
     formData.append("photos[]", fichier, fichier.name);
   }
 
-  const res = await fetch(`${API_URL}/annonces/${id}/`, {
+  const res = await fetchWithAuth(`${API_URL}/annonces/${id}/`, {
     method: "PATCH",
-    headers: {
-      Cookie: await cookieHeader(),
-      ...(await csrfHeader()),
-    },
     body: formData,
-    cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);
   return (await res.json()) as AnnonceEcriture;
 }
 
+// Appelée à la fois par une Server Action (supprimerPhotoAction) ET
+// directement par app/publier/page.tsx (Server Component) : PAS de
+// fetchWithAuth ici (cf. commentaire d'en-tête).
 export async function getBrouillon(id: string): Promise<AnnonceEcriture> {
   const res = await fetch(`${API_URL}/annonces/${id}/`, {
     headers: { Cookie: await cookieHeader() },
@@ -113,7 +113,9 @@ export async function getBrouillon(id: string): Promise<AnnonceEcriture> {
 
 // Toutes les annonces du propriétaire connecté, tous statuts (dashboard) —
 // [] si non authentifié plutôt que de lever, même convention que
-// favoris-api.ts (l'appelant décide quoi faire).
+// favoris-api.ts (l'appelant décide quoi faire). Appelée directement par
+// app/compte/annonces/page.tsx (Server Component) : PAS de fetchWithAuth ici
+// (cf. commentaire d'en-tête).
 export async function getMesAnnonces(): Promise<AnnonceProprietaire[]> {
   const res = await fetch(`${API_URL}/annonces/mes-annonces/`, {
     headers: { Cookie: await cookieHeader() },
@@ -126,15 +128,11 @@ export async function getMesAnnonces(): Promise<AnnonceProprietaire[]> {
 
 // Restreint aux brouillons (statut BROUILLON) côté serveur — l'édition
 // d'annonces déjà en_ligne reste hors périmètre F03. Le backend réordonne
-// les photos restantes pour garder `ordre` contigu à partir de 0.
+// les photos restantes pour garder `ordre` contigu à partir de 0. Appelée
+// uniquement depuis app/actions/depot-annonce.ts (Server Action).
 export async function supprimerPhoto(annonceId: string, photoId: string): Promise<void> {
-  const res = await fetch(`${API_URL}/annonces/${annonceId}/photos/${photoId}/`, {
+  const res = await fetchWithAuth(`${API_URL}/annonces/${annonceId}/photos/${photoId}/`, {
     method: "DELETE",
-    headers: {
-      Cookie: await cookieHeader(),
-      ...(await csrfHeader()),
-    },
-    cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);
 }

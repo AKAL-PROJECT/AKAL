@@ -9,6 +9,17 @@ import type { NextConfig } from "next";
 // les images.
 const isDev = process.env.NODE_ENV !== "production";
 
+// Garde de build (audit du 2026-07-30) : les mocks du catalogue ne doivent
+// jamais atteindre la production — si NEXT_PUBLIC_USE_MOCKS="true" survit
+// jusqu'à un build de prod, c'est une erreur de configuration, pas un choix
+// délibéré. On fait échouer le build plutôt que de livrer un catalogue
+// factice silencieusement.
+if (!isDev && process.env.NEXT_PUBLIC_USE_MOCKS === "true") {
+  throw new Error(
+    'NEXT_PUBLIC_USE_MOCKS="true" détecté en build de production — le catalogue servirait des données factices. Retirez cette variable (ou passez-la à "false") avant de builder pour la production.',
+  );
+}
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [

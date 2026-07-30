@@ -1,12 +1,19 @@
 // Couche data du catalogue de parcelles.
 //
 // Deux modes, pilotés par NEXT_PUBLIC_USE_MOCKS (.env.local) :
-// - true  (défaut en dev sans backend) : PARCELLES, un jeu de données figé,
-//   filtré/trié/paginé en mémoire avec exactement le même vocabulaire de
-//   paramètres que l'API réelle (voir ParcellesQueryParams).
-// - false : getParcelles()/getParcellesPage()/getParcelleBySlug()/getRegions()
-//   appellent l'API réelle via lib/api.ts et normalisent la réponse avec
+// - true  (à activer explicitement, ex. dev sans backend) : PARCELLES, un jeu
+//   de données figé, filtré/trié/paginé en mémoire avec exactement le même
+//   vocabulaire de paramètres que l'API réelle (voir ParcellesQueryParams).
+// - false, absent, ou toute autre valeur (défaut) : getParcelles()/
+//   getParcellesPage()/getParcelleBySlug()/getRegions() appellent l'API
+//   réelle via lib/api.ts et normalisent la réponse avec
 //   lib/mapAnnonceToParcelle.ts.
+//
+// Audit du 2026-07-30 : la condition inverse (`!== "false"`) faisait des
+// mocks le défaut silencieux en l'absence de variable — un oubli de
+// configuration dégradait alors vers de fausses annonces plutôt que vers
+// l'API réelle. Inversée : seule une valeur explicite "true" active les
+// mocks, tout le reste (y compris l'absence de variable) retombe sur l'API.
 //
 // Query params et pagination alignés sur AKAL_Contrat_Donnees_v1.2.md §4.2-4.3.
 
@@ -19,7 +26,7 @@ import {
 } from "@/lib/mapAnnonceToParcelle";
 import type { AccesEau, Parcelle, StatutFoncier } from "@/types/parcelle";
 
-const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
+const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 const PAGE_SIZE_DEFAUT = 12;
 
 export const PARCELLES: Parcelle[] = [
