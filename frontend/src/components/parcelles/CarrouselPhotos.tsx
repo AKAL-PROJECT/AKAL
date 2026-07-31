@@ -83,7 +83,7 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
                   fontSize: "11px",
                   fontWeight: 500,
                   padding: "4px 10px",
-                  borderRadius: "999px",
+                  borderRadius: "var(--radius-full)",
                   color: "white",
                   backgroundColor: "var(--color-foret)",
                 }}
@@ -137,7 +137,7 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
             <span
               style={{
                 position: "absolute", top: "12px", left: "12px", fontSize: "11px", fontWeight: 500,
-                padding: "4px 10px", borderRadius: "999px", color: "white", backgroundColor: "var(--color-foret)",
+                padding: "4px 10px", borderRadius: "var(--radius-full)", color: "white", backgroundColor: "var(--color-foret)",
               }}
             >
               {badge}
@@ -169,7 +169,7 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
           <span
             style={{
               position: "absolute", top: "12px", left: "12px", fontSize: "11px", fontWeight: 500,
-              padding: "4px 10px", borderRadius: "999px", color: "white", backgroundColor: "var(--color-foret)",
+              padding: "4px 10px", borderRadius: "var(--radius-full)", color: "white", backgroundColor: "var(--color-foret)",
             }}
           >
             {badge}
@@ -179,7 +179,7 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
           <span
             style={{
               position: "absolute", bottom: "12px", right: "12px", display: "flex", alignItems: "center", gap: "6px",
-              fontSize: "12px", fontWeight: 500, padding: "4px 10px", borderRadius: "999px",
+              fontSize: "12px", fontWeight: 500, padding: "4px 10px", borderRadius: "var(--radius-full)",
               backgroundColor: "rgba(0,0,0,0.55)", color: "white",
             }}
           >
@@ -277,7 +277,7 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
                   aria-label={`Voir photo ${i + 1}`}
                   aria-pressed={i === actif}
                   style={{
-                    flexShrink: 0, width: "64px", height: "48px", borderRadius: "4px", overflow: "hidden",
+                    flexShrink: 0, width: "64px", height: "48px", borderRadius: "var(--radius-xs)", overflow: "hidden",
                     position: "relative", border: `2px solid ${i === actif ? "var(--color-prairie)" : "transparent"}`,
                     cursor: "pointer", padding: 0, opacity: i === actif ? 1 : 0.5,
                     transition: "opacity 150ms ease, border-color 150ms ease",

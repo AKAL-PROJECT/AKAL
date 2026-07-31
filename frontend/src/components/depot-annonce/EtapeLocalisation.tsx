@@ -9,7 +9,20 @@ import type { AnnonceEcriture, CommuneRef, ProvinceRef, RegionRef } from "@/type
 const CarteLeafletPicker = dynamic(() => import("./CarteLeafletPicker"), {
   ssr: false,
   loading: () => (
-    <div style={{ height: "100%", width: "100%", backgroundColor: "var(--color-fond-input)" }} />
+    <div
+      style={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "var(--color-menthe)",
+        color: "var(--color-foret)",
+        fontSize: "14px",
+      }}
+    >
+      Chargement de la carte…
+    </div>
   ),
 });
 
@@ -89,7 +102,7 @@ export function EtapeLocalisation({
           <label htmlFor="region" style={champLabelStyle}>Région</label>
           <select
             id="region"
-            className="input"
+            className="input select-chevron"
             value={regionCode}
             onChange={(e) => {
               setRegionCode(e.target.value);
@@ -109,7 +122,7 @@ export function EtapeLocalisation({
           <label htmlFor="province" style={champLabelStyle}>Province</label>
           <select
             id="province"
-            className="input"
+            className="input select-chevron"
             value={provinceCode}
             disabled={!regionCode}
             onChange={(e) => {
@@ -128,7 +141,7 @@ export function EtapeLocalisation({
           <label htmlFor="commune" style={champLabelStyle}>Commune</label>
           <select
             id="commune"
-            className="input"
+            className="input select-chevron"
             value={communeId}
             disabled={!provinceCode}
             onChange={(e) => setCommuneId(e.target.value)}

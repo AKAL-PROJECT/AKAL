@@ -212,7 +212,7 @@ function Catalogue() {
                 gap: "6px",
                 fontSize: "14px",
                 padding: "8px 12px",
-                borderRadius: "8px",
+                borderRadius: "var(--radius-sm)",
                 border: "1px solid var(--color-bordure)",
                 backgroundColor: "white",
                 cursor: "pointer",
@@ -235,13 +235,13 @@ function Catalogue() {
             <select
               value={tri}
               onChange={(e) => { setTri(e.target.value as Tri); setPage(1); }}
+              className="select-chevron"
               style={{
                 padding: "8px 12px",
-                borderRadius: "8px",
+                borderRadius: "var(--radius-sm)",
                 fontSize: "14px",
                 border: "1px solid var(--color-bordure)",
                 backgroundColor: "white",
-                cursor: "pointer",
               }}
             >
               <option value="recent">Plus récentes</option>
@@ -251,7 +251,7 @@ function Catalogue() {
             </select>
 
             {/* Toggle grille / carte */}
-            <div style={{ display: "flex", borderRadius: "8px", border: "1px solid var(--color-bordure)", overflow: "hidden" }}>
+            <div style={{ display: "flex", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-bordure)", overflow: "hidden" }}>
               <button
                 type="button"
                 onClick={() => setMode("grille")}

@@ -11,7 +11,7 @@ export default function ScoreBar({ score }: { score: number | null }) {
           style={{
             flex: 1,
             height: "6px",
-            borderRadius: "999px",
+            borderRadius: "var(--radius-full)",
             backgroundColor: "var(--color-menthe)",
           }}
         />
@@ -35,7 +35,7 @@ export default function ScoreBar({ score }: { score: number | null }) {
         style={{
           flex: 1,
           height: "6px",
-          borderRadius: "999px",
+          borderRadius: "var(--radius-full)",
           backgroundColor: "var(--color-menthe)",
           overflow: "hidden",
         }}
@@ -44,7 +44,7 @@ export default function ScoreBar({ score }: { score: number | null }) {
           style={{
             height: "100%",
             width: `${score}%`,
-            borderRadius: "999px",
+            borderRadius: "var(--radius-full)",
             backgroundColor: couleur,
             transition: "width 200ms ease",
           }}

@@ -50,7 +50,7 @@ function Slider({
         step={step}
         value={valeur}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{ width: "100%", accentColor: "#2D6A4F", cursor: "pointer", margin: "2px 0" }}
+        style={{ width: "100%", accentColor: "var(--color-foret)", cursor: "pointer", margin: "2px 0" }}
       />
       {detail && (
         <span style={{ fontSize: "11px", color: "var(--color-tertiaire)" }}>{detail}</span>
@@ -86,12 +86,12 @@ function LigneResultat({
         </span>
       </div>
       {barPct > 0 && (
-        <div style={{ height: "4px", borderRadius: "999px", backgroundColor: "var(--color-fond)", overflow: "hidden" }}>
+        <div style={{ height: "4px", borderRadius: "var(--radius-full)", backgroundColor: "var(--color-fond)", overflow: "hidden" }}>
           <div
             style={{
               height: "100%",
               width: `${Math.min(barPct, 100)}%`,
-              borderRadius: "999px",
+              borderRadius: "var(--radius-full)",
               backgroundColor: barColor,
               transition: "width 200ms ease",
             }}
@@ -160,7 +160,7 @@ export default function SimulateurROI({ prix }: Props) {
             border: "none",
             cursor: "pointer",
             padding: "4px 8px",
-            borderRadius: "6px",
+            borderRadius: "var(--radius-xs)",
           }}
         >
           Réinitialiser

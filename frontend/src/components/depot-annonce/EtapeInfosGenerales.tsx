@@ -133,7 +133,7 @@ export function EtapeInfosGenerales({
             name="statut_foncier"
             required
             defaultValue={annonce?.parcelle.statut_foncier ?? ""}
-            className="input"
+            className="input select-chevron"
           >
             <option value="" disabled>Choisir...</option>
             {OPTIONS_STATUT_FONCIER.map((o) => (
@@ -148,7 +148,7 @@ export function EtapeInfosGenerales({
             name="acces_eau"
             required
             defaultValue={annonce?.parcelle.acces_eau ?? ""}
-            className="input"
+            className="input select-chevron"
           >
             <option value="" disabled>Choisir...</option>
             {OPTIONS_ACCES_EAU.map((o) => (
@@ -166,7 +166,7 @@ export function EtapeInfosGenerales({
             name="topographie"
             required
             defaultValue={annonce?.parcelle.topographie ?? ""}
-            className="input"
+            className="input select-chevron"
           >
             <option value="" disabled>Choisir...</option>
             {OPTIONS_TOPOGRAPHIE.map((o) => (
@@ -181,7 +181,7 @@ export function EtapeInfosGenerales({
             name="acces_routier"
             required
             defaultValue={annonce?.parcelle.acces_routier ?? ""}
-            className="input"
+            className="input select-chevron"
           >
             <option value="" disabled>Choisir...</option>
             {OPTIONS_ACCES_ROUTIER.map((o) => (

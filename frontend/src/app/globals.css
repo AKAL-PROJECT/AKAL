@@ -36,6 +36,12 @@
   --color-attention:    var(--color-ble);
   --color-erreur:       #B5482E;
   --color-erreur-fond:  #FBEAE1;
+  --color-terre-fond:   #FEF3EE;
+  /* Bleu informatif (accès à l'eau, catégorie "Foncier" du passeport) —
+     était incohérent entre composants (#2196F3 vs #1A6EA4 selon l'écran),
+     unifié ici (audit de cohérence, Phase 2). */
+  --color-info:         #1A6EA4;
+  --color-info-fond:    #EBF5FB;
 
   /* Typographie */
   --font-sans:          'Manrope', system-ui, sans-serif;
@@ -169,7 +175,21 @@
     border: 2px solid var(--color-foret);
   }
 
-  .badge-melkia      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: #FEF3EE; color: var(--color-terre); }
+  /* Chevron de marque sur les <select> natifs — cohérence avec le reste des
+     icônes du set (ChevronDown), sans toucher au comportement de soumission
+     du formulaire (pur CSS, aucun JS ne remplace le <select>). */
+  .select-chevron {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+    padding-right: 32px;
+    cursor: pointer;
+  }
+  select.input.select-chevron { background-position: right 14px center; background-size: 16px; padding-right: 40px; }
+
+  .badge-melkia      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-terre-fond); color: var(--color-terre); }
   .badge-soulaliya   { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-rosee); color: var(--color-foret); }
   .badge-guich       { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-parchemin); color: var(--color-ble); }
   .badge-habous      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: #F5EEF8; color: #7D3C98; }
@@ -182,7 +202,7 @@
   .badge-annonce-en-attente  { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-parchemin); color: var(--color-ble); }
   .badge-annonce-en-ligne    { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-rosee); color: var(--color-foret); }
   .badge-annonce-archivee    { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-bordure); color: var(--color-tertiaire); }
-  .badge-annonce-vendue      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: #FEF3EE; color: var(--color-terre); }
+  .badge-annonce-vendue      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-terre-fond); color: var(--color-terre); }
 
   .tifinagh { font-family: var(--font-tifinagh); }
 
@@ -256,6 +276,17 @@
       width: 100%;
       position: static;
     }
+  }
+
+  /* Titre de section "article" (fiche parcelle) — factorisé, était dupliqué
+     à l'identique dans 3 composants (audit de cohérence, Phase 2). */
+  .fiche-section-titre {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-nuit);
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-bordure);
   }
 
   /* État loading (CardParcelleSkeleton) — respecte prefers-reduced-motion. */
@@ -498,6 +529,12 @@
   }
   .btn-icone-rond:hover { transform: scale(1.08); }
   .btn-icone-rond:active { transform: scale(0.9); }
+
+  /* Zoom photo au survol de la carte parente — piloté en CSS pur (pas de
+     mouseenter/mouseleave JS) pour rester fiable même avec un lien
+     plein-carte superposé (cf. CardParcelle). */
+  .akal-card-photo-zoom { transition: transform 400ms ease; }
+  .card:hover .akal-card-photo-zoom { transform: scale(1.06); }
 
   /* Barre fixe (comparateur, CTA mobile fiche) — glisse depuis le bas. */
   @keyframes akal-bar-in {

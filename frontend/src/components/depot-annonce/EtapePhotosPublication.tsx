@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
-import { X } from "@/components/icons/Icons";
+import { X, Check } from "@/components/icons/Icons";
 import { ajouterPhotosAction, publierAction, supprimerPhotoAction } from "@/app/actions/depot-annonce";
 import type { AnnonceEcriture } from "@/types/depot-annonce";
 
@@ -95,9 +95,23 @@ export function EtapePhotosPublication({
 
   if (publiee) {
     return (
-      <div style={{ textAlign: "center", padding: "24px 0" }}>
-        <h2 style={{ fontSize: 20, marginBottom: 8 }}>Votre annonce est en ligne</h2>
-        <p style={{ color: "var(--color-secondaire)" }}>Redirection vers votre annonce…</p>
+      <div className="akal-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", textAlign: "center", padding: "32px 0" }}>
+        <span
+          style={{
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            backgroundColor: "var(--color-rosee)",
+            color: "var(--color-foret)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Check size={26} strokeWidth={2} />
+        </span>
+        <h2 style={{ fontSize: 20, margin: 0 }}>Votre annonce est en ligne</h2>
+        <p style={{ color: "var(--color-secondaire)", margin: 0 }}>Redirection vers votre annonce…</p>
       </div>
     );
   }

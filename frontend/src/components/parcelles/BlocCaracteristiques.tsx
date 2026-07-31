@@ -1,12 +1,9 @@
 import type { Parcelle } from "@/types/parcelle";
 import BadgeStatut from "./BadgeStatut";
-import ScoreBar from "./ScoreBar";
 import {
-  MapPin,
   Ruler,
   Shield,
   Droplets,
-  BarChart,
   TrendingUp,
 } from "@/components/icons/Icons";
 
@@ -20,8 +17,7 @@ type Groupe = {
 
 type ItemCarac =
   | { type: "texte"; icon: React.ReactNode; label: string; valeur: string; couleur?: string }
-  | { type: "badge"; icon: React.ReactNode; label: string; parcelle: Parcelle }
-  | { type: "score"; icon: React.ReactNode; label: string; score: number | null };
+  | { type: "badge"; icon: React.ReactNode; label: string; parcelle: Parcelle };
 
 const ACCES_EAU_LABEL: Record<Parcelle["parcelle"]["accesEau"], string> = {
   irriguee: "Irriguée (réseau)",
@@ -29,27 +25,18 @@ const ACCES_EAU_LABEL: Record<Parcelle["parcelle"]["accesEau"], string> = {
   mixte: "Mixte",
 };
 
+// Région/localisation déjà affichées juste sous le titre (FicheParcelle) et
+// AgriScore déjà mis en avant dans sa propre carte — volontairement absents
+// d'ici pour ne pas répéter la même information deux fois sur la page
+// (§ "regrouper l'information de façon plus logique", refonte Phase 2).
 function buildGroupes(a: Parcelle): Groupe[] {
   const prixHa = a.prixM2 * 10_000;
   const surfaceM2 = Math.round(a.parcelle.surface * 10_000).toLocaleString("fr-MA");
 
   return [
     {
-      titre: "Localisation",
-      accent: "var(--color-foret)",
-      items: [
-        { type: "texte", icon: <MapPin size={13} />, label: "Région", valeur: a.parcelle.regionNom },
-        {
-          type: "texte",
-          icon: <MapPin size={13} />,
-          label: "Localisation",
-          valeur: a.parcelle.adresseApproximative ?? "Communiquée après contact",
-        },
-      ],
-    },
-    {
       titre: "Foncier",
-      accent: "#1A6EA4",
+      accent: "var(--color-info)",
       items: [
         {
           type: "texte",
@@ -62,21 +49,18 @@ function buildGroupes(a: Parcelle): Groupe[] {
     },
     {
       titre: "Agronomie",
-      accent: "#7D5C2E",
+      accent: "var(--color-argile)",
       items: [
         {
           type: "texte",
           icon: <Droplets size={13} />,
           label: "Accès à l'eau",
           valeur: ACCES_EAU_LABEL[a.parcelle.accesEau],
-          couleur: a.parcelle.accesEau === "bour" ? "var(--color-tertiaire)" : "#1A6EA4",
+          couleur: a.parcelle.accesEau === "bour" ? "var(--color-tertiaire)" : "var(--color-info)",
         },
-        {
-          type: "score",
-          icon: <BarChart size={13} />,
-          label: "AgriScore",
-          score: a.scoreCourant?.scoreGlobal ?? null,
-        },
+        ...(a.parcelle.topographie
+          ? [{ type: "texte" as const, icon: <Ruler size={13} />, label: "Topographie", valeur: a.parcelle.topographie }]
+          : []),
       ],
     },
     {
@@ -135,11 +119,6 @@ function RowItem({ item }: { item: ItemCarac }) {
           <BadgeStatut statut={item.parcelle.parcelle.statutFoncier} />
         </span>
       )}
-      {item.type === "score" && (
-        <div style={{ flex: 1 }}>
-          <ScoreBar score={item.score} />
-        </div>
-      )}
     </div>
   );
 }
@@ -149,18 +128,7 @@ export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle 
 
   return (
     <section>
-      <h2
-        style={{
-          fontSize: "16px",
-          fontWeight: 500,
-          color: "var(--color-nuit)",
-          margin: "0 0 16px",
-          paddingBottom: "10px",
-          borderBottom: "1px solid var(--color-bordure)",
-        }}
-      >
-        Passeport de la parcelle
-      </h2>
+      <h2 className="fiche-section-titre">Passeport de la parcelle</h2>
 
       <div
         style={{

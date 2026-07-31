@@ -135,11 +135,11 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                     alignItems: "center",
                     gap: "4px",
                     padding: "4px 10px",
-                    borderRadius: "999px",
+                    borderRadius: "var(--radius-full)",
                     fontSize: "12px",
                     fontWeight: 500,
-                    backgroundColor: "#EBF5FB",
-                    color: "#1A6EA4",
+                    backgroundColor: "var(--color-info-fond)",
+                    color: "var(--color-info)",
                   }}
                 >
                   <Droplets size={11} />
@@ -173,7 +173,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                   color: "var(--color-tertiaire)",
                   backgroundColor: "var(--color-fond-input)",
                   padding: "2px 8px",
-                  borderRadius: "999px",
+                  borderRadius: "var(--radius-full)",
                 }}
               >
                 Indice agronomique / 100
@@ -189,18 +189,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
 
           {/* Description */}
           <section>
-            <h2
-              style={{
-                fontSize: "16px",
-                fontWeight: 500,
-                color: "var(--color-nuit)",
-                margin: "0 0 16px",
-                paddingBottom: "10px",
-                borderBottom: "1px solid var(--color-bordure)",
-              }}
-            >
-              Description
-            </h2>
+            <h2 className="fiche-section-titre">Description</h2>
             <p style={{ fontSize: "14px", lineHeight: 1.75, color: "var(--color-secondaire)", margin: 0, whiteSpace: "pre-line" }}>
               {a.description}
             </p>
@@ -210,18 +199,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
 
           {/* Localisation */}
           <section>
-            <h2
-              style={{
-                fontSize: "16px",
-                fontWeight: 500,
-                color: "var(--color-nuit)",
-                margin: "0 0 16px",
-                paddingBottom: "10px",
-                borderBottom: "1px solid var(--color-bordure)",
-              }}
-            >
-              Localisation
-            </h2>
+            <h2 className="fiche-section-titre">Localisation</h2>
             <div style={{ height: "320px", borderRadius: "var(--radius-card)", overflow: "hidden", boxShadow: "var(--shadow-card)" }}>
               <CarteFiche parcelle={a} />
             </div>
@@ -254,6 +232,9 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                 <MessageSquare size={15} />
                 Contacter le vendeur
               </Link>
+              <p style={{ fontSize: "12px", color: "var(--color-tertiaire)", textAlign: "center", margin: 0 }}>
+                Échange direct avec le vendeur, sans intermédiaire.
+              </p>
             </div>
 
             <div style={{ height: "1px", backgroundColor: "var(--color-bordure)" }} />
@@ -272,9 +253,9 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                   justifyContent: "center",
                   gap: "6px",
                   padding: "10px",
-                  borderRadius: "8px",
+                  borderRadius: "var(--radius-sm)",
                   border: `1px solid ${favori ? "var(--color-terre)" : "var(--color-bordure)"}`,
-                  backgroundColor: favori ? "#FEF3EE" : "transparent",
+                  backgroundColor: favori ? "var(--color-terre-fond)" : "transparent",
                   color: favori ? "var(--color-terre)" : "var(--color-secondaire)",
                   fontSize: "13px",
                   cursor: "pointer",
@@ -295,7 +276,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                   justifyContent: "center",
                   gap: "6px",
                   padding: "10px",
-                  borderRadius: "8px",
+                  borderRadius: "var(--radius-sm)",
                   border: "1px solid var(--color-bordure)",
                   backgroundColor: "transparent",
                   color: "var(--color-secondaire)",
@@ -326,7 +307,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
           padding: "12px 16px",
           alignItems: "center",
           gap: "12px",
-          boxShadow: "0 -4px 16px rgba(0,0,0,0.08)",
+          boxShadow: "0 -4px 16px rgba(17,26,21,0.10)",
         }}
       >
         <div style={{ flex: 1 }}>

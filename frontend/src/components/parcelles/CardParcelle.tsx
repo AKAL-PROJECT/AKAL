@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Parcelle } from "@/types/parcelle";
@@ -23,50 +22,64 @@ type Props = {
 const formatMAD = new Intl.NumberFormat("fr-MA");
 
 export default function CardParcelle({ parcelle, enComparaison, onToggleComparaison, favori, onToggleFavori, index }: Props) {
-  const imgRef = useRef<HTMLImageElement>(null);
   const a = parcelle;
   const image = a.photoPrincipale ?? a.photos[0] ?? null;
-
-  // Zoom léger de la photo au survol — mutation directe du style (même
-  // convention que Navbar.tsx) plutôt qu'un state React, pour rester fluide.
-  const zoomer = (actif: boolean) => {
-    if (imgRef.current) imgRef.current.style.transform = actif ? "scale(1.05)" : "scale(1)";
-  };
 
   return (
     <article
       className="card akal-card-cascade"
       style={{
+        position: "relative",
         overflow: "hidden",
         animationDelay: index != null ? `${(index % 9) * 60}ms` : undefined,
       }}
     >
+      {/* Carte cliquable dans son ensemble — le titre seul comme cible de
+          clic était trop étroit ; favori/comparer restent indépendants via
+          leur propre z-index + stopPropagation (pas de lien imbriqué). */}
+      <Link
+        href={`/parcelles/${a.slug}`}
+        aria-label={`${a.titre} — ${formatMAD.format(a.prix)} MAD, ${a.parcelle.regionNom}`}
+        style={{ position: "absolute", inset: 0, zIndex: 1 }}
+      />
+
       {/* Photo */}
       <div
-        style={{ position: "relative", width: "100%", height: "180px", backgroundColor: "var(--color-menthe)", overflow: "hidden" }}
-        onMouseEnter={() => zoomer(true)}
-        onMouseLeave={() => zoomer(false)}
+        style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", backgroundColor: "var(--color-menthe)", overflow: "hidden" }}
       >
         {image && (
           <Image
-            ref={imgRef}
             src={image}
             alt={a.titre}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            style={{ objectFit: "cover", transition: "transform 300ms ease" }}
+            className="akal-card-photo-zoom"
+            style={{ objectFit: "cover" }}
           />
         )}
+
+        {/* Voile bas — assure la lisibilité des badges sur toute photo, garde
+            l'univers colorimétrique de marque (cf. Hero) plutôt que le rendu
+            brut de la source. */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(180deg, rgba(20,30,24,0) 60%, rgba(15,22,18,0.32) 100%)",
+            pointerEvents: "none",
+          }}
+        />
 
         {/* Badges en surimpression */}
         <div
           style={{
             position: "absolute",
-            top: "8px",
-            left: "8px",
+            top: "10px",
+            left: "10px",
             display: "flex",
             flexDirection: "column",
-            gap: "4px",
+            gap: "5px",
             alignItems: "flex-start",
           }}
         >
@@ -74,11 +87,13 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
             <span
               style={{
                 fontSize: "10px",
-                fontWeight: 500,
-                padding: "2px 8px",
-                borderRadius: "999px",
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+                padding: "3px 9px",
+                borderRadius: "var(--radius-full)",
                 color: "white",
                 backgroundColor: "var(--color-foret)",
+                boxShadow: "var(--shadow-1)",
               }}
             >
               {a.badge}
@@ -88,26 +103,34 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
         </div>
 
         {/* Favori — persisté côté API, redirige vers /connexion si non
-            authentifié (cf. hooks/useFavorisIds.ts). */}
+            authentifié (cf. hooks/useFavorisIds.ts). z-index au-dessus du
+            lien plein-carte + stopPropagation pour ne pas déclencher la
+            navigation en cliquant le cœur. */}
         <button
           type="button"
           aria-label={favori ? "Retirer des favoris" : "Ajouter aux favoris"}
           aria-pressed={favori}
-          onClick={() => onToggleFavori(a.id)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleFavori(a.id);
+          }}
           className="btn-icone-rond akal-focusable"
           style={{
             position: "absolute",
-            top: "8px",
-            right: "8px",
-            width: "28px",
-            height: "28px",
-            borderRadius: "999px",
+            top: "10px",
+            right: "10px",
+            zIndex: 2,
+            width: "30px",
+            height: "30px",
+            borderRadius: "var(--radius-full)",
             border: "none",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "rgba(255,255,255,0.9)",
+            backgroundColor: "rgba(255,255,255,0.92)",
+            boxShadow: "var(--shadow-1)",
           }}
         >
           <Heart
@@ -119,18 +142,18 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
       </div>
 
       {/* Corps */}
-      <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-        <Link href={`/parcelles/${a.slug}`} style={{ textDecoration: "none" }}>
-          <h3 style={{ fontSize: "14px", fontWeight: 500, lineHeight: 1.3, color: "var(--color-foret)" }}>
-            {a.titre}
-          </h3>
-        </Link>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--color-tertiaire)" }}>
-          <MapPin size={13} />
+      <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "9px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "var(--color-tertiaire)" }}>
+          <MapPin size={12} />
           {/* Pas d'adresse approximative en liste (allégé, contrat §4.4) — région seule ici. */}
           <span>{a.parcelle.regionNom}</span>
         </div>
+
+        <h3 style={{ fontSize: "15px", fontWeight: 600, lineHeight: 1.3, color: "var(--color-nuit)", margin: 0 }}>
+          {a.titre}
+        </h3>
+
+        <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />
 
         {/* Tags */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
@@ -141,7 +164,7 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
                 fontSize: "10px",
                 fontWeight: 500,
                 padding: "2px 8px",
-                borderRadius: "999px",
+                borderRadius: "var(--radius-full)",
                 backgroundColor: "var(--color-menthe)",
                 color: "var(--color-nuit)",
               }}
@@ -150,17 +173,20 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
             </span>
           ))}
           {a.parcelle.accesEau !== "bour" && (
-            <Droplets size={13} style={{ color: "#2196F3" }} aria-label="Accès à l'eau" />
+            <Droplets size={13} style={{ color: "var(--color-info)" }} aria-label="Accès à l'eau" />
           )}
         </div>
 
+        <div style={{ height: "1px", backgroundColor: "var(--color-bordure)", margin: "2px 0" }} />
+
         {/* Prix + comparateur */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "4px" }}>
-          <span style={{ fontSize: "16px", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "18px", fontWeight: 600, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
             {formatMAD.format(a.prix)} MAD
           </span>
           <label
-            style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", color: "var(--color-tertiaire)" }}
+            style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", color: "var(--color-tertiaire)" }}
+            onClick={(e) => e.stopPropagation()}
           >
             <input
               type="checkbox"
@@ -171,11 +197,6 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
             Comparer
           </label>
         </div>
-
-        {/* AgriScore — absent du prototype statique (§ "pas de bloc score"),
-            réintégré ici en pied de carte : c'est une donnée réelle du back
-            (contrat §3.5), pas un concept du mockup à recréer à l'identique. */}
-        <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />
       </div>
     </article>
   );

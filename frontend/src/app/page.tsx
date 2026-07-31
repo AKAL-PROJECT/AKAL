@@ -101,7 +101,7 @@ export default function Home() {
                 animationDelay: "240ms",
               }}
             >
-              <select name="region" style={heroFieldStyle} defaultValue="">
+              <select name="region" className="select-chevron" style={heroFieldStyle} defaultValue="">
                 <option value="">Région</option>
                 {REGIONS.map((r) => (
                   <option key={r.code} value={r.code}>{r.nom}</option>
@@ -159,7 +159,7 @@ export default function Home() {
               preserveAspectRatio="xMidYMid slice"
               style={{ position: "absolute", inset: 0 }}
             >
-              <g fill="none" stroke="#B7D7C9" strokeOpacity={0.14} strokeWidth={1.2}>
+              <g fill="none" stroke="var(--color-menthe)" strokeOpacity={0.14} strokeWidth={1.2}>
                 <path d="M-30 90 C 90 40,190 140,290 90 S 470 30,560 100" />
                 <path d="M-30 190 C 100 145,200 245,300 195 S 480 130,560 200" />
                 <path d="M-30 300 C 110 255,210 355,310 305 S 490 240,560 310" />
@@ -174,12 +174,12 @@ export default function Home() {
                 <polygon points="150,470 255,448 278,535 165,548" fill="rgba(255,255,255,0.04)" stroke="rgba(183,215,201,0.4)" strokeWidth={1} />
                 <polygon points="285,375 388,350 410,448 300,462" fill="rgba(196,98,45,0.10)" stroke="rgba(196,98,45,0.45)" strokeWidth={1} />
                 {/* Parcelle active */}
-                <polygon points="222,178 322,150 348,242 236,262" fill="rgba(82,183,136,0.18)" stroke="#52B788" strokeWidth={1.6} />
+                <polygon points="222,178 322,150 348,242 236,262" fill="rgba(82,183,136,0.18)" stroke="var(--color-prairie)" strokeWidth={1.6} />
               </g>
 
-              <circle cx="284" cy="206" r="5" fill="#52B788" />
-              <circle className="akal-pulse" cx="284" cy="206" r="5" fill="#52B788" opacity={0.5} />
-              <circle cx="345" cy="408" r="4" fill="#C4622D" opacity={0.85} />
+              <circle cx="284" cy="206" r="5" fill="var(--color-prairie)" />
+              <circle className="akal-pulse" cx="284" cy="206" r="5" fill="var(--color-prairie)" opacity={0.5} />
+              <circle cx="345" cy="408" r="4" fill="var(--color-terre)" opacity={0.85} />
             </svg>
 
             {/* Chip donnée — vraie parcelle du catalogue, pas de statistique inventée */}
