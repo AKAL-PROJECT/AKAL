@@ -42,6 +42,9 @@ export function DepotAnnonceWizard({ annonceInitiale }: { annonceInitiale: Annon
 
   return (
     <div style={{ maxWidth: 640, margin: "48px auto", padding: "0 24px 80px" }}>
+      {/* Assistant sans titre de page jusqu'ici — chaque étape avait son
+          propre h2, mais rien au niveau page (revue a11y, Phase 3). */}
+      <h1 style={{ fontSize: 22, margin: "0 0 24px" }}>Déposer une annonce</h1>
       <div style={{ marginBottom: 32 }}>
         <Stepper etapes={ETAPES} etapeActive={etape} />
       </div>

@@ -31,7 +31,7 @@ export function NouvelleConversationForm({ parcelle }: { parcelle: Parcelle }) {
               position: "relative",
               width: 64,
               height: 64,
-              borderRadius: 8,
+              borderRadius: "var(--radius-sm)",
               overflow: "hidden",
               flexShrink: 0,
               backgroundColor: "var(--color-fond-input)",
@@ -42,7 +42,8 @@ export function NouvelleConversationForm({ parcelle }: { parcelle: Parcelle }) {
             )}
           </div>
           <div>
-            <div style={{ fontWeight: 500, fontSize: 15 }}>{parcelle.titre}</div>
+            {/* Formulaire sans titre de page jusqu'ici (revue a11y, Phase 3). */}
+            <h1 style={{ fontWeight: 500, fontSize: 15, margin: 0 }}>{parcelle.titre}</h1>
             <div style={{ fontSize: 14, color: "var(--color-foret)", fontWeight: 500 }}>
               {formatMAD.format(parcelle.prix)} MAD
             </div>

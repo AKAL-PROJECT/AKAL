@@ -4,8 +4,10 @@ import Link from "next/link";
 import { PARCELLES } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
 import ScoreBar from "@/components/parcelles/ScoreBar";
+import BadgeStatut from "@/components/parcelles/BadgeStatut";
 import { Reveal } from "@/components/Reveal";
-import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
+import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight, MapPin } from "@/components/icons/Icons";
+import { AGRISCORE_ACTIF } from "@/config/features";
 
 // cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés.
 const REGIONS = [
@@ -24,7 +26,7 @@ const CONFIANCE = [
 
 const ETAPES = [
   { num: "01", titre: "Explorez", desc: "Parcourez des parcelles vérifiées partout au Maroc. Filtrez par région et budget." },
-  { num: "02", titre: "Comparez", desc: "Statut foncier, accès à l'eau, AgriScore — comparez les parcelles côte à côte." },
+  { num: "02", titre: "Comparez", desc: "Statut foncier, accès à l'eau, prix au m² — comparez les parcelles côte à côte." },
   { num: "03", titre: "Contactez", desc: "Échangez directement avec le vendeur, sans intermédiaire." },
 ];
 
@@ -101,14 +103,14 @@ export default function Home() {
                 animationDelay: "240ms",
               }}
             >
-              <select name="region" className="select-chevron" style={heroFieldStyle} defaultValue="">
+              <select name="region" className="select-chevron akal-hero-field" style={heroFieldStyle} defaultValue="">
                 <option value="">Région</option>
                 {REGIONS.map((r) => (
                   <option key={r.code} value={r.code}>{r.nom}</option>
                 ))}
               </select>
               <div style={{ width: "1px", alignSelf: "stretch", backgroundColor: "var(--color-bordure)" }} className="hidden-mobile" />
-              <input name="prix_max" type="number" placeholder="Budget max (MAD)" style={heroFieldStyle} />
+              <input name="prix_max" type="number" placeholder="Budget max (MAD)" className="akal-hero-field" style={heroFieldStyle} />
               <button
                 type="submit"
                 className="btn-primary"
@@ -197,12 +199,24 @@ export default function Home() {
                 }}
               >
                 <div style={{ fontSize: "11px", color: "var(--color-tertiaire)", marginBottom: "4px" }}>
-                  AgriScore · exemple du catalogue
+                  Exemple du catalogue
                 </div>
                 <div style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-nuit)", marginBottom: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {parcelleVitrine.titre}
                 </div>
-                <ScoreBar score={parcelleVitrine.scoreCourant?.scoreGlobal ?? null} />
+                {AGRISCORE_ACTIF ? (
+                  // AgriScore hors périmètre actuel (cf. src/config/features.ts) —
+                  // chip d'origine conservée intacte, juste non rendue.
+                  <ScoreBar score={parcelleVitrine.scoreCourant?.scoreGlobal ?? null} />
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--color-tertiaire)" }}>
+                      <MapPin size={12} />
+                      {parcelleVitrine.parcelle.regionNom}
+                    </span>
+                    <BadgeStatut statut={parcelleVitrine.parcelle.statutFoncier} />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -261,13 +275,14 @@ export default function Home() {
                   <Link
                     key={r.code}
                     href={`/parcelles?region=${r.code}`}
-                    style={{ fontSize: "13px", color: "var(--color-texte)", backgroundColor: "white", border: "1px solid var(--color-bordure)", borderRadius: "var(--radius-full)", padding: "8px 16px", textDecoration: "none", transition: "border-color 150ms ease" }}
+                    className="akal-chip-region akal-focusable"
+                    style={{ fontSize: "13px", color: "var(--color-texte)", backgroundColor: "white", border: "1px solid var(--color-bordure)", borderRadius: "var(--radius-full)", padding: "8px 16px", textDecoration: "none" }}
                   >
                     {r.nom}
                   </Link>
                 ))}
               </div>
-              <Link href="/parcelles" style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)", borderBottom: "1px solid var(--color-foret)", paddingBottom: "2px", textDecoration: "none" }}>
+              <Link href="/parcelles" className="akal-link-fleche">
                 Explorer la carte →
               </Link>
             </div>
@@ -384,7 +399,7 @@ export default function Home() {
           ))}
         </div>
         <div style={{ textAlign: "center", marginTop: "32px" }}>
-          <Link href="/parcelles" style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)", borderBottom: "1px solid var(--color-foret)", paddingBottom: "2px", textDecoration: "none" }}>
+          <Link href="/parcelles" className="akal-link-fleche">
             Voir toutes les parcelles →
           </Link>
         </div>
@@ -442,13 +457,15 @@ export default function Home() {
   );
 }
 
+// outline volontairement absent d'ici : un style inline gagnerait toujours
+// sur la règle CSS .akal-hero-field:focus-visible (spécificité), ce qui
+// aurait rendu ce dernier correctif invisible (revue a11y, Phase 3).
 const heroFieldStyle: React.CSSProperties = {
   flex: "1 1 140px",
   padding: "12px 16px",
   borderRadius: "var(--radius-sm)",
   fontSize: "14px",
   border: "none",
-  outline: "none",
   backgroundColor: "var(--color-fond-input)",
   color: "var(--color-texte)",
 };

@@ -98,6 +98,7 @@ function DropdownRegion({
       {ouvert && (
         <div
           role="listbox"
+          className="akal-pop-in"
           style={{
             position: "absolute",
             top: "calc(100% + 4px)",
@@ -169,10 +170,10 @@ export default function FiltresSidebar({
             position: "fixed",
             inset: 0,
             top: "64px",
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: "rgba(17,26,21,0.4)",
             zIndex: 25,
           }}
-          className="hidden-desktop"
+          className="hidden-desktop akal-fade-in"
         />
       )}
 
@@ -195,7 +196,7 @@ export default function FiltresSidebar({
                   cursor: filtresActifs(f) ? "pointer" : "default",
                   fontSize: "12px",
                   textDecoration: filtresActifs(f) ? "underline" : "none",
-                  color: filtresActifs(f) ? "var(--color-terre)" : "var(--color-tertiaire)",
+                  color: filtresActifs(f) ? "var(--color-terre-texte)" : "var(--color-tertiaire)",
                   opacity: filtresActifs(f) ? 1 : 0.6,
                 }}
               >

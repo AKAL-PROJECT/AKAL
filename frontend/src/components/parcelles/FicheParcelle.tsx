@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   MessageSquare,
 } from "@/components/icons/Icons";
+import { AGRISCORE_ACTIF } from "@/config/features";
 
 const CarteFiche = dynamic(() => import("./CarteLeafletFiche"), {
   ssr: false,
@@ -163,27 +164,31 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
             </div>
           </div>
 
-          {/* AgriScore */}
-          <div className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-texte)" }}>AgriScore</span>
-              <span
-                style={{
-                  fontSize: "11px",
-                  color: "var(--color-tertiaire)",
-                  backgroundColor: "var(--color-fond-input)",
-                  padding: "2px 8px",
-                  borderRadius: "var(--radius-full)",
-                }}
-              >
-                Indice agronomique / 100
-              </span>
+          {/* AgriScore — hors périmètre produit actuel (cf. src/config/features.ts).
+              Bloc conservé intact, simplement non rendu, pour une réactivation
+              triviale (un seul booléen) le jour où la fonctionnalité revient. */}
+          {AGRISCORE_ACTIF && (
+            <div className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-texte)" }}>AgriScore</span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--color-tertiaire)",
+                    backgroundColor: "var(--color-fond-input)",
+                    padding: "2px 8px",
+                    borderRadius: "var(--radius-full)",
+                  }}
+                >
+                  Indice agronomique / 100
+                </span>
+              </div>
+              <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />
+              <p style={{ fontSize: "12px", color: "var(--color-secondaire)", margin: 0 }}>
+                {agriScoreLegende(a.scoreCourant?.scoreGlobal ?? null)}
+              </p>
             </div>
-            <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />
-            <p style={{ fontSize: "12px", color: "var(--color-secondaire)", margin: 0 }}>
-              {agriScoreLegende(a.scoreCourant?.scoreGlobal ?? null)}
-            </p>
-          </div>
+          )}
 
           <BlocCaracteristiques parcelle={a} />
 
@@ -256,7 +261,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                   borderRadius: "var(--radius-sm)",
                   border: `1px solid ${favori ? "var(--color-terre)" : "var(--color-bordure)"}`,
                   backgroundColor: favori ? "var(--color-terre-fond)" : "transparent",
-                  color: favori ? "var(--color-terre)" : "var(--color-secondaire)",
+                  color: favori ? "var(--color-terre-texte)" : "var(--color-secondaire)",
                   fontSize: "13px",
                   cursor: "pointer",
                   transition: "all 200ms ease",

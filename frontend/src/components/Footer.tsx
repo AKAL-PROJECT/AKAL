@@ -34,10 +34,10 @@ export default function Footer() {
         <div>
           <div style={{ fontSize: "13px", fontWeight: 500, color: "white", marginBottom: "14px" }}>Explorer</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <Link href="/parcelles" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+            <Link href="/parcelles" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Parcelles
             </Link>
-            <Link href="/parcelles" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+            <Link href="/parcelles" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Carte
             </Link>
           </div>
@@ -46,10 +46,10 @@ export default function Footer() {
         <div>
           <div style={{ fontSize: "13px", fontWeight: 500, color: "white", marginBottom: "14px" }}>Vendre</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <Link href="/publier" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+            <Link href="/publier" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Déposer une annonce
             </Link>
-            <Link href="/#comment-ca-marche" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+            <Link href="/#comment-ca-marche" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Comment ça marche
             </Link>
           </div>

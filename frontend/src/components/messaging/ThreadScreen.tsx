@@ -88,7 +88,8 @@ export function ThreadScreen({
           )}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>{conversation.autre_participant.prenom}</div>
+          {/* Fil sans titre de page jusqu'ici (revue a11y, Phase 3). */}
+          <h1 style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>{conversation.autre_participant.prenom}</h1>
           <Link
             href={`/parcelles/${conversation.annonce.slug}`}
             style={{

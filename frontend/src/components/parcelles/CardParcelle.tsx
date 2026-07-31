@@ -6,6 +6,7 @@ import type { Parcelle } from "@/types/parcelle";
 import BadgeStatut from "./BadgeStatut";
 import ScoreBar from "./ScoreBar";
 import { MapPin, Heart, Droplets } from "@/components/icons/Icons";
+import { AGRISCORE_ACTIF } from "@/config/features";
 
 type Props = {
   parcelle: Parcelle;
@@ -153,7 +154,7 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
           {a.titre}
         </h3>
 
-        <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />
+        {AGRISCORE_ACTIF && <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />}
 
         {/* Tags */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>

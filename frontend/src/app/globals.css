@@ -18,6 +18,10 @@
   --color-menthe:       #B7D7C9;
   --color-rosee:        #EAF4EE;
   --color-terre:        #C4622D;
+  /* Variante texte de --color-terre : #C4622D en texte fin tombe à ~4:1 sur
+     blanc/parchemin, sous les 4.5:1 AA (revue a11y, Phase 3). --color-terre
+     reste inchangé pour les fonds/icônes (déjà ≥3:1, seuil non-texte). */
+  --color-terre-texte:  #AD4E1B;
   --color-argile:       #8C3D26;   /* terre cuite profonde — accents sombres, dégradés */
   --color-ble:          #D4A017;
   --color-parchemin:    #FEF9E7;
@@ -26,7 +30,7 @@
   /* Neutres (chauds — jamais de gris froid) */
   --color-texte:        #1A1A1A;
   --color-secondaire:   #555555;
-  --color-tertiaire:    #888888;
+  --color-tertiaire:    #6E6E68; /* #888888 → 3.5:1 sur blanc, sous les 4.5:1 AA (revue a11y, Phase 3) */
   --color-fond:         #F8F5F0;
   --color-bordure:      #E8E4DE;
   --color-fond-input:   #F2EFE9;
@@ -180,7 +184,7 @@
      du formulaire (pur CSS, aucun JS ne remplace le <select>). */
   .select-chevron {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236E6E68' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     background-size: 14px;
@@ -189,7 +193,7 @@
   }
   select.input.select-chevron { background-position: right 14px center; background-size: 16px; padding-right: 40px; }
 
-  .badge-melkia      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-terre-fond); color: var(--color-terre); }
+  .badge-melkia      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-terre-fond); color: var(--color-terre-texte); }
   .badge-soulaliya   { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-rosee); color: var(--color-foret); }
   .badge-guich       { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-parchemin); color: var(--color-ble); }
   .badge-habous      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: #F5EEF8; color: #7D3C98; }
@@ -202,7 +206,7 @@
   .badge-annonce-en-attente  { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-parchemin); color: var(--color-ble); }
   .badge-annonce-en-ligne    { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-rosee); color: var(--color-foret); }
   .badge-annonce-archivee    { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-bordure); color: var(--color-tertiaire); }
-  .badge-annonce-vendue      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-terre-fond); color: var(--color-terre); }
+  .badge-annonce-vendue      { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background-color: var(--color-terre-fond); color: var(--color-terre-texte); }
 
   .tifinagh { font-family: var(--font-tifinagh); }
 
@@ -314,18 +318,9 @@
   }
 
   /* --- Home : hero + sections animées --- */
-  @keyframes akal-sunrise {
-    0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
   @keyframes akal-push-up {
     from { opacity: 0; transform: translateY(24px); }
     to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes akal-bounce {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(8px); }
   }
   @keyframes akal-fade-cascade {
     from { opacity: 0; transform: translateY(24px); }
@@ -338,9 +333,6 @@
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;
-    }
-    .akal-bounce, .akal-sunrise-bg {
-      animation: none !important;
     }
   }
 
@@ -551,8 +543,63 @@
   .btn-cta-verte:hover { background-color: var(--color-foret); }
   .btn-cta-verte:active { transform: scale(0.97); }
 
+  /* Lien "en savoir plus" avec flèche — même usage répété à l'identique en
+     3 endroits (Home ×2, popup carte), factorisé (audit de cohérence,
+     Phase 3). Léger déplacement vers la droite au survol : suggère l'action
+     sans être démonstratif. */
+  .akal-link-fleche {
+    display: inline-flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-foret);
+    border-bottom: 1px solid var(--color-foret);
+    padding-bottom: 2px;
+    text-decoration: none;
+    transition: transform 150ms ease, color 150ms ease;
+  }
+  .akal-link-fleche:hover { transform: translateX(3px); color: var(--color-nuit); }
+
+  /* Puce région (Home, couverture nationale) — bordure/fond réagissent au
+     survol et au clavier (état "border-color transition" jusqu'ici sans
+     cible : ajouté ici). */
+  .akal-chip-region {
+    transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+  }
+  .akal-chip-region:hover {
+    border-color: var(--color-foret);
+    background-color: var(--color-rosee);
+    color: var(--color-foret);
+  }
+
+  /* Icône de navigation isolée (favoris, messages) — aucun retour au survol
+     jusqu'ici alors que toutes les autres cibles cliquables en ont un. */
+  .akal-icon-link { transition: transform 150ms ease, opacity 150ms ease; }
+  .akal-icon-link:hover { transform: translateY(-1px); opacity: 0.75; }
+  .akal-icon-link:active { transform: translateY(0); opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .akal-icon-link:hover { transform: none; }
+  }
+
+  /* Lien de nav principal (Explorer/Carte) — seul l'onglet actif avait un
+     retour visuel (soulignement) ; les autres restaient inertes au survol. */
+  .akal-nav-link { transition: color 150ms ease; }
+  .akal-nav-link:hover { color: var(--color-foret); }
+
+  /* Lien de pied de page — sur fond sombre, un simple blanchiment suffit. */
+  .akal-footer-link { transition: color 150ms ease; }
+  .akal-footer-link:hover { color: white; }
+
+  /* Champs du Hero (région/budget) — outline:none sans remplacement violait
+     2.4.7 Focus Visible (revue a11y, Phase 3). */
+  .akal-hero-field:focus-visible {
+    outline: 2px solid var(--color-foret);
+    outline-offset: 1px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .akal-bar-in { animation: none !important; transform: none !important; }
+    .akal-link-fleche:hover { transform: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -573,7 +620,7 @@
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--color-terre);
+    color: var(--color-terre-texte);
   }
   .eyebrow::before {
     content: "";

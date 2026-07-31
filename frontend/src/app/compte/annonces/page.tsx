@@ -6,7 +6,8 @@ import { getCurrentUser } from "@/lib/auth-api";
 import { getMesAnnonces } from "@/lib/annonces-api";
 import { archiverAnnonceAction, marquerVendueAnnonceAction, reactiverAnnonceAction } from "@/app/actions/annonces";
 import BadgeStatutAnnonce from "@/components/parcelles/BadgeStatutAnnonce";
-import { MountainEmpty, FileText, Check, TrendingUp, Ruler } from "@/components/icons/Icons";
+import { FileText, Check, TrendingUp, Ruler } from "@/components/icons/Icons";
+import { EtatVide } from "@/components/EtatVide";
 import type { AnnonceProprietaire } from "@/types/parcelle";
 import BoutonAvecConfirmation from "./BoutonAvecConfirmation";
 
@@ -89,34 +90,21 @@ export default async function MesAnnoncesPage() {
       )}
 
       {annonces.length === 0 ? (
-        <div
-          className="akal-fade-in"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "16px",
-            padding: "80px 20px",
-            textAlign: "center",
-            color: "var(--color-tertiaire)",
-          }}
-        >
-          <MountainEmpty size={64} style={{ color: "var(--color-menthe)" }} />
-          <p style={{ fontSize: "16px", fontWeight: 500, color: "var(--color-texte)", margin: 0 }}>
-            Aucune annonce pour l&apos;instant
-          </p>
-          <Link href="/publier" className="btn-secondary" style={{ textDecoration: "none" }}>
-            Déposer une annonce
-          </Link>
-        </div>
+        <EtatVide
+          titre="Aucune annonce pour l'instant"
+          action={
+            <Link href="/publier" className="btn-secondary" style={{ textDecoration: "none" }}>
+              Déposer une annonce
+            </Link>
+          }
+        />
       ) : (
         <div className="akal-stagger" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {annonces.map((a) => (
             <div
               key={a.id}
               className="card"
-              style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px" }}
+              style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px", flexWrap: "wrap" }}
             >
               <div
                 style={{

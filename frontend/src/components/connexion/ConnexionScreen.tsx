@@ -50,12 +50,13 @@ export default function ConnexionScreen({ next }: { next: string }) {
             </div>
           </div>
 
-          <p
+          {/* Seul titre de page jusqu'ici — absence de h1 (revue a11y, Phase 3). */}
+          <h1
             className="akal-rise"
             style={{ fontSize: 20, lineHeight: 1.5, color: "#1B3A2D", fontWeight: 400, margin: "40px 0 28px", maxWidth: 400, animationDelay: "0.1s" }}
           >
             L&apos;intelligence foncière au service des terres agricoles marocaines.
-          </p>
+          </h1>
 
           <div className="akal-rise" style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 44, animationDelay: "0.18s" }}>
             <span style={{ fontSize: 22, fontWeight: 500, color: "#2D6A4F" }}>Explorez.</span>

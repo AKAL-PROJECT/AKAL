@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import CardParcelle from "./CardParcelle";
 import BarreComparateur from "./BarreComparateur";
-import { MountainEmpty } from "@/components/icons/Icons";
+import { EtatVide } from "@/components/EtatVide";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
 import type { Parcelle } from "@/types/parcelle";
 
@@ -41,30 +41,15 @@ export function FavorisScreen({ parcellesInitiales }: { parcellesInitiales: Parc
       <h1 style={{ fontSize: 24, marginBottom: 24 }}>Mes favoris</h1>
 
       {parcelles.length === 0 ? (
-        <div
-          className="akal-fade-in"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "16px",
-            padding: "80px 20px",
-            textAlign: "center",
-            color: "var(--color-tertiaire)",
-          }}
-        >
-          <MountainEmpty size={64} style={{ color: "var(--color-menthe)" }} />
-          <p style={{ fontSize: "16px", fontWeight: 500, color: "var(--color-texte)", margin: 0 }}>
-            Aucun favori pour l&apos;instant
-          </p>
-          <p style={{ fontSize: "14px", color: "var(--color-secondaire)", margin: 0, maxWidth: "320px" }}>
-            Cliquez sur le cœur d&apos;une annonce pour la retrouver ici.
-          </p>
-          <Link href="/parcelles" className="btn-secondary" style={{ textDecoration: "none" }}>
-            Explorer les parcelles
-          </Link>
-        </div>
+        <EtatVide
+          titre="Aucun favori pour l'instant"
+          description="Cliquez sur le cœur d'une annonce pour la retrouver ici."
+          action={
+            <Link href="/parcelles" className="btn-secondary" style={{ textDecoration: "none" }}>
+              Explorer les parcelles
+            </Link>
+          }
+        />
       ) : (
         <div style={GRILLE_STYLE}>
           {parcelles.map((p, i) => (

@@ -6,8 +6,10 @@ import Image from "next/image";
 import type { AccesEau, Parcelle } from "@/types/parcelle";
 import BadgeStatut from "./BadgeStatut";
 import ScoreBar from "./ScoreBar";
-import { MapPin, MountainEmpty } from "@/components/icons/Icons";
+import { MapPin } from "@/components/icons/Icons";
+import { EtatVide } from "@/components/EtatVide";
 import { lireParcellesComparees } from "./comparateurStorage";
+import { AGRISCORE_ACTIF } from "@/config/features";
 
 const formatMAD = new Intl.NumberFormat("fr-MA");
 
@@ -29,12 +31,16 @@ const LIGNES: Ligne[] = [
   { label: "Prix", valeur: (p) => p.prix, meilleure: "min", render: (p) => `${formatMAD.format(p.prix)} MAD` },
   { label: "Prix au m²", valeur: (p) => p.prixM2, meilleure: "min", render: (p) => `${formatMAD.format(p.prixM2)} MAD/m²` },
   { label: "Surface", valeur: (p) => p.parcelle.surface, meilleure: "max", render: (p) => `${p.parcelle.surface} ha` },
-  {
-    label: "AgriScore",
-    valeur: (p) => p.scoreCourant?.scoreGlobal ?? null,
-    meilleure: "max",
-    render: (p) => <ScoreBar score={p.scoreCourant?.scoreGlobal ?? null} />,
-  },
+  // AgriScore hors périmètre produit actuel (cf. src/config/features.ts) —
+  // ligne conservée, simplement exclue du tableau tant que le flag est faux.
+  ...(AGRISCORE_ACTIF
+    ? [{
+        label: "AgriScore",
+        valeur: (p: Parcelle) => p.scoreCourant?.scoreGlobal ?? null,
+        meilleure: "max" as const,
+        render: (p: Parcelle) => <ScoreBar score={p.scoreCourant?.scoreGlobal ?? null} />,
+      }]
+    : []),
   { label: "Région", valeur: () => null, render: (p) => p.parcelle.regionNom },
   { label: "Statut foncier", valeur: () => null, render: (p) => <BadgeStatut statut={p.parcelle.statutFoncier} /> },
   { label: "Accès à l'eau", valeur: () => null, render: (p) => ACCES_EAU_LABEL[p.parcelle.accesEau] },
@@ -68,18 +74,20 @@ export default function ComparateurScreen() {
 
   if (parcelles.length === 0) {
     return (
-      <div className="akal-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "120px 20px", gap: "20px", textAlign: "center" }}>
-        <span style={{ color: "var(--color-foret)" }}>
-          <MountainEmpty size={64} />
-        </span>
-        <h1 style={{ fontSize: "24px", fontWeight: 500, margin: 0 }}>Aucune parcelle à comparer</h1>
-        <p style={{ fontSize: "15px", color: "var(--color-secondaire)", maxWidth: "440px", lineHeight: 1.6, margin: 0 }}>
-          Sélectionnez 2 ou 3 parcelles depuis le catalogue pour les comparer côte à côte. La sélection
-          ne se transmet pas via un lien partagé — reviens au catalogue pour la refaire.
-        </p>
-        <Link href="/parcelles" className="btn-primary" style={{ textDecoration: "none", marginTop: "8px" }}>
-          Explorer le catalogue
-        </Link>
+      <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "32px 20px 0" }}>
+        {/* h1 constant que la page ait des parcelles ou non — auparavant
+            "Comparateur" n'était annoncé qu'à l'état rempli (revue a11y,
+            Phase 3). */}
+        <h1 style={{ fontSize: "24px", fontWeight: 500, margin: 0 }}>Comparateur</h1>
+        <EtatVide
+          titre="Aucune parcelle à comparer"
+          description="Sélectionnez 2 ou 3 parcelles depuis le catalogue pour les comparer côte à côte. La sélection ne se transmet pas via un lien partagé — reviens au catalogue pour la refaire."
+          action={
+            <Link href="/parcelles" className="btn-primary" style={{ textDecoration: "none" }}>
+              Explorer le catalogue
+            </Link>
+          }
+        />
       </div>
     );
   }

@@ -93,12 +93,14 @@ export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
         <Link
           href="/parcelles"
           ref={isCatalogue ? activeLinkRef : undefined}
+          className="akal-nav-link"
           style={{ fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
         >
           Explorer
         </Link>
         <Link
           href="/parcelles"
+          className="akal-nav-link"
           style={{ fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
         >
           Carte
@@ -125,10 +127,10 @@ export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
           </button>
         </Link>
 
-        <Link href="/favoris" style={{ color: "var(--color-foret)", display: "flex" }} title="Favoris">
+        <Link href="/favoris" className="akal-icon-link akal-focusable" style={{ color: "var(--color-foret)", display: "flex" }} title="Favoris" aria-label="Favoris">
           <Heart size={24} strokeWidth={1.7} />
         </Link>
-        <Link href="/messages" style={{ color: "var(--color-foret)", display: "flex" }} title="Messages">
+        <Link href="/messages" className="akal-icon-link akal-focusable" style={{ color: "var(--color-foret)", display: "flex" }} title="Messages" aria-label="Messages">
           <MessageSquare size={24} strokeWidth={1.7} />
         </Link>
 
@@ -149,7 +151,7 @@ export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
                 Déconnexion
               </button>
             </form>
-            <Link href="/compte" title={utilisateur.prenom} style={{ display: "flex", flexShrink: 0 }}>
+            <Link href="/compte" title={utilisateur.prenom} className="akal-icon-link akal-focusable" style={{ display: "flex", flexShrink: 0 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/uploads/icon-profil-nav.svg"
@@ -159,7 +161,7 @@ export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
             </Link>
           </>
         ) : (
-          <Link href="/connexion" title="Profil" style={{ display: "flex", flexShrink: 0 }}>
+          <Link href="/connexion" title="Profil" className="akal-icon-link akal-focusable" style={{ display: "flex", flexShrink: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/uploads/icon-profil-nav.svg"

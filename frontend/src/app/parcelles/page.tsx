@@ -21,7 +21,8 @@ import CardParcelleSkeleton from "@/components/parcelles/CardParcelleSkeleton";
 import FiltresSidebar from "@/components/parcelles/FiltresSidebar";
 import BarreComparateur from "@/components/parcelles/BarreComparateur";
 import CarteParcelles from "@/components/parcelles/CarteParcelles";
-import { Grid, Map, Filter, MountainEmpty } from "@/components/icons/Icons";
+import { Grid, Map, Filter } from "@/components/icons/Icons";
+import { EtatVide } from "@/components/EtatVide";
 
 // Auto-fill avec un seuil de 300px : ≈3 colonnes sur un desktop courant
 // (sidebar + gap déduits), 1 colonne sous ~620px — équivalent explicite au
@@ -190,6 +191,11 @@ function Catalogue() {
 
       {/* Zone principale */}
       <main style={{ flex: 1, minWidth: 0, padding: "20px", paddingBottom: comparaison.length > 0 ? "96px" : "20px" }}>
+        {/* Page sans titre visible jusqu'ici — absence de h1 (revue a11y,
+            Phase 3) : la navigation par titres au clavier/lecteur d'écran
+            n'avait aucun repère pour cet écran. */}
+        <h1 style={{ fontSize: "22px", margin: "0 0 16px" }}>Explorer les parcelles</h1>
+
         {/* Barre de contrôle */}
         <div
           style={{
@@ -286,7 +292,7 @@ function Catalogue() {
               gap: "12px", padding: "64px 20px", textAlign: "center",
             }}
           >
-            <p style={{ fontSize: "15px", color: "var(--color-terre)" }}>{erreur}</p>
+            <p style={{ fontSize: "15px", color: "var(--color-terre-texte)" }}>{erreur}</p>
             <button
               type="button"
               className="btn-secondary"
@@ -296,30 +302,21 @@ function Catalogue() {
             </button>
           </div>
         ) : chargement ? (
-          <div style={GRILLE_STYLE}>
+          <div className="akal-fade-in" style={GRILLE_STYLE}>
             {Array.from({ length: NB_SKELETONS }).map((_, i) => (
               <CardParcelleSkeleton key={i} />
             ))}
           </div>
         ) : resultatsAffiches.length === 0 ? (
-          <div
-            className="akal-fade-in"
-            style={{
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              gap: "16px", padding: "80px 20px", textAlign: "center", color: "var(--color-tertiaire)",
-            }}
-          >
-            <MountainEmpty size={64} style={{ color: "var(--color-menthe)" }} />
-            <p style={{ fontSize: "16px", fontWeight: 500, color: "var(--color-texte)", margin: 0 }}>
-              Aucune terre ne correspond à ces critères
-            </p>
-            <p style={{ fontSize: "14px", color: "var(--color-secondaire)", margin: 0, maxWidth: "320px" }}>
-              Essayez d&apos;élargir votre recherche ou de réinitialiser les filtres.
-            </p>
-            <button type="button" className="btn-secondary" onClick={reinitialiser}>
-              Réinitialiser les filtres
-            </button>
-          </div>
+          <EtatVide
+            titre="Aucune terre ne correspond à ces critères"
+            description="Essayez d'élargir votre recherche ou de réinitialiser les filtres."
+            action={
+              <button type="button" className="btn-secondary" onClick={reinitialiser}>
+                Réinitialiser les filtres
+              </button>
+            }
+          />
         ) : mode === "grille" ? (
           <div style={GRILLE_STYLE}>
             {resultatsAffiches.map((p, i) => (

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { fetchInboxAction } from "@/app/actions/messaging";
-import { MountainEmpty } from "@/components/icons/Icons";
+import { EtatVide } from "@/components/EtatVide";
 import type { Conversation } from "@/types/messaging";
 import type { Paginated } from "@/lib/api";
 
@@ -28,21 +28,15 @@ export function InboxScreen({ inboxInitiale }: { inboxInitiale: Paginated<Conver
       <h1 style={{ fontSize: 24, marginBottom: 24 }}>Messages</h1>
 
       {conversations.length === 0 ? (
-        <div
-          className="akal-fade-in"
-          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "80px 20px", textAlign: "center" }}
-        >
-          <MountainEmpty size={64} style={{ color: "var(--color-menthe)" }} />
-          <p style={{ fontSize: "16px", fontWeight: 500, color: "var(--color-texte)", margin: 0 }}>
-            Aucune conversation pour l&apos;instant
-          </p>
-          <p style={{ fontSize: "14px", color: "var(--color-secondaire)", margin: 0, maxWidth: "320px" }}>
-            Contactez un vendeur depuis une fiche parcelle pour démarrer un échange.
-          </p>
-          <Link href="/parcelles" className="btn-secondary" style={{ textDecoration: "none" }}>
-            Explorer les parcelles
-          </Link>
-        </div>
+        <EtatVide
+          titre="Aucune conversation pour l'instant"
+          description="Contactez un vendeur depuis une fiche parcelle pour démarrer un échange."
+          action={
+            <Link href="/parcelles" className="btn-secondary" style={{ textDecoration: "none" }}>
+              Explorer les parcelles
+            </Link>
+          }
+        />
       ) : (
         <div className="akal-stagger" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {conversations.map((conversation) => (
