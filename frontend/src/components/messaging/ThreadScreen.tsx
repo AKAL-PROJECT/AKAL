@@ -126,7 +126,7 @@ export function ThreadScreen({
           Envoyer
         </button>
       </form>
-      {erreur && <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 13, margin: "0 0 16px" }}>{erreur}</p>}
+      {erreur && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 13, margin: "0 0 16px" }}>{erreur}</p>}
     </div>
   );
 }

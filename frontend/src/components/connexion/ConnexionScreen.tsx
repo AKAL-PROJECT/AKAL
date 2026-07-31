@@ -90,7 +90,7 @@ export default function ConnexionScreen({ next }: { next: string }) {
                 />
               </div>
               {state?.fieldErrors?.email && (
-                <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{state.fieldErrors.email[0]}</p>
+                <p style={{ fontSize: 13, color: "var(--color-erreur)", margin: 0 }}>{state.fieldErrors.email[0]}</p>
               )}
             </div>
 
@@ -139,12 +139,12 @@ export default function ConnexionScreen({ next }: { next: string }) {
                 </button>
               </div>
               {state?.fieldErrors?.password && (
-                <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{state.fieldErrors.password[0]}</p>
+                <p style={{ fontSize: 13, color: "var(--color-erreur)", margin: 0 }}>{state.fieldErrors.password[0]}</p>
               )}
             </div>
 
             {state?.error && (
-              <p className="akal-alert-in" style={{ fontSize: 14, color: "#C0392B", margin: 0 }}>{state.error}</p>
+              <p className="akal-alert-in" style={{ fontSize: 14, color: "var(--color-erreur)", margin: 0 }}>{state.error}</p>
             )}
 
             <button type="submit" className="connexion-submit" disabled={pending} style={{ marginTop: 8 }}>

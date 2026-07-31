@@ -66,14 +66,14 @@ export function NouvelleConversationForm({ parcelle }: { parcelle: Parcelle }) {
               style={{ height: "auto", padding: "12px 16px", resize: "vertical" }}
             />
             {state?.fieldErrors?.contenu && (
-              <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 13, marginTop: 4 }}>{state.fieldErrors.contenu[0]}</p>
+              <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 13, marginTop: 4 }}>{state.fieldErrors.contenu[0]}</p>
             )}
           </div>
 
           {state?.fieldErrors?.annonce && (
-            <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 14 }}>{state.fieldErrors.annonce[0]}</p>
+            <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{state.fieldErrors.annonce[0]}</p>
           )}
-          {state?.error && !state?.fieldErrors && <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 14 }}>{state.error}</p>}
+          {state?.error && !state?.fieldErrors && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{state.error}</p>}
 
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <Link href={`/parcelles/${parcelle.slug}`} className="btn-secondary" style={{ textDecoration: "none" }}>

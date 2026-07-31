@@ -154,7 +154,7 @@ export function EtapePhotosPublication({
           ))}
         </div>
       )}
-      {erreurSuppression && <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 14 }}>{erreurSuppression}</p>}
+      {erreurSuppression && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{erreurSuppression}</p>}
 
       <label
         className="btn-secondary"
@@ -174,11 +174,11 @@ export function EtapePhotosPublication({
           style={{ display: "none" }}
         />
       </label>
-      {erreurUpload && <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 14 }}>{erreurUpload}</p>}
+      {erreurUpload && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{erreurUpload}</p>}
 
       {raisonsBlocage && (
-        <div className="akal-alert-in" style={{ backgroundColor: "#FEF3EE", border: "1px solid var(--color-terre)", borderRadius: 8, padding: 12 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-terre)", margin: "0 0 6px" }}>
+        <div className="akal-alert-in" style={{ backgroundColor: "var(--color-erreur-fond)", border: "1px solid var(--color-erreur)", borderRadius: "var(--radius-sm)", padding: 12 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-erreur)", margin: "0 0 6px" }}>
             Impossible de publier pour le moment :
           </p>
           <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: "var(--color-texte)" }}>
@@ -188,7 +188,7 @@ export function EtapePhotosPublication({
           </ul>
         </div>
       )}
-      {erreurPublication && <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 14 }}>{erreurPublication}</p>}
+      {erreurPublication && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{erreurPublication}</p>}
 
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
         <button type="button" className="btn-secondary" onClick={onPrecedent}>

@@ -9,7 +9,9 @@ type IconProps = {
   strokeWidth?: number;
 };
 
-function base(size = 16, strokeWidth = 2): React.SVGProps<SVGSVGElement> {
+// Trait 1.75 par défaut (signature graphique du set) — les appels qui
+// précisent déjà strokeWidth (ex. connexion, gros pictos) restent inchangés.
+function base(size = 16, strokeWidth = 1.75): React.SVGProps<SVGSVGElement> {
   return {
     width: size,
     height: size,

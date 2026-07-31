@@ -70,13 +70,13 @@ export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
         <Link
           href="/parcelles"
           ref={isCatalogue ? activeLinkRef : undefined}
-          style={{ fontSize: "15px", color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
+          style={{ fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
         >
           Explorer
         </Link>
         <Link
           href="/parcelles"
-          style={{ fontSize: "15px", color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
+          style={{ fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
         >
           Carte
         </Link>

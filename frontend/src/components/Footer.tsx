@@ -3,13 +3,17 @@ import Link from "next/link";
 export default function Footer() {
   return (
     <footer style={{
+      position: "relative",
+      overflow: "hidden",
       backgroundColor: "var(--color-nuit)",
       color: "var(--color-menthe)",
       padding: "56px 40px 40px",
       marginTop: "auto",
     }}>
+      <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.12 }} />
       <div
         style={{
+          position: "relative",
           maxWidth: "1100px",
           margin: "0 auto",
           display: "grid",
@@ -18,7 +22,7 @@ export default function Footer() {
         }}
       >
         <div>
-          <div style={{ fontSize: "20px", fontWeight: 600, color: "white", marginBottom: "6px" }}>AKAL</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 500, color: "white", marginBottom: "6px" }}>AKAL</div>
           <div className="tifinagh" style={{ fontSize: "13px", color: "var(--color-menthe)", marginBottom: "16px" }}>
             ⴰⴽⴰⵍ
           </div>
@@ -62,6 +66,7 @@ export default function Footer() {
 
       <div
         style={{
+          position: "relative",
           maxWidth: "1100px",
           margin: "40px auto 0",
           paddingTop: "24px",

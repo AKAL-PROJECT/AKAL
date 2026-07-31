@@ -22,7 +22,7 @@ const inputBaseStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = { fontSize: 12, letterSpacing: "0.5px", color: "#2D6A4F" };
-const champErreurStyle: React.CSSProperties = { fontSize: 13, color: "#C0392B", margin: 0 };
+const champErreurStyle: React.CSSProperties = { fontSize: 13, color: "var(--color-erreur)", margin: 0 };
 
 export default function InscriptionScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -146,7 +146,7 @@ export default function InscriptionScreen() {
               {state?.fieldErrors?.password && <p style={champErreurStyle}>{state.fieldErrors.password[0]}</p>}
             </div>
 
-            {state?.error && <p className="akal-alert-in" style={{ fontSize: 14, color: "#C0392B", margin: 0 }}>{state.error}</p>}
+            {state?.error && <p className="akal-alert-in" style={{ fontSize: 14, color: "var(--color-erreur)", margin: 0 }}>{state.error}</p>}
 
             <button type="submit" className="connexion-submit" disabled={pending} style={{ marginTop: 8 }}>
               {pending ? "Création du compte…" : "Créer mon compte"}

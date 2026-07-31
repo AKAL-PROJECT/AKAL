@@ -1,29 +1,70 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tifinagh&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Manrope:wght@400;500;600;700&family=Noto+Sans+Tifinagh&display=swap');
 @import "tailwindcss";
 
+/* ────────────────────────────────────────────────────────────────────────
+   AKAL Design DNA — vague 5 (identité de marque)
+   Direction : "Terroir moderne" — terre, données, confiance. Une palette
+   ancrée dans le sol marocain (forêt/olive, terre cuite, blé), une
+   typographie éditoriale (Fraunces en display, Manrope en UI/texte), des
+   ombres et rayons chaleureux plutôt que neutres, des textures topo/grain
+   discrètes. Aucun token existant n'est renommé — uniquement enrichi ou
+   affiné en valeur, pour ne rien casser des écrans déjà branchés dessus.
+   ──────────────────────────────────────────────────────────────────────── */
 @theme inline {
+  /* Palette de marque */
   --color-foret:        #2D6A4F;
   --color-nuit:         #1B3A2D;
   --color-prairie:      #52B788;
   --color-menthe:       #B7D7C9;
   --color-rosee:        #EAF4EE;
   --color-terre:        #C4622D;
+  --color-argile:       #8C3D26;   /* terre cuite profonde — accents sombres, dégradés */
   --color-ble:          #D4A017;
   --color-parchemin:    #FEF9E7;
   --color-sable:        #E8C99A;
+
+  /* Neutres (chauds — jamais de gris froid) */
   --color-texte:        #1A1A1A;
   --color-secondaire:   #555555;
   --color-tertiaire:    #888888;
   --color-fond:         #F8F5F0;
   --color-bordure:      #E8E4DE;
   --color-fond-input:   #F2EFE9;
+
+  /* États — dans la palette, jamais de rouge/bleu génériques */
+  --color-succes:       var(--color-foret);
+  --color-attention:    var(--color-ble);
+  --color-erreur:       #B5482E;
+  --color-erreur-fond:  #FBEAE1;
+
+  /* Typographie */
   --font-sans:          'Manrope', system-ui, sans-serif;
+  --font-display:       'Fraunces', 'Manrope', ui-serif, serif;
   --font-tifinagh:      'Noto Sans Tifinagh', sans-serif;
-  --radius-btn:         8px;
-  --radius-card:        12px;
-  --shadow-card:        0 2px 12px rgba(0,0,0,0.07);
-  --shadow-card-hover:  0 6px 24px rgba(45,106,79,0.15);
+
+  /* Rayons — échelle unique ; radius-btn/card conservés comme alias pour ne
+     rien casser, valeurs légèrement assouplies pour une sensation premium. */
+  --radius-xs:          6px;
+  --radius-sm:          10px;
+  --radius-btn:         10px;
+  --radius-md:          16px;
+  --radius-card:        16px;
+  --radius-lg:          24px;
+  --radius-xl:          32px;
+  --radius-full:        999px;
+
+  /* Ombres — teinte vert-nuit plutôt que noir neutre (profondeur "terre",
+     pas "device mockup"). card/card-hover conservés comme alias. */
+  --shadow-1:           0 1px 3px rgba(27,58,45,0.08);
+  --shadow-2:           0 4px 16px rgba(27,58,45,0.10);
+  --shadow-card:        0 4px 16px rgba(27,58,45,0.09);
+  --shadow-3:           0 12px 32px rgba(27,58,45,0.14);
+  --shadow-card-hover:  0 12px 32px rgba(27,58,45,0.16);
+  --shadow-4:           0 28px 64px rgba(17,26,21,0.24);
+
+  /* Dégradés signature */
+  --gradient-profondeur: linear-gradient(160deg, var(--color-nuit) 0%, var(--color-foret) 100%);
+  --gradient-aurore:    linear-gradient(135deg, var(--color-terre) 0%, var(--color-ble) 100%);
 }
 
 @layer base {
@@ -36,6 +77,13 @@
   h1, h2, h3, h4, h5, h6 {
     font-weight: 500;
     font-style: normal;
+  }
+  /* Signature éditoriale : le display serif ne porte que les grands titres
+     (h1/h2, pages et sections) — les intitulés d'UI plus petits (h3-h6,
+     ex. titre de carte) restent en Manrope pour la lisibilité en dense. */
+  h1, h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
   * { box-sizing: border-box; }
 }
@@ -477,5 +525,69 @@
       transform: none !important;
     }
     .akal-notify-dot { animation: none !important; }
+  }
+
+  /* ── Typographie éditoriale (vague 5) ──────────────────────────────── */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-terre);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 20px;
+    height: 1.5px;
+    background: var(--gradient-aurore);
+    display: inline-block;
+  }
+  .display-1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    font-size: clamp(2.5rem, 3rem + 2.4vw, 4.75rem);
+  }
+  .display-2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
+    font-size: clamp(1.9rem, 1.6rem + 1.6vw, 2.75rem);
+  }
+  .lede {
+    font-size: clamp(1rem, 0.9rem + 0.4vw, 1.15rem);
+    line-height: 1.65;
+    color: var(--color-secondaire);
+  }
+
+  /* ── Textures de marque — calques décoratifs séparés (position absolute,
+     aria-hidden), jamais posés directement sur un conteneur de texte. ── */
+  .akal-texture-topo {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-repeat: repeat;
+    background-size: 480px 480px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480' viewBox='0 0 480 480'%3E%3Cg fill='none' stroke='%232D6A4F' stroke-opacity='0.55' stroke-width='1'%3E%3Cpath d='M-40 80 C 60 40,140 120,240 80 S 420 30,520 90'/%3E%3Cpath d='M-40 140 C 60 100,140 180,240 140 S 420 90,520 150'/%3E%3Cpath d='M-40 210 C 70 170,150 250,250 205 S 430 160,520 215'/%3E%3Cpath d='M-40 300 C 80 260,160 340,260 300 S 440 250,520 305'/%3E%3Cpath d='M-40 380 C 90 345,170 415,270 375 S 440 330,520 385'/%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* ── Chip flottant de donnée (AgriScore-like) — carte accent Hero/preuves. */
+  .akal-chip-donnee {
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(6px);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-3);
+    border: 1px solid rgba(255,255,255,0.6);
+  }
+
+  /* Hero (Home) : panneau cartographique masqué sous ~900px (.hidden-mobile
+     s'en charge), la grille repasse alors sur une seule colonne. */
+  @media (max-width: 900px) {
+    .akal-hero-grid { grid-template-columns: 1fr !important; }
   }
 }

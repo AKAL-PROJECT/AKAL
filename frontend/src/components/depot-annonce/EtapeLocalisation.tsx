@@ -14,7 +14,7 @@ const CarteLeafletPicker = dynamic(() => import("./CarteLeafletPicker"), {
 });
 
 const champLabelStyle: React.CSSProperties = { display: "block", fontSize: 14, fontWeight: 500, marginBottom: 6 };
-const champErreurStyle: React.CSSProperties = { color: "#C0392B", fontSize: 13, marginTop: 4 };
+const champErreurStyle: React.CSSProperties = { color: "var(--color-erreur)", fontSize: 13, marginTop: 4 };
 
 export function EtapeLocalisation({
   annonce,
@@ -159,7 +159,7 @@ export function EtapeLocalisation({
         </div>
       </div>
 
-      {state?.error && <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 14 }}>{state.error}</p>}
+      {state?.error && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{state.error}</p>}
 
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
         <button type="button" className="btn-secondary" onClick={onPrecedent}>

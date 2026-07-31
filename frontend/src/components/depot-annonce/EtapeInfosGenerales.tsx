@@ -5,7 +5,7 @@ import { enregistrerInfosGeneralesAction, type DepotFormState } from "@/app/acti
 import type { AnnonceEcriture } from "@/types/depot-annonce";
 
 const champLabelStyle: React.CSSProperties = { display: "block", fontSize: 14, fontWeight: 500, marginBottom: 6 };
-const champErreurStyle: React.CSSProperties = { color: "#C0392B", fontSize: 13, marginTop: 4 };
+const champErreurStyle: React.CSSProperties = { color: "var(--color-erreur)", fontSize: 13, marginTop: 4 };
 
 const OPTIONS_STATUT_FONCIER = [
   { value: "melkia", label: "Melkia" },
@@ -200,7 +200,7 @@ export function EtapeInfosGenerales({
         Masquer la localisation exacte aux visiteurs (affichée après contact)
       </label>
 
-      {state?.error && <p className="akal-alert-in" style={{ color: "#C0392B", fontSize: 14 }}>{state.error}</p>}
+      {state?.error && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{state.error}</p>}
 
       <button type="submit" className="btn-primary" disabled={pending} style={{ marginTop: 8, alignSelf: "flex-end" }}>
         {pending ? "Enregistrement…" : "Continuer"}
