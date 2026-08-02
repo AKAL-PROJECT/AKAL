@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import dynamic from "next/dynamic";
 import { PARCELLES } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
 import ScoreBar from "@/components/parcelles/ScoreBar";
@@ -8,6 +10,20 @@ import BadgeStatut from "@/components/parcelles/BadgeStatut";
 import { Reveal } from "@/components/Reveal";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight, MapPin } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
+
+// Composant réel derrière "CarteMaroc" (carte SVG des 12 régions + spotlight
+// cyclique) : src/components/connexion/MoroccoMap.tsx — aucun fichier
+// CarteMaroc.tsx / regions.ts / useSpotlight.ts n'existe dans ce projet,
+// alias local plutôt que duplication. ssr:false obligatoire (setInterval +
+// animations démarrées au montage, cf. le composant lui-même).
+const CarteMaroc = dynamic(() => import("@/components/connexion/MoroccoMap"), {
+  ssr: false,
+  loading: () => (
+    <div style={{ height: "320px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-foret)", fontSize: "14px" }}>
+      Chargement de la carte…
+    </div>
+  ),
+});
 
 // cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés.
 const REGIONS = [
@@ -141,48 +157,82 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Colonne visuelle — panneau cartographique */}
+          {/* Colonne visuelle — photo aérienne de parcelles.
+              Visible aussi en mobile (pleine largeur, empilée sous le texte
+              via .akal-hero-grid en 1 colonne sous 900px) — auparavant
+              masquée par .hidden-mobile. */}
           <div
-            className="akal-push-up hidden-mobile"
+            className="akal-push-up"
             style={{
               position: "relative",
               aspectRatio: "5 / 6",
               borderRadius: "var(--radius-xl)",
               overflow: "hidden",
-              background: "var(--gradient-profondeur)",
               boxShadow: "var(--shadow-4)",
               animationDelay: "200ms",
             }}
           >
+            {/* Fichier à déposer par vos soins : frontend/public/images/hero-parcelles.jpg
+                (non versionné ici, cf. compte-rendu). */}
+            <Image
+              src="/images/hero-parcelles.jpg"
+              alt="Vue aérienne de parcelles agricoles marocaines, cultures et chemins délimitant les propriétés"
+              fill
+              priority
+              sizes="(max-width: 900px) 100vw, 45vw"
+              style={{ objectFit: "cover" }}
+            />
+
+            {/* Teinte de marque — unifie la photo à la palette AKAL. */}
+            <div
+              aria-hidden
+              style={{ position: "absolute", inset: 0, backgroundColor: "var(--color-foret)", mixBlendMode: "multiply", opacity: 0.35 }}
+            />
+
+            {/* Dégradé de lisibilité — transparent en haut, nuit ~85% en bas. */}
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(180deg, rgba(27,58,45,0) 0%, rgba(27,58,45,0.3) 55%, rgba(27,58,45,0.85) 100%)",
+              }}
+            />
+
+            {/* Lignes de relief — signature de marque, conservée en léger overlay au-dessus de la photo. */}
             <svg
+              aria-hidden
               viewBox="0 0 520 640"
               width="100%"
               height="100%"
               preserveAspectRatio="xMidYMid slice"
               style={{ position: "absolute", inset: 0 }}
             >
-              <g fill="none" stroke="var(--color-menthe)" strokeOpacity={0.14} strokeWidth={1.2}>
+              <g fill="none" stroke="var(--color-menthe)" strokeOpacity={0.35} strokeWidth={1.2}>
                 <path d="M-30 90 C 90 40,190 140,290 90 S 470 30,560 100" />
                 <path d="M-30 190 C 100 145,200 245,300 195 S 480 130,560 200" />
                 <path d="M-30 300 C 110 255,210 355,310 305 S 490 240,560 310" />
                 <path d="M-30 420 C 120 375,220 475,320 425 S 500 360,560 430" />
                 <path d="M-30 540 C 130 495,230 595,330 545 S 510 480,560 550" />
               </g>
-
-              {/* Parcelles cadastrales stylisées */}
-              <g strokeLinejoin="round">
-                <polygon points="55,150 150,120 175,215 65,235" fill="rgba(255,255,255,0.04)" stroke="rgba(183,215,201,0.4)" strokeWidth={1} />
-                <polygon points="90,340 195,318 218,412 105,430" fill="rgba(255,255,255,0.04)" stroke="rgba(183,215,201,0.4)" strokeWidth={1} />
-                <polygon points="150,470 255,448 278,535 165,548" fill="rgba(255,255,255,0.04)" stroke="rgba(183,215,201,0.4)" strokeWidth={1} />
-                <polygon points="285,375 388,350 410,448 300,462" fill="rgba(196,98,45,0.10)" stroke="rgba(196,98,45,0.45)" strokeWidth={1} />
-                {/* Parcelle active */}
-                <polygon points="222,178 322,150 348,242 236,262" fill="rgba(82,183,136,0.18)" stroke="var(--color-prairie)" strokeWidth={1.6} />
-              </g>
-
-              <circle cx="284" cy="206" r="5" fill="var(--color-prairie)" />
-              <circle className="akal-pulse" cx="284" cy="206" r="5" fill="var(--color-prairie)" opacity={0.5} />
-              <circle cx="345" cy="408" r="4" fill="var(--color-terre)" opacity={0.85} />
             </svg>
+
+            {/* Pastilles de statut foncier (positions indicatives — à ajuster
+                une fois la vraie photo en place pour tomber sur des parcelles
+                visibles). Vert = Immatriculé, terre = autre statut. */}
+            <span
+              aria-hidden
+              style={{ position: "absolute", left: "38%", top: "30%", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--color-prairie)", transform: "translate(-50%,-50%)", boxShadow: "0 0 0 2px rgba(255,255,255,0.5)" }}
+            />
+            <span
+              className="akal-pulse"
+              aria-hidden
+              style={{ position: "absolute", left: "38%", top: "30%", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--color-prairie)", opacity: 0.5, transform: "translate(-50%,-50%)" }}
+            />
+            <span
+              aria-hidden
+              style={{ position: "absolute", left: "63%", top: "58%", width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "var(--color-terre)", transform: "translate(-50%,-50%)", boxShadow: "0 0 0 2px rgba(255,255,255,0.5)" }}
+            />
 
             {/* Chip donnée — vraie parcelle du catalogue, pas de statistique inventée */}
             {parcelleVitrine && (
@@ -282,36 +332,37 @@ export default function Home() {
                   </Link>
                 ))}
               </div>
+              {/* CTA vers l'onglet Carte de la Navbar — même route ("/parcelles"),
+                  pas de paramètre dédié pour présélectionner la vue carte :
+                  le catalogue n'a pas de mode piloté par l'URL (mode local,
+                  cf. app/parcelles/page.tsx), atterrit donc en vue grille. */}
               <Link href="/parcelles" className="akal-link-fleche">
-                Explorer la carte →
+                Voir la carte complète →
               </Link>
             </div>
           </Reveal>
 
           <Reveal delayMs={80}>
-            <Link
-              href="/parcelles"
+            <div
               style={{
-                height: "340px",
                 borderRadius: "var(--radius-xl)",
                 backgroundColor: "var(--color-rosee)",
                 position: "relative",
                 overflow: "hidden",
-                display: "block",
                 boxShadow: "var(--shadow-2)",
+                padding: "28px 20px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "16px",
               }}
             >
-              <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.5 }} />
-              <svg viewBox="0 0 200 200" width="100%" height="100%" style={{ position: "relative", opacity: 0.6 }}>
-                <path d="M60 20 L140 15 L165 60 L150 120 L120 180 L70 175 L35 130 L25 70 Z" fill="none" stroke="var(--color-foret)" strokeWidth={2} />
-              </svg>
-              {[[38, 32], [55, 52], [30, 58], [68, 40]].map(([top, left], i) => (
-                <span key={i} style={{ position: "absolute", top: `${top}%`, left: `${left}%`, width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--color-terre)" }} />
-              ))}
-              <span style={{ position: "absolute", bottom: "14px", left: "14px", fontSize: "13px", fontWeight: 500, color: "var(--color-nuit)", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "var(--radius-sm)", padding: "6px 12px" }}>
+              <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.35 }} />
+              <CarteMaroc />
+              <span style={{ position: "relative", fontSize: "13px", fontWeight: 500, color: "var(--color-nuit)", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "var(--radius-sm)", padding: "6px 12px" }}>
                 {PARCELLES.length} parcelles disponibles
               </span>
-            </Link>
+            </div>
           </Reveal>
         </div>
       </section>
