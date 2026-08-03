@@ -287,3 +287,87 @@ CACHES = {
         'TIMEOUT': 60,  # TTL par défaut : 60 secondes
     }
 }
+
+
+# ──────────────────────────────────────────────
+# LOGGING (audit du 2026-08-03)
+# ──────────────────────────────────────────────
+#
+# Un seul handler (stdout) : Render capture et indexe le stdout/stderr de
+# chaque service sans configuration supplémentaire — suffisant comme
+# stratégie minimale. Migrer vers un handler dédié (fichier, syslog, service
+# de log externe) seulement si Render devient insuffisant.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'akal': {
+            'format': '{asctime} {levelname} {name} — {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'akal',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        # django.request logue déjà les 500 en ERROR et les 400 en WARNING
+        # par défaut, via un AdminEmailHandler natif — on le remplace par la
+        # console : ADMINS/EMAIL_* ne sont configurés nulle part dans ce
+        # projet, donc le comportement par défaut de Django serait un
+        # mail_admins silencieusement no-op plutôt qu'une vraie sortie.
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+# Sentry (section MONITORING ci-dessous) s'attache à ce logging via
+# LoggingIntegration : tout logger.error()/logger.exception() applicatif,
+# dans n'importe quelle app (accounts, annonces, geo, messaging), devient un
+# événement Sentry sans câblage supplémentaire — pas besoin de déclarer un
+# logger dédié par app tant qu'aucune n'appelle encore
+# logging.getLogger(__name__) explicitement.
+
+
+# ──────────────────────────────────────────────
+# MONITORING — Sentry (audit du 2026-08-03)
+# ──────────────────────────────────────────────
+#
+# No-op tant que SENTRY_DSN n'est pas défini (dev comme prod) — créer un
+# projet Sentry (sentry.io ou self-hosted) et renseigner la variable d'env
+# active le monitoring sans toucher au code. DjangoIntegration capture les
+# exceptions non gérées (dont les 500 des routes legacy retirées cette même
+# session) ; LoggingIntegration capture en plus tout logger.error()/
+# logger.exception() applicatif au niveau ERROR+.
+SENTRY_DSN = env('SENTRY_DSN', default='')
+
+if SENTRY_DSN:
+    # pyrefly: ignore [missing-import]
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=env('SENTRY_ENVIRONMENT', default='development'),
+        integrations=[
+            DjangoIntegration(),
+            # event_level='ERROR' : seuls logger.error()/exception() partent
+            # vers Sentry (level=None désactive la capture en simples
+            # "breadcrumbs" des logs INFO/DEBUG, bruyante et peu utile ici).
+            LoggingIntegration(level=None, event_level='ERROR'),
+        ],
+        traces_sample_rate=env.float('SENTRY_TRACES_SAMPLE_RATE', default=0.1),
+        # RGPD (loi 09-08) — même principe que ProprietaireSerializer
+        # (UUID uniquement, cf. annonces/serializers.py) : jamais
+        # d'email/nom envoyés à un service tiers par défaut.
+        send_default_pii=False,
+    )
