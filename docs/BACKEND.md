@@ -1024,6 +1024,24 @@ Lecture/édition du brouillon par son propriétaire uniquement (`404` pour tout 
 
 Supprime une photo d'un brouillon appartenant à l'utilisateur connecté. Réordonne les photos restantes pour garder `ordre` contigu à partir de 0. Refusée (`403`) une fois l'annonce `en_ligne` — l'édition d'annonces déjà publiées reste hors périmètre F03.
 
+#### `GET /api/annonces/mes-annonces/statistiques/` (Statistiques dashboard propriétaire — 2026-08-03)
+
+Statistiques du propriétaire connecté qui ne sont dérivables d'aucune donnée déjà envoyée au front : favoris reçus, conversations reçues, messages non lus. Volontairement **pas** de décompte par statut d'annonce (brouillon/en_ligne/archivée/vendue) — déjà calculable côté front depuis `GET /mes-annonces/` ci-dessus, jamais dupliqué côté serveur.
+
+*   **Authentification requise.** Scope strict sur `proprietaire=request.user`, mêmes garanties que `GET /mes-annonces/`.
+*   **Réponse type** :
+    ```json
+    {
+      "favoris_recus": 3,
+      "conversations_recues": 2,
+      "messages_non_lus": 1
+    }
+    ```
+*   **Sémantique** :
+    *   `favoris_recus` — favoris posés par d'autres utilisateurs sur les annonces du propriétaire (sens inverse de `GET /api/favoris/`, qui liste ses propres favoris).
+    *   `conversations_recues` — fils ouverts par des acheteurs sur ses annonces (exclut celles qu'il a lui-même initiées en tant qu'acheteur ailleurs).
+    *   `messages_non_lus` — messages non lus dans ces conversations, jamais ses propres messages.
+
 #### `GET /api/geo/regions/` (Référentiel Géo)
 
 Liste des régions du Maroc (non paginé).
@@ -1186,6 +1204,7 @@ Le backend AKAL est conteneurisé via Docker et configuré pour un déploiement 
 | 2026-07-13 | — | **API v2 (Intégration Frontend)** : Implémentation du contrat d'API (§4 Amélioration). I-1 : Corrections du schéma (DonneesGeo, suppression vues/contour/is_principale, ajout StatistiqueAnnonce). I-2 : Installation et config DRF, drf-spectacular (Swagger) et django-cors-headers. I-3 : Création des serializers et vues API REST (`/api/annonces/`, `/api/geo/regions/`) conformes. I-4 : Commande `seed_demo` pour générer ~15 annonces de démo complètes. |
 | 2026-07-14 | — | **Correctifs contrat v1.1 → v1.2 (T1–T11)** : T1 — RGPD `ProprietaireSerializer` expose UUID uniquement. T2 — Sous-objet `parcelle` dans la liste (interdiction d'aplatir). T3 — Renommages modèle (`prix`→`prix_mad`, `statut_annonce`→`statut`, `surface`→`surface_ha`). T4 — `OrderingFilter` django-filter avec mapping contrat (`prix_mad`, `surface_ha`, `date_publication`). T5 — Filtre `region` par code slug + sérialisation `{code, nom}`. T6 — Sous-objet `localisation` (avec `adresse_approximative` en détail). T7 — Retrait FK `destinataire` sur `Conversation` (déductible via `annonce.proprietaire`). T8 — AgriScore historisé (OneToOne→FK, `version_algo`→`version_ponderation`). T9 — Retrait `type_culture` (décision PO). T10 — Commentaire LEGACY sur `AnnonceFilter`. T11 — Codes région en slug kebab-case dans `seed_demo`. |
 | 2026-07-28 | — | **F03 — Dépôt d'annonce (MinIO)** : Stockage photo migré vers MinIO/S3 via `django-storages` (`STORAGES`, plus de `MEDIA_URL`/service Django des médias). `Parcelle.commune/latitude/longitude/geom` nullable (migration `0005`) + `Parcelle.is_geolocated()` / `Annonce.can_publish()` pour encadrer la transition `brouillon → en_ligne` (contrat §6.1). Nouveaux endpoints : `POST /api/annonces/` (création, statut forcé brouillon, rôle auto-promu VENDEUR), `GET/PATCH /api/annonces/<uuid>/` (édition + upload photo multipart `photos[]`, PUT désactivé), `DELETE /api/annonces/<uuid>/photos/<uuid>/` (suppression + réordonnancement, brouillon uniquement). Pas d'endpoint `/publish/` (charte §4.1). `GET /api/geo/provinces/` et `/communes/` ajoutés hors périmètre F03 par nécessité (à faire relire par Ibrahim). Suite de tests permanente : `annonces/tests.py` (20 tests), `geo/tests.py` (6 tests). |
+| 2026-08-03 | — | **Statistiques dashboard propriétaire** : Nouvel endpoint `GET /api/annonces/mes-annonces/statistiques/` (`MesStatistiquesAPIView` + `MesStatistiquesSerializer`, `annonces/api_views.py`/`serializers.py`) — favoris reçus, conversations reçues, messages non lus, en import cross-app depuis `messaging.models` (Favori, Conversation, Message). Décompte par statut d'annonce délibérément **non** dupliqué côté serveur : déjà dérivable côté front depuis `GET /mes-annonces/`. 7 nouveaux tests (`annonces.tests.MesStatistiquesTests`), suite `annonces`+`messaging` toujours verte (68 tests). |
 ---
 
 *Documentation générée et maintenue au fur et à mesure de l'avancement du projet AKAL.*
