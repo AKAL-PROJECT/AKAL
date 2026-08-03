@@ -395,9 +395,15 @@
 
   .connexion-shell { display: flex; flex-direction: row; }
   .connexion-map-col { display: flex; }
+  /* Bandeau carte compacte (connexion/inscription) — inverse de
+     .connexion-map-col : la carte pleine hauteur n'a pas de sens en
+     portrait, mais un aperçu réduit garde l'identité de marque plutôt que
+     de la faire disparaître entièrement sous 820px. */
+  .connexion-map-mobile { display: none; }
   @media (max-width: 820px) {
     .connexion-shell { flex-direction: column; }
     .connexion-map-col { display: none !important; }
+    .connexion-map-mobile { display: flex; }
   }
 
   .connexion-intro {

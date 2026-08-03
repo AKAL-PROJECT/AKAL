@@ -37,6 +37,24 @@ export default function ConnexionScreen({ next }: { next: string }) {
         <img src="/uploads/akal-wordmark.svg" alt="AKAL" className="connexion-intro-word" style={{ height: 30, width: "auto" }} />
       </div>
 
+      {/* Bandeau carte compacte — visible uniquement sous 820px (cf.
+          .connexion-map-mobile), remplace .connexion-map-col ci-dessous qui
+          disparaît entièrement à cette largeur plutôt que de garder un
+          aperçu réduit. */}
+      <div
+        className="connexion-map-mobile"
+        style={{
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          padding: "28px 24px",
+          background: "rgba(232,201,154,0.28)",
+        }}
+      >
+        <MoroccoMap variant="compact" />
+      </div>
+
       {/* Colonne formulaire */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box" }}>
         <div style={{ width: "100%", maxWidth: 440 }}>
