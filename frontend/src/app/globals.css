@@ -758,4 +758,74 @@
   @media (max-width: 860px) {
     .akal-couverture-grid { grid-template-columns: 1fr !important; }
   }
+
+  /* ── Signature — transition catalogue → fiche parcelle (Phase 4) ─────────
+     Morph de la photo (React <ViewTransition name>, cf. CardParcelle.tsx /
+     CarrouselPhotos.tsx) : léger flou mi-parcours pour masquer les artefacts
+     d'interpolation entre l'aspect-ratio carte (4/3) et celui de la fiche.
+     Glissement directionnel de la fiche entière (nav-forward/nav-back, cf.
+     app/parcelles/[slug]/page.tsx) : sortie rapide, entrée un peu plus lente
+     (asymétrie volontaire, cf. doc Next.js "Designing view transitions"). */
+  ::view-transition-group(.morph) {
+    animation-duration: 380ms;
+  }
+  ::view-transition-image-pair(.morph) {
+    animation-name: akal-via-blur;
+  }
+  @keyframes akal-via-blur {
+    30% { filter: blur(3px); }
+  }
+
+  ::view-transition-old(.nav-forward) {
+    --akal-slide-offset: -48px;
+    animation: 140ms ease-in both akal-via-fade reverse, 360ms ease-in-out both akal-via-slide reverse;
+  }
+  ::view-transition-new(.nav-forward) {
+    --akal-slide-offset: 48px;
+    animation: 200ms ease-out 140ms both akal-via-fade, 360ms ease-in-out both akal-via-slide;
+  }
+  ::view-transition-old(.nav-back) {
+    --akal-slide-offset: 48px;
+    animation: 140ms ease-in both akal-via-fade reverse, 360ms ease-in-out both akal-via-slide reverse;
+  }
+  ::view-transition-new(.nav-back) {
+    --akal-slide-offset: -48px;
+    animation: 200ms ease-out 140ms both akal-via-fade, 360ms ease-in-out both akal-via-slide;
+  }
+  @keyframes akal-via-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes akal-via-slide {
+    from { translate: var(--akal-slide-offset); }
+    to   { translate: 0; }
+  }
+
+  /* La sensibilité au mouvement est la même que pour .akal-fade-in etc. —
+     coupe aussi les transitions natives du navigateur, pas seulement nos
+     classes CSS (cf. doc Next.js, section "Respecting reduced motion"). */
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: 0s !important;
+      animation-delay: 0s !important;
+    }
+  }
+
+  /* ── États mémorables — sauvegarde en favori (Phase 4) ───────────────────
+     Pulse bref sur le cœur au moment où il devient plein, plutôt qu'un
+     changement d'état instantané. Rejoué à chaque clic grâce à la key React
+     (cf. CardParcelle.tsx / FicheParcelle.tsx), jamais en boucle. */
+  @keyframes akal-heart-burst {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.32); }
+    60%  { transform: scale(0.94); }
+    100% { transform: scale(1); }
+  }
+  .akal-heart-burst { animation: akal-heart-burst 380ms cubic-bezier(.2,.7,.3,1.4) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .akal-heart-burst { animation: none !important; }
+  }
 }

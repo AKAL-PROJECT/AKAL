@@ -1,7 +1,20 @@
+import { ViewTransition } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getParcelleBySlug, getParcelles } from "@/data/parcelles";
 import FicheParcelle from "@/components/parcelles/FicheParcelle";
+
+// Glissement directionnel de la fiche entière : "nav-forward" quand on
+// arrive depuis une carte du catalogue (CardParcelle.tsx), "nav-back" au
+// retour (liens taggés dans FicheParcelle.tsx). Le catalogue lui-même n'a
+// pas de wrapper dédié : il reçoit le fondu par défaut du navigateur, pas de
+// glissement — seule la fiche (l'écran signature) porte la direction.
+// default="none" empêche toute animation hors navigation typée (ex. refresh).
+const TRANSITION_DIRECTIONNELLE = {
+  "nav-forward": "nav-forward",
+  "nav-back": "nav-back",
+  default: "none",
+} as const;
 
 export async function generateStaticParams() {
   // page_size au max autorisé par le contrat (§4.2) — suffisant pour le
@@ -35,5 +48,9 @@ export default async function FichePage({
   const { slug } = await params;
   const parcelle = await getParcelleBySlug(slug);
   if (!parcelle) notFound();
-  return <FicheParcelle parcelle={parcelle} />;
+  return (
+    <ViewTransition enter={TRANSITION_DIRECTIONNELLE} exit={TRANSITION_DIRECTIONNELLE} default="none">
+      <FicheParcelle parcelle={parcelle} />
+    </ViewTransition>
+  );
 }

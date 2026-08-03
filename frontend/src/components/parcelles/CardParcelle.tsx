@@ -1,5 +1,6 @@
 "use client";
 
+import { ViewTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Parcelle } from "@/types/parcelle";
@@ -37,26 +38,34 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
     >
       {/* Carte cliquable dans son ensemble — le titre seul comme cible de
           clic était trop étroit ; favori/comparer restent indépendants via
-          leur propre z-index + stopPropagation (pas de lien imbriqué). */}
+          leur propre z-index + stopPropagation (pas de lien imbriqué).
+          transitionTypes signale à la fiche qu'elle entre "en profondeur"
+          (glissement directionnel, cf. globals.css .nav-forward / doc Next.js
+          "Designing view transitions"). */}
       <Link
         href={`/parcelles/${a.slug}`}
         aria-label={`${a.titre} — ${formatMAD.format(a.prix)} MAD, ${a.parcelle.regionNom}`}
         style={{ position: "absolute", inset: 0, zIndex: 1 }}
+        transitionTypes={["nav-forward"]}
       />
 
-      {/* Photo */}
+      {/* Photo — nommée pour le morph vers la fiche parcelle (même `name`
+          que dans CarrouselPhotos.tsx). Dégrade sans animation sur les
+          navigateurs sans support de la View Transitions API. */}
       <div
         style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", backgroundColor: "var(--color-menthe)", overflow: "hidden" }}
       >
         {image && (
-          <Image
-            src={image}
-            alt={a.titre}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="akal-card-photo-zoom"
-            style={{ objectFit: "cover" }}
-          />
+          <ViewTransition name={`parcelle-photo-${a.id}`} share="morph">
+            <Image
+              src={image}
+              alt={a.titre}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+              className="akal-card-photo-zoom"
+              style={{ objectFit: "cover" }}
+            />
+          </ViewTransition>
         )}
 
         {/* Voile bas — assure la lisibilité des badges sur toute photo, garde
@@ -138,6 +147,7 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
             size={14}
             fill={favori ? "var(--color-terre)" : "none"}
             style={{ color: favori ? "var(--color-terre)" : "var(--color-tertiaire)" }}
+            className={favori ? "akal-heart-burst" : undefined}
           />
         </button>
       </div>

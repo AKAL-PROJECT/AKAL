@@ -109,13 +109,25 @@ async function tenterRefreshEdge(
   if (!refreshToken) return null;
 
   const csrftoken = request.cookies.get("csrftoken")?.value;
-  const res = await fetch(`${API_URL}/auth/refresh/`, {
-    method: "POST",
-    headers: {
-      Cookie: request.headers.get("cookie") ?? "",
-      ...(csrftoken ? { "X-CSRFToken": csrftoken } : {}),
-    },
-  });
+
+  // Backend injoignable (down, pas encore démarré en dev...) -> même
+  // contrat que "refresh refusé" ci-dessus : null, jamais une exception qui
+  // remonterait jusqu'au rendu de la page. Un fetch réseau qui échoue (DNS,
+  // connexion refusée...) rejette la promesse avant même de produire une
+  // Response, donc pas de `res.ok` à tester ici — d'où le try/catch, distinct
+  // du cas "res.ok === false" traité plus bas.
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/auth/refresh/`, {
+      method: "POST",
+      headers: {
+        Cookie: request.headers.get("cookie") ?? "",
+        ...(csrftoken ? { "X-CSRFToken": csrftoken } : {}),
+      },
+    });
+  } catch {
+    return null;
+  }
   if (!res.ok) return null;
 
   const cookiesAAppliquer: Array<{ name: string; value: string; options: ReturnType<typeof attrsVersOptions> }> = [];

@@ -21,6 +21,12 @@ if (!isDev && process.env.NEXT_PUBLIC_USE_MOCKS === "true") {
 }
 
 const nextConfig: NextConfig = {
+  // Morph photo catalogue → fiche parcelle (React <ViewTransition>, App
+  // Router) — dégrade proprement sans animation sur les navigateurs sans
+  // support de la View Transitions API, aucune dépendance ajoutée.
+  experimental: {
+    viewTransition: true,
+  },
   images: {
     remotePatterns: [
       // Mock data du catalogue (photos Unsplash) — à retirer avec les mocks.
