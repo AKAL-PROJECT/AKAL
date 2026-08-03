@@ -281,7 +281,7 @@ export default function SimulateurROI({ prix }: Props) {
 
       <p style={{ fontSize: "11px", color: "var(--color-tertiaire)", margin: "10px 0 0", lineHeight: 1.5 }}>
         Estimation indicative. Les rendements agricoles varient selon les conditions climatiques, le
-        marché et la gestion. Aucun résultat n'est garanti.
+        marché et la gestion. Aucun résultat n&apos;est garanti.
       </p>
     </section>
   );
