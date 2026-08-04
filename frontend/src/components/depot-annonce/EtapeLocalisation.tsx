@@ -29,6 +29,15 @@ const CarteLeafletPicker = dynamic(() => import("./CarteLeafletPicker"), {
 const champLabelStyle: React.CSSProperties = { display: "block", fontSize: 14, fontWeight: 500, marginBottom: 6 };
 const champErreurStyle: React.CSSProperties = { color: "var(--color-erreur)", fontSize: 13, marginTop: 4 };
 
+// Moyenne simple des sommets — suffisant pour centrer la carte et servir de
+// point de repère (Annonce.can_publish() exige un point, cf. contrat §6.1) ;
+// pas besoin du vrai centroïde géométrique PostGIS pour cet usage.
+function centroide(sommets: [number, number][]): [number, number] {
+  const lat = sommets.reduce((s, p) => s + p[0], 0) / sommets.length;
+  const lng = sommets.reduce((s, p) => s + p[1], 0) / sommets.length;
+  return [lat, lng];
+}
+
 export function EtapeLocalisation({
   annonce,
   onPrecedent,
@@ -57,6 +66,18 @@ export function EtapeLocalisation({
       ? [annonce.parcelle.latitude, annonce.parcelle.longitude]
       : null,
   );
+  // Le point (position) reste toujours la donnée soumise pour la géoloc
+  // (Annonce.can_publish()) — en mode polygone il est recalculé (centroïde)
+  // à chaque sommet ajouté, jamais saisi directement par le vendeur.
+  const [mode, setMode] = useState<"point" | "polygone">(
+    annonce.parcelle.contour !== null && annonce.parcelle.contour.length >= 3 ? "polygone" : "point",
+  );
+  const [contour, setContour] = useState<[number, number][]>(annonce.parcelle.contour ?? []);
+
+  function gererContour(sommets: [number, number][]) {
+    setContour(sommets);
+    if (sommets.length > 0) setPosition(centroide(sommets));
+  }
 
   useEffect(() => {
     fetchRegions().then(setRegions).catch(() => setRegions([]));
@@ -81,7 +102,13 @@ export function EtapeLocalisation({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const pretAContinuer = communeId !== "" && position !== null;
+  const pretAContinuer =
+    communeId !== "" && (mode === "point" ? position !== null : contour.length >= 3);
+  // Un contour n'est soumis que si le vendeur a fini son tracé en mode
+  // Polygone — passer en mode Point avant de valider revient à renoncer au
+  // tracé pour cette soumission, cohérent avec le "soit point, soit
+  // polygone" du picker (jamais les deux en même temps).
+  const contourASoumettre = mode === "polygone" && contour.length >= 3 ? contour : null;
 
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -96,6 +123,7 @@ export function EtapeLocalisation({
       <input type="hidden" name="commune" value={communeId} />
       <input type="hidden" name="latitude" value={position ? position[0] : ""} />
       <input type="hidden" name="longitude" value={position ? position[1] : ""} />
+      <input type="hidden" name="contour" value={contourASoumettre ? JSON.stringify(contourASoumettre) : ""} />
 
       <div style={{ display: "flex", gap: 16 }}>
         <div style={{ flex: 1 }}>
@@ -156,9 +184,35 @@ export function EtapeLocalisation({
       {state?.fieldErrors?.parcelle && <p style={champErreurStyle}>{state.fieldErrors.parcelle[0]}</p>}
 
       <div>
-        <label style={champLabelStyle}>Emplacement précis</label>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+          <label style={{ ...champLabelStyle, marginBottom: 0 }}>Emplacement précis</label>
+          <div style={{ display: "flex", gap: 3, backgroundColor: "var(--color-fond)", borderRadius: "var(--radius-btn)", padding: 3 }}>
+            {(["point", "polygone"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                style={{
+                  padding: "5px 12px",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  border: "none",
+                  borderRadius: "var(--radius-xs)",
+                  cursor: "pointer",
+                  backgroundColor: mode === m ? "white" : "transparent",
+                  color: mode === m ? "var(--color-foret)" : "var(--color-tertiaire)",
+                  boxShadow: mode === m ? "0 1px 2px rgba(27,58,45,0.12)" : "none",
+                }}
+              >
+                {m === "point" ? "Point" : "Polygone"}
+              </button>
+            ))}
+          </div>
+        </div>
         <p style={{ fontSize: 13, color: "var(--color-secondaire)", margin: "0 0 8px" }}>
-          Cliquez sur la carte pour placer un repère (déplaçable ensuite par glisser-déposer).
+          {mode === "point"
+            ? "Cliquez sur la carte pour placer un repère (déplaçable ensuite par glisser-déposer)."
+            : "Cliquez sur la carte pour tracer le contour de la parcelle, sommet par sommet (3 minimum)."}
         </p>
         <div
           style={{
@@ -168,8 +222,41 @@ export function EtapeLocalisation({
             border: "1px solid var(--color-bordure)",
           }}
         >
-          <CarteLeafletPicker position={position} onChange={setPosition} />
+          {mode === "point" ? (
+            <CarteLeafletPicker mode="point" position={position} onPositionChange={setPosition} />
+          ) : (
+            <CarteLeafletPicker mode="polygone" contour={contour} onContourChange={gererContour} />
+          )}
         </div>
+        {mode === "polygone" && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+            <span style={{ fontSize: 12, color: "var(--color-tertiaire)" }}>
+              {contour.length === 0
+                ? "Aucun sommet placé."
+                : `${contour.length} sommet${contour.length > 1 ? "s" : ""} placé${contour.length > 1 ? "s" : ""}${contour.length < 3 ? " — 3 minimum" : ""}.`}
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={contour.length === 0}
+                onClick={() => gererContour(contour.slice(0, -1))}
+                style={{ fontSize: 12, padding: "4px 10px" }}
+              >
+                Annuler le dernier point
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={contour.length === 0}
+                onClick={() => setContour([])}
+                style={{ fontSize: 12, padding: "4px 10px" }}
+              >
+                Recommencer
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {state?.error && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{state.error}</p>}

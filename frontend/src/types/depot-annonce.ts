@@ -21,6 +21,12 @@ export type ParcelleEcriture = {
   commune: number | null;
   latitude: number | null;
   longitude: number | null;
+  // Sommets du polygone dessiné par le vendeur (mode "Polygone" du picker
+  // carte, RC 2026-08-04), [lat, lng][], ≥3 points — n'existe que si le
+  // vendeur a choisi ce mode ; le point (latitude/longitude ci-dessus) reste
+  // toujours renseigné aussi (centroïde calculé côté client), donc
+  // Annonce.can_publish() côté backend n'a besoin de rien de plus.
+  contour: [number, number][] | null;
 };
 
 export type PhotoEcriture = {

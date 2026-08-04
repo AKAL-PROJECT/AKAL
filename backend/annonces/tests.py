@@ -111,6 +111,84 @@ class CreationBrouillonTests(AnnoncesTestBase):
         self.assertEqual(user.role, User.Role.VENDEUR)
 
 
+class ContourTests(AnnoncesTestBase):
+    """Mode "Polygone" du picker carte (RC 2026-08-04) — DonneesGeo.contour,
+    ré-exposé sur ParcelleEcritureSerializer après avoir été retiré de l'API
+    lors de l'alignement contrat v1.2 (2026-07-13)."""
+
+    CONTOUR = [[33.5, -5.5], [33.51, -5.5], [33.51, -5.49], [33.5, -5.49]]
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def patcher_contour(self, contour):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/',
+            {'parcelle': {'commune': self.commune.id, 'latitude': 33.505, 'longitude': -5.495, 'contour': contour}},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_contour_valide_est_persiste_et_relu(self):
+        response = self.patcher_contour(self.CONTOUR)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['parcelle']['contour']), len(self.CONTOUR))
+        for point in response.data['parcelle']['contour']:
+            self.assertIn([round(point[0], 5), round(point[1], 5)], self.CONTOUR)
+
+    def test_contour_avec_moins_de_trois_points_est_rejete(self):
+        response = self.patcher_contour(self.CONTOUR[:2])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_annonce_sans_contour_renvoie_null(self):
+        response = self.client.get(f'{ANNONCES_URL}{self.annonce_id}/')
+
+        self.assertIsNone(response.data['parcelle']['contour'])
+
+    def test_repatch_sans_contour_ne_l_efface_pas(self):
+        self.patcher_contour(self.CONTOUR)
+
+        response = self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Titre modifié'},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['parcelle']['contour']), len(self.CONTOUR))
+
+    def test_repatch_avec_nouveau_contour_le_remplace(self):
+        self.patcher_contour(self.CONTOUR)
+        nouveau = [[34.0, -6.0], [34.01, -6.0], [34.01, -5.99]]
+
+        response = self.patcher_contour(nouveau)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['parcelle']['contour']), len(nouveau))
+
+    def test_contour_jamais_expose_sur_la_fiche_publique(self):
+        self.patcher_contour(self.CONTOUR)
+        self.uploader_photo_et_publier()
+
+        slug = Annonce.objects.get(id=self.annonce_id).slug
+        response = self.client.get(f'{ANNONCES_URL}{slug}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn('contour', response.data['parcelle'])
+
+    def uploader_photo_et_publier(self):
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+
+
 class PatchProprietaireTests(AnnoncesTestBase):
     def setUp(self):
         super().setUp()

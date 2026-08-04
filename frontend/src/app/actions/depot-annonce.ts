@@ -80,6 +80,10 @@ export async function enregistrerLocalisationAction(
   const communeRaw = String(formData.get("commune") ?? "");
   const latitudeRaw = String(formData.get("latitude") ?? "");
   const longitudeRaw = String(formData.get("longitude") ?? "");
+  // JSON [[lat, lng], ...] posé par EtapeLocalisation.tsx uniquement quand le
+  // vendeur a choisi le mode Polygone et tracé ≥3 sommets — "" sinon (mode
+  // Point, ou tracé abandonné en repassant en mode Point avant validation).
+  const contourRaw = String(formData.get("contour") ?? "");
 
   try {
     const annonce = await patchBrouillon(id, {
@@ -87,6 +91,7 @@ export async function enregistrerLocalisationAction(
         commune: communeRaw ? Number(communeRaw) : null,
         latitude: latitudeRaw ? Number(latitudeRaw) : null,
         longitude: longitudeRaw ? Number(longitudeRaw) : null,
+        contour: contourRaw ? (JSON.parse(contourRaw) as [number, number][]) : null,
       },
     });
     return { annonce, error: "", fieldErrors: null };

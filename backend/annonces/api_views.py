@@ -377,6 +377,12 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
     http_method_names = ['get', 'patch', 'head', 'options']
 
     def get_queryset(self):
+        # PAS de select_related('parcelle__donnees_geo') : ParcelleEcritureSerializer
+        # peut créer/remplacer ce DonneesGeo pendant l'update() de la même
+        # requête (cf. _appliquer_contour) — un select_related le mettrait en
+        # cache AVANT cette mutation, et to_representation() renverrait alors
+        # l'ancien contour au lieu du nouveau. Requête supplémentaire
+        # négligeable ici (vue mono-objet, pas une liste).
         return (
             Annonce.objects
             .filter(proprietaire=self.request.user)

@@ -15,13 +15,13 @@ Sous-serializers :
 """
 
 # pyrefly: ignore [missing-import]
-from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import Point, Polygon
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
 from . import transitions
-from .models import Annonce, AgriScore, Parcelle, Photo
+from .models import Annonce, AgriScore, DonneesGeo, Parcelle, Photo
 
 
 # ──────────────────────────────────────────────
@@ -298,19 +298,59 @@ class ParcelleEcritureSerializer(serializers.ModelSerializer):
     2 "Localisation"). `geom` n'est jamais un champ d'entrée — reconstruit
     serveur depuis latitude/longitude dans AnnonceEcritureSerializer, pour
     ne jamais demander au client de manipuler du GeoJSON/WKT directement.
+
+    `contour` (RC 2026-08-04) : sommets du polygone dessiné par le vendeur en
+    mode "Polygone" du picker carte, `[[lat, lng], ...]`, ≥3 points — ne
+    remplace pas latitude/longitude (le frontend soumet toujours un point,
+    son centroïde côté client, en plus du contour), donc aucun changement
+    requis à Parcelle.is_geolocated()/Annonce.can_publish(). N'existe pas
+    sur le modèle Parcelle (vit sur DonneesGeo.contour, OneToOne) : jamais
+    assigné par le ModelSerializer par défaut, géré à la main par
+    AnnonceEcritureSerializer._appliquer_contour(). write_only côté
+    déclaration DRF (pour éviter que to_representation() par défaut tente
+    de lire un attribut `contour` inexistant sur Parcelle) — la valeur de
+    lecture est réinjectée manuellement par to_representation() ci-dessous.
+    Volontairement jamais exposé sur les serializers de lecture publics
+    (ParcelleListSerializer/ParcelleDetailSerializer) : seul le propriétaire,
+    via AnnonceUpdateAPIView, peut le relire — même logique de confidentialité
+    que la position exacte, jamais montrée telle quelle publiquement non plus.
     """
+
+    contour = serializers.ListField(
+        child=serializers.ListField(child=serializers.FloatField(), min_length=2, max_length=2),
+        required=False, allow_null=True, write_only=True,
+    )
 
     class Meta:
         model = Parcelle
         fields = [
             'surface_ha', 'statut_foncier', 'acces_eau', 'topographie', 'acces_routier',
-            'commune', 'latitude', 'longitude',
+            'commune', 'latitude', 'longitude', 'contour',
         ]
         extra_kwargs = {
             'commune': {'required': False, 'allow_null': True},
             'latitude': {'required': False, 'allow_null': True},
             'longitude': {'required': False, 'allow_null': True},
         }
+
+    def validate_contour(self, value):
+        if value is not None and len(value) < 3:
+            raise serializers.ValidationError('Un contour doit avoir au moins 3 sommets.')
+        return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        donnees_geo = getattr(instance, 'donnees_geo', None)
+        if donnees_geo is None:
+            data['contour'] = None
+        else:
+            # exterior_ring.coords ferme le polygone (premier == dernier) et
+            # est en (lng, lat) côté PostGIS — inversé ici pour retrouver le
+            # [lat, lng] envoyé par le frontend, sans le point de fermeture
+            # (le frontend referme lui-même le tracé à l'affichage).
+            coords = list(donnees_geo.contour.exterior_ring.coords)[:-1]
+            data['contour'] = [[lat, lng] for lng, lat in coords]
+        return data
 
 
 class AnnonceEcritureSerializer(serializers.ModelSerializer):
@@ -364,9 +404,16 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _appliquer_parcelle(parcelle, parcelle_data):
-        """Applique les champs Parcelle, reconstruit `geom` si lat/lng fournis."""
+        """Applique les champs Parcelle, reconstruit `geom` si lat/lng fournis.
+
+        `contour` est retiré ici (jamais un champ du modèle Parcelle) mais
+        PAS traité dans cette méthode : il nécessite parcelle.pk (FK
+        OneToOne DonneesGeo), donc géré séparément par _appliquer_contour(),
+        appelée après le .save() de la parcelle par create()/update().
+        """
         lat = parcelle_data.pop('latitude', None)
         lng = parcelle_data.pop('longitude', None)
+        parcelle_data.pop('contour', None)
         for champ, valeur in parcelle_data.items():
             setattr(parcelle, champ, valeur)
         if lat is not None and lng is not None:
@@ -374,13 +421,27 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
             parcelle.longitude = lng
             parcelle.geom = Point(lng, lat, srid=4326)
 
+    @staticmethod
+    def _appliquer_contour(parcelle, contour):
+        """Crée/remplace le DonneesGeo.contour associé si un contour est
+        fourni — même convention que geom pour latitude/longitude ci-dessus :
+        une valeur absente ou nulle est un no-op, jamais un effacement
+        implicite (pas de suppression de contour via ce endpoint pour l'instant)."""
+        if not contour:
+            return
+        points = [(lng, lat) for lat, lng in contour]
+        points.append(points[0])  # ferme l'anneau (PostGIS l'exige)
+        DonneesGeo.objects.update_or_create(parcelle=parcelle, defaults={'contour': Polygon(points, srid=4326)})
+
     def create(self, validated_data):
         parcelle_data = validated_data.pop('parcelle', {})
         validated_data.pop('statut', None)  # forcé BROUILLON par la vue, jamais par le client
 
         parcelle = Parcelle()
+        contour = parcelle_data.get('contour')
         self._appliquer_parcelle(parcelle, parcelle_data)
         parcelle.save()
+        self._appliquer_contour(parcelle, contour)
 
         return Annonce.objects.create(
             parcelle=parcelle, statut=Annonce.StatutAnnonce.BROUILLON, **validated_data
@@ -393,8 +454,10 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
             if parcelle_data:
+                contour = parcelle_data.get('contour')
                 self._appliquer_parcelle(instance.parcelle, parcelle_data)
                 instance.parcelle.save()
+                self._appliquer_contour(instance.parcelle, contour)
 
             for champ, valeur in validated_data.items():
                 setattr(instance, champ, valeur)
