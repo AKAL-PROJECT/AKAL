@@ -1,34 +1,16 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
+import { MapContainer, Marker, Popup, Circle, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
-import L from "leaflet";
 import Link from "next/link";
 import type { Parcelle } from "@/types/parcelle";
+import TuileOSM from "@/components/TuileOSM";
+import { iconeAkal, CENTRE_MAROC } from "@/lib/leaflet";
+import { formatMAD } from "@/lib/format";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-
-// Icône de marker AKAL — même pin vert forêt que CarteLeaflet.tsx, dupliquée
-// ici plutôt que partagée : les deux cartes sont chargées dynamiquement
-// (ssr:false) indépendamment, pas de module commun à ce jour.
-const iconeAkal = L.divIcon({
-  className: "",
-  html: `<div style="
-    width:28px;height:28px;border-radius:50% 50% 50% 0;
-    background:#2D6A4F;transform:rotate(-45deg);
-    border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);
-    display:flex;align-items:center;justify-content:center;">
-    <div style="width:8px;height:8px;border-radius:50%;background:white;transform:rotate(45deg);"></div>
-  </div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
-  popupAnchor: [0, -28],
-});
-
-const formatMAD = new Intl.NumberFormat("fr-MA");
-const CENTRE_MAROC: [number, number] = [32.0, -6.0];
 
 // Région active côté carte : centre dérivé de la moyenne des parcelles
 // réelles de la région (jamais un tracé inventé) — cf. statsParRegion dans
@@ -58,10 +40,7 @@ export default function CarteCouvertureLeaflet({
 
   return (
     <MapContainer center={CENTRE_MAROC} zoom={6} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }}>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <TuileOSM />
 
       <VolVersRegion centre={regionActive?.centre ?? null} />
 

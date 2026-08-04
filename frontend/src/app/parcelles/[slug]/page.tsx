@@ -2,6 +2,7 @@ import { ViewTransition } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getParcelleBySlug, getParcelles } from "@/data/parcelles";
+import { formatMAD } from "@/lib/format";
 import FicheParcelle from "@/components/parcelles/FicheParcelle";
 
 // Glissement directionnel de la fiche entière : "nav-forward" quand on
@@ -32,11 +33,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const p = await getParcelleBySlug(slug);
   if (!p) return { title: "AKAL" };
-  const fmt = new Intl.NumberFormat("fr-MA");
   const lieu = p.parcelle.adresseApproximative ?? p.parcelle.regionNom;
   return {
     title: `${p.titre} — AKAL`,
-    description: `${p.parcelle.surface} ha · ${lieu} · ${fmt.format(p.prix)} MAD`,
+    description: `${p.parcelle.surface} ha · ${lieu} · ${formatMAD.format(p.prix)} MAD`,
   };
 }
 

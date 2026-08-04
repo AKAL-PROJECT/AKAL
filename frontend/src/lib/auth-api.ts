@@ -94,6 +94,38 @@ export async function login(input: LoginInput): Promise<User> {
   return (await res.json()) as User;
 }
 
+export type PasswordResetRequestInput = { email: string };
+export type PasswordResetConfirmInput = { uid: string; token: string; password: string };
+
+// Ni l'un ni l'autre ne pose de cookie de session (pas de connexion
+// automatique après réinitialisation) : fetch direct comme signup/login,
+// mais sans suivreCookies().
+export async function requestPasswordReset(input: PasswordResetRequestInput): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/password-reset/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
+}
+
+export async function confirmPasswordReset(input: PasswordResetConfirmInput): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/password-reset/confirm/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
+}
+
 export async function logout(): Promise<void> {
   const jar = await cookies();
   const csrftoken = jar.get("csrftoken")?.value;

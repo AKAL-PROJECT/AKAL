@@ -1,6 +1,9 @@
 # pyrefly: ignore [missing-import]
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
@@ -53,3 +56,39 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('Email ou mot de passe incorrect.')
         attrs['user'] = user
         return attrs
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Demande de réinitialisation — juste une adresse email, aucune erreur
+    de champ sur "compte inexistant" (la vue répond identiquement dans les
+    deux cas, cf. accounts/views.py, pour ne pas permettre l'énumération)."""
+
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Confirmation — {uid, token} identifient et authentifient la demande
+    (jeton signé Django, cf. default_token_generator), remplace l'auth par
+    mot de passe habituelle pour cette seule opération."""
+
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+
+    def validate(self, attrs):
+        try:
+            user = User.objects.get(pk=force_str(urlsafe_base64_decode(attrs['uid'])))
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError({'token': ['Lien de réinitialisation invalide.']})
+
+        if not default_token_generator.check_token(user, attrs['token']):
+            raise serializers.ValidationError({'token': ['Ce lien de réinitialisation est invalide ou a expiré.']})
+
+        attrs['user'] = user
+        return attrs
+
+    def save(self):
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['password'])
+        user.save(update_fields=['password'])
+        return user

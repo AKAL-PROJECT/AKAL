@@ -11,13 +11,13 @@ export const metadata: Metadata = {
 export default async function ConnexionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reinitialise?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, reinitialise } = await searchParams;
   const cheminSuivant = next && next.startsWith("/") ? next : "/compte";
 
   const utilisateur = await getCurrentUser();
   if (utilisateur) redirect(cheminSuivant);
 
-  return <ConnexionScreen next={cheminSuivant} />;
+  return <ConnexionScreen next={cheminSuivant} motDePasseReinitialise={reinitialise === "1"} />;
 }

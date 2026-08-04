@@ -1,30 +1,17 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import dynamic from "next/dynamic";
-import { PARCELLES } from "@/data/parcelles";
+import { getParcelles } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
 import ScoreBar from "@/components/parcelles/ScoreBar";
 import BadgeStatut from "@/components/parcelles/BadgeStatut";
 import { Reveal } from "@/components/Reveal";
+import CouvertureSection from "@/components/home/CouvertureSection";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight, MapPin } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
-import type { RegionActive } from "@/components/parcelles/CarteCouvertureLeaflet";
 
-// Leaflet touche `window`, absent au rendu serveur (SSR) — chargement
-// client uniquement, même contrainte que CarteParcelles.tsx.
-const CarteCouverture = dynamic(() => import("@/components/parcelles/CarteCouvertureLeaflet"), {
-  ssr: false,
-  loading: () => (
-    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--color-menthe)", color: "var(--color-foret)", fontSize: "14px" }}>
-      Chargement de la carte…
-    </div>
-  ),
-});
-
-// cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés.
+// cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés. Sert
+// uniquement au <select> du formulaire de recherche du Hero ci-dessous
+// (aucune interactivité region→carte ici, cf. CouvertureSection pour ça).
 const REGIONS = [
   { code: "casablanca-settat", nom: "Casablanca-Settat" },
   { code: "meknes-tafilalet", nom: "Meknès-Tafilalet" },
@@ -32,23 +19,6 @@ const REGIONS = [
   { code: "rabat-sale-kenitra", nom: "Rabat-Salé-Kénitra" },
   { code: "oriental", nom: "Oriental" },
 ];
-
-// Compteur + centre par région pour le panneau/la carte de couverture (Home) —
-// dérivés des vraies parcelles (moyenne lat/lng), jamais codés en dur. `centre`
-// est null si la région n'a aucune parcelle (le bouton reste cliquable, la
-// carte retombe alors sur la vue Maroc entière).
-function statsParRegion(parcelles: typeof PARCELLES, regions: typeof REGIONS) {
-  return regions.map((r) => {
-    const items = parcelles.filter((p) => p.parcelle.regionNom === r.nom);
-    const centre: [number, number] | null = items.length
-      ? [
-          items.reduce((s, p) => s + p.parcelle.latitude, 0) / items.length,
-          items.reduce((s, p) => s + p.parcelle.longitude, 0) / items.length,
-        ]
-      : null;
-    return { code: r.code, nom: r.nom, count: items.length, centre };
-  });
-}
 
 const CONFIANCE = [
   { icone: Shield, titre: "Statut foncier vérifié", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — clairement identifié sur chaque annonce." },
@@ -68,15 +38,14 @@ const RAISONS = [
   { icone: MessageSquare, titre: "Des échanges directs", desc: "Un espace pour mettre en relation propriétaires et acheteurs, sans intermédiaire." },
 ];
 
-export default function Home() {
-  const vedettes = PARCELLES.slice(0, 3);
+export default async function Home() {
+  // Même appel que le catalogue (/parcelles) et generateStaticParams
+  // (app/parcelles/[slug]/page.tsx) — page_size au max autorisé par le
+  // contrat (§4.2), aucun flux de données spécifique à la Home. `count` est
+  // le vrai total serveur (peut dépasser 50), jamais recalculé côté client.
+  const { results: parcelles, count: totalCount } = await getParcelles({ page_size: 50 });
+  const vedettes = parcelles.slice(0, 3);
   const parcelleVitrine = vedettes[0];
-
-  const [regionCode, setRegionCode] = useState<string | null>(null);
-  const statsRegions = statsParRegion(PARCELLES, REGIONS);
-  const regionActive: RegionActive = regionCode
-    ? statsRegions.find((r) => r.code === regionCode) ?? null
-    : null;
 
   return (
     <div>
@@ -332,133 +301,7 @@ export default function Home() {
       </Reveal>
 
       {/* ═══════════════════════ Valeur — couverture ═══════════════════════ */}
-      <section style={{ maxWidth: "1400px", margin: "clamp(64px, 10vw, 120px) auto", padding: "0 24px" }}>
-        <Reveal>
-          <div style={{ maxWidth: "620px", marginBottom: "32px" }}>
-            <span className="eyebrow">Couverture nationale</span>
-            <h2 className="display-2" style={{ color: "var(--color-nuit)", margin: "14px 0 16px" }}>
-              La terre n&apos;est jamais loin.
-            </h2>
-            <p className="lede" style={{ margin: 0 }}>
-              Explorez les {PARCELLES.length} parcelles disponibles à travers le Maroc, région par région.
-              Sélectionnez une zone pour recentrer la carte.
-            </p>
-          </div>
-        </Reveal>
-
-        <Reveal delayMs={80}>
-          <div className="akal-couverture-grid" style={{ display: "grid", gridTemplateColumns: "minmax(240px, 300px) minmax(0, 1fr)", gap: "20px", alignItems: "stretch" }}>
-            {/* Panneau régions — compteurs dérivés de statsParRegion (jamais codés en dur). */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <button
-                type="button"
-                onClick={() => setRegionCode(null)}
-                aria-pressed={regionCode === null}
-                className="akal-region-btn akal-focusable"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px",
-                  padding: "12px 16px",
-                  borderRadius: "var(--radius-md)",
-                  textAlign: "left",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  backgroundColor: regionCode === null ? "var(--color-foret)" : "white",
-                  color: regionCode === null ? "white" : "var(--color-texte)",
-                  border: regionCode === null ? "none" : "1px solid var(--color-bordure)",
-                }}
-              >
-                <span>Tout le Maroc</span>
-                <span
-                  style={{
-                    minWidth: "24px",
-                    padding: "2px 8px",
-                    borderRadius: "var(--radius-full)",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    textAlign: "center",
-                    backgroundColor: regionCode === null ? "rgba(255,255,255,0.2)" : "var(--color-rosee)",
-                    color: regionCode === null ? "white" : "var(--color-foret)",
-                  }}
-                >
-                  {PARCELLES.length}
-                </span>
-              </button>
-
-              {statsRegions.map((r) => {
-                const active = regionCode === r.code;
-                return (
-                  <button
-                    key={r.code}
-                    type="button"
-                    onClick={() => setRegionCode(active ? null : r.code)}
-                    aria-pressed={active}
-                    className="akal-region-btn akal-focusable"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "10px",
-                      padding: "12px 16px",
-                      borderRadius: "var(--radius-md)",
-                      textAlign: "left",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      backgroundColor: active ? "var(--color-foret)" : "white",
-                      color: active ? "white" : "var(--color-texte)",
-                      border: active ? "none" : "1px solid var(--color-bordure)",
-                    }}
-                  >
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <MapPin size={14} style={{ color: active ? "var(--color-ble)" : "var(--color-foret)", opacity: active ? 1 : 0.6, flexShrink: 0 }} />
-                      {r.nom}
-                    </span>
-                    <span
-                      style={{
-                        minWidth: "24px",
-                        padding: "2px 8px",
-                        borderRadius: "var(--radius-full)",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        textAlign: "center",
-                        backgroundColor: active ? "rgba(255,255,255,0.2)" : "var(--color-rosee)",
-                        color: active ? "white" : "var(--color-foret)",
-                      }}
-                    >
-                      {r.count}
-                    </span>
-                  </button>
-                );
-              })}
-
-              {/* CTA vers l'onglet Carte de la Navbar — même route ("/parcelles"),
-                  pas de paramètre dédié pour présélectionner la vue carte :
-                  le catalogue n'a pas de mode piloté par l'URL (mode local,
-                  cf. app/parcelles/page.tsx), atterrit donc en vue grille. */}
-              <Link href="/parcelles" className="akal-link-fleche" style={{ marginTop: "8px" }}>
-                Voir la carte complète →
-              </Link>
-            </div>
-
-            {/* Carte */}
-            <div
-              style={{
-                position: "relative",
-                height: "480px",
-                borderRadius: "var(--radius-xl)",
-                overflow: "hidden",
-                boxShadow: "var(--shadow-2)",
-              }}
-            >
-              <CarteCouverture parcelles={PARCELLES} regionActive={regionActive} />
-            </div>
-          </div>
-        </Reveal>
-      </section>
+      <CouvertureSection parcelles={parcelles} totalCount={totalCount} />
 
       {/* ═══════════════════════ Fonctionnalités ═══════════════════════ */}
       <section id="comment-ca-marche" style={{ maxWidth: "1000px", margin: "0 auto clamp(64px, 10vw, 120px)", padding: "0 24px" }}>
@@ -528,17 +371,13 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
           {vedettes.map((p, i) => (
             <div key={p.id} className="akal-card-cascade" style={{ animationDelay: `${i * 60}ms` }}>
-              {/* vedettes = PARCELLES (mock figé, cf. data/parcelles.ts), pas
-                  de vraie Annonce en base — comparateur et favori restent
-                  décoratifs ici pour la même raison (aucun id réel à
-                  persister), comme sur le reste de cette page. */}
-              <CardParcelle
-                parcelle={p}
-                enComparaison={false}
-                onToggleComparaison={() => {}}
-                favori={false}
-                onToggleFavori={() => {}}
-              />
+              {/* vedettes = mêmes vraies annonces que le catalogue (getParcelles(),
+                  cf. Home ci-dessus) — favori/comparateur restent décoratifs
+                  ici volontairement : la Home est une vitrine de découverte,
+                  pas le catalogue interactif (useFavorisIds()/état comparateur
+                  vivent dans /parcelles, cf. "Voir toutes les parcelles" plus
+                  bas pour l'expérience complète). */}
+              <CardParcelle parcelle={p} enComparaison={false} favori={false} />
             </div>
           ))}
         </div>

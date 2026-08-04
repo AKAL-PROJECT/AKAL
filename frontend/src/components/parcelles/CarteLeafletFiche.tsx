@@ -1,8 +1,9 @@
 "use client";
 
-import { MapContainer, TileLayer, Circle } from "react-leaflet";
+import { MapContainer, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Parcelle } from "@/types/parcelle";
+import TuileOSM from "@/components/TuileOSM";
 
 // Rayon affiché en mètres — masque la position exacte tout en situant la zone.
 const RAYON_M = 500;
@@ -18,10 +19,7 @@ export default function CarteLeafletFiche({ parcelle }: { parcelle: Parcelle }) 
         scrollWheelZoom={false}
         style={{ height: "100%", width: "100%", borderRadius: "var(--radius-card)" }}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TuileOSM />
         <Circle
           center={coords}
           radius={RAYON_M}

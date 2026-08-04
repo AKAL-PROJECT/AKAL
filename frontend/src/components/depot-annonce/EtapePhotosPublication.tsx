@@ -27,10 +27,15 @@ export function EtapePhotosPublication({
   onAnnonceMiseAJour: (annonce: AnnonceEcriture) => void;
 }) {
   const router = useRouter();
+  const dejaEnLigne = annonce.statut === "en_ligne";
   const [enCompression, setEnCompression] = useState(false);
   const [erreurUpload, setErreurUpload] = useState<string | null>(null);
   const [pendingPublication, startTransition] = useTransition();
-  const [publiee, setPubliee] = useState(annonce.statut === "en_ligne");
+  // `publiee` ne reflète que "vient d'être (re)publiée pendant cette
+  // session d'édition" — jamais le statut au chargement : sinon ouvrir une
+  // annonce déjà en_ligne pour modifier ses photos affichait à tort l'écran
+  // de succès/redirection au lieu du formulaire d'édition.
+  const [publiee, setPubliee] = useState(false);
   const [raisonsBlocage, setRaisonsBlocage] = useState<string[] | null>(null);
   const [erreurPublication, setErreurPublication] = useState<string | null>(null);
   const [suppressionEnCours, setSuppressionEnCours] = useState<string | null>(null);
@@ -76,7 +81,14 @@ export function EtapePhotosPublication({
     }
   }
 
-  function gererPublication() {
+  function gererFinalisation() {
+    // Contenu déjà persisté à chaque étape (patchBrouillon/ajouterPhotosAction
+    // appellent le backend immédiatement) : une annonce déjà en ligne n'a pas
+    // de transition de statut à rejouer, juste retourner à sa fiche.
+    if (dejaEnLigne) {
+      router.push(`/parcelles/${annonce.slug}`);
+      return;
+    }
     setErreurPublication(null);
     setRaisonsBlocage(null);
     startTransition(async () => {
@@ -119,9 +131,11 @@ export function EtapePhotosPublication({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <h2 style={{ fontSize: 20, marginBottom: 4 }}>Ajoutez des photos</h2>
+        <h2 style={{ fontSize: 20, marginBottom: 4 }}>{dejaEnLigne ? "Photos" : "Ajoutez des photos"}</h2>
         <p style={{ fontSize: 14, color: "var(--color-secondaire)", margin: 0 }}>
-          Au moins une photo est nécessaire pour publier votre annonce.
+          {dejaEnLigne
+            ? "Ajoutez ou supprimez des photos de votre annonce en ligne."
+            : "Au moins une photo est nécessaire pour publier votre annonce."}
         </p>
       </div>
 
@@ -208,8 +222,8 @@ export function EtapePhotosPublication({
         <button type="button" className="btn-secondary" onClick={onPrecedent}>
           Précédent
         </button>
-        <button type="button" className="btn-primary" onClick={gererPublication} disabled={pendingPublication}>
-          {pendingPublication ? "Publication…" : "Publier l'annonce"}
+        <button type="button" className="btn-primary" onClick={gererFinalisation} disabled={pendingPublication}>
+          {pendingPublication ? "Publication…" : dejaEnLigne ? "Enregistrer" : "Publier l'annonce"}
         </button>
       </div>
     </div>

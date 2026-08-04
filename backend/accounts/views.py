@@ -2,16 +2,22 @@
 Vues API REST (DRF) de l'app accounts — comptes, sessions, JWT.
 
 Endpoints (cf. docs/plans/2026-07-24-auth-module-design.md) :
-    - POST /api/auth/signup/   → Crée le compte (VENDEUR/ACHETEUR), pose les cookies
-    - POST /api/auth/login/    → Vérifie email+password, pose les cookies
-    - POST /api/auth/logout/   → Blackliste le refresh token, efface les cookies
-    - POST /api/auth/refresh/  → Réémet un access token (+ refresh tourné)
-    - GET  /api/auth/me/       → Utilisateur courant
+    - POST /api/auth/signup/                  → Crée le compte (VENDEUR/ACHETEUR), pose les cookies
+    - POST /api/auth/login/                    → Vérifie email+password, pose les cookies
+    - POST /api/auth/logout/                   → Blackliste le refresh token, efface les cookies
+    - POST /api/auth/refresh/                  → Réémet un access token (+ refresh tourné)
+    - GET  /api/auth/me/                       → Utilisateur courant
+    - POST /api/auth/password-reset/           → Envoie un lien de réinitialisation par email
+    - POST /api/auth/password-reset/confirm/   → Applique le nouveau mot de passe
 """
 
 # pyrefly: ignore [missing-import]
 from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.middleware.csrf import get_token
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework import exceptions, generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -22,7 +28,14 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .authentication import enforce_csrf
-from .serializers import LoginSerializer, SignupSerializer, UserSerializer
+from .models import User
+from .serializers import (
+    LoginSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    SignupSerializer,
+    UserSerializer,
+)
 
 
 def _set_auth_cookies(response, access, refresh):
@@ -155,3 +168,55 @@ class MeView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class PasswordResetRequestView(APIView):
+    """Déclenche l'envoi du lien de réinitialisation.
+
+    Répond 204 que l'email corresponde ou non à un compte existant — ne
+    jamais laisser ce endpoint révéler quelles adresses sont enregistrées.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.filter(email__iexact=serializer.validated_data['email']).first()
+        if user is not None:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            lien = f"{settings.FRONTEND_URL}/reinitialiser-mot-de-passe?uid={uid}&token={token}"
+            send_mail(
+                subject='Réinitialisez votre mot de passe AKAL',
+                message=(
+                    f"Bonjour {user.prenom},\n\n"
+                    "Une demande de réinitialisation de mot de passe a été faite pour ce compte. "
+                    f"Cliquez sur ce lien pour choisir un nouveau mot de passe :\n{lien}\n\n"
+                    "Pour des raisons de sécurité, ce lien est valable un temps limité. Si vous n'êtes "
+                    "pas à l'origine de cette demande, ignorez simplement cet email."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PasswordResetConfirmView(APIView):
+    """Applique le nouveau mot de passe à partir du lien reçu par email."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

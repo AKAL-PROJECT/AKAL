@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatMAD } from "@/lib/format";
 
 type Props = {
   prix: number;
@@ -10,9 +11,8 @@ type Props = {
 // on évite de suggérer un chiffre par type de culture (donnée d'opinion, pas stable).
 const RENDEMENT_DEFAUT = 5;
 
-const fmt = new Intl.NumberFormat("fr-MA");
 const fmtK = (n: number) =>
-  n >= 1000 ? `${fmt.format(Math.round(n / 1000))} k` : fmt.format(Math.round(n));
+  n >= 1000 ? `${formatMAD.format(Math.round(n / 1000))} k` : formatMAD.format(Math.round(n));
 
 // ── Slider ─────────────────────────────────────────────────────────────────────
 
@@ -82,7 +82,7 @@ function LigneResultat({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: "12px", color: "var(--color-secondaire)" }}>{label}</span>
         <span style={{ fontSize: "13px", fontWeight: 500, color: couleur, fontVariantNumeric: "tabular-nums" }}>
-          {signe}{fmt.format(Math.round(montant))} MAD
+          {signe}{formatMAD.format(Math.round(montant))} MAD
         </span>
       </div>
       {barPct > 0 && (
@@ -182,7 +182,7 @@ export default function SimulateurROI({ prix }: Props) {
           onChange={setRendement}
           min={0} max={15} step={0.5}
           affichage={`${rendement} %/an`}
-          detail={`→ environ ${fmt.format(Math.round(revenuAnnuel))} MAD/an de revenu`}
+          detail={`→ environ ${formatMAD.format(Math.round(revenuAnnuel))} MAD/an de revenu`}
         />
         <Slider
           label="Appréciation foncière"
@@ -198,7 +198,7 @@ export default function SimulateurROI({ prix }: Props) {
           onChange={setCharges}
           min={0} max={5} step={0.25}
           affichage={`${charges} %/an`}
-          detail={`→ environ ${fmt.format(Math.round(chargeAnnuelle))} MAD/an (taxes, entretien…)`}
+          detail={`→ environ ${formatMAD.format(Math.round(chargeAnnuelle))} MAD/an (taxes, entretien…)`}
         />
       </div>
 
@@ -265,7 +265,7 @@ export default function SimulateurROI({ prix }: Props) {
               Gain net estimé
             </div>
             <div style={{ fontSize: "20px", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-              {positif ? "+" : "−"}{fmt.format(Math.round(Math.abs(gainNet)))} MAD
+              {positif ? "+" : "−"}{formatMAD.format(Math.round(Math.abs(gainNet)))} MAD
             </div>
           </div>
           <div style={{ textAlign: "right" }}>

@@ -2,8 +2,8 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Mail, Lock, Phone, User, Eye, EyeOff, Check } from "@/components/icons/Icons";
-import MoroccoMap from "@/components/connexion/MoroccoMap";
+import { Mail, Lock, Phone, User, Eye, EyeOff } from "@/components/icons/Icons";
+import AuthMapPanel from "@/components/connexion/AuthMapPanel";
 import { signupAction, type AuthFormState } from "@/app/actions/auth";
 
 const iconWrapStyle: React.CSSProperties = {
@@ -24,7 +24,7 @@ const inputBaseStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = { fontSize: 12, letterSpacing: "0.5px", color: "#2D6A4F" };
 const champErreurStyle: React.CSSProperties = { fontSize: 13, color: "var(--color-erreur)", margin: 0 };
 
-export default function InscriptionScreen() {
+export default function InscriptionScreen({ next }: { next: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(signupAction, null);
 
@@ -33,23 +33,7 @@ export default function InscriptionScreen() {
       className="connexion-shell"
       style={{ minHeight: "100vh", background: "#F8F5F0", color: "#1B3A2D", boxSizing: "border-box" }}
     >
-      {/* Bandeau carte compacte — visible uniquement sous 820px (cf.
-          .connexion-map-mobile), remplace .connexion-map-col ci-dessous qui
-          disparaît entièrement à cette largeur plutôt que de garder un
-          aperçu réduit. */}
-      <div
-        className="connexion-map-mobile"
-        style={{
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          padding: "28px 24px",
-          background: "rgba(232,201,154,0.28)",
-        }}
-      >
-        <MoroccoMap variant="compact" />
-      </div>
+      <AuthMapPanel variant="mobile" />
 
       {/* Colonne formulaire */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box" }}>
@@ -82,6 +66,8 @@ export default function InscriptionScreen() {
             style={{ display: "flex", flexDirection: "column", gap: 20, animationDelay: "0.26s" }}
             action={formAction}
           >
+            <input type="hidden" name="next" value={next} />
+
             <div style={{ display: "flex", gap: 16 }}>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                 <label htmlFor="prenom" style={labelStyle}>Prénom</label>
@@ -175,7 +161,7 @@ export default function InscriptionScreen() {
           <div className="akal-rise" style={{ marginTop: 24, fontSize: 14, color: "#2D6A4F", animationDelay: "0.34s" }}>
             Déjà un compte ?{" "}
             <Link
-              href="/connexion"
+              href={next !== "/compte" ? `/connexion?next=${encodeURIComponent(next)}` : "/connexion"}
               style={{ color: "#C4622D", textDecoration: "none", borderBottom: "1px solid rgba(196,98,45,0.4)", paddingBottom: 1 }}
             >
               Se connecter
@@ -184,80 +170,7 @@ export default function InscriptionScreen() {
         </div>
       </div>
 
-      {/* Colonne carte vivante */}
-      <div
-        className="connexion-map-col"
-        style={{
-          flex: 1,
-          minWidth: 0,
-          position: "relative",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 28,
-          padding: "44px 48px",
-          boxSizing: "border-box",
-          overflow: "hidden",
-          borderLeft: "1px solid rgba(45,106,79,0.12)",
-          background: "radial-gradient(115% 85% at 68% 32%, #EDF4EC 0%, #F6F2EB 52%, #F2ECE3 100%)",
-        }}
-      >
-        <svg
-          viewBox="0 0 600 760"
-          preserveAspectRatio="xMidYMid slice"
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.45, pointerEvents: "none" }}
-          fill="none"
-          stroke="#2D6A4F"
-          strokeOpacity={0.14}
-          strokeWidth={1.2}
-        >
-          <path d="M-40 210 C120 160 240 250 360 200 S560 130 660 190" />
-          <path d="M-40 250 C120 200 240 290 360 240 S560 170 660 230" />
-          <path d="M-40 300 C130 250 250 340 370 290 S570 220 660 285" />
-          <path d="M-40 360 C140 315 260 400 380 350 S580 285 660 350" />
-          <path d="M-40 430 C150 385 270 470 390 420 S590 355 660 420" />
-          <path d="M-40 510 C160 465 280 550 400 500 S600 435 660 500" />
-          <path d="M-40 590 C170 545 290 630 410 580 S610 515 660 580" />
-          <ellipse cx="410" cy="300" rx="150" ry="110" />
-          <ellipse cx="410" cy="300" rx="105" ry="76" />
-          <ellipse cx="410" cy="300" rx="62" ry="44" />
-        </svg>
-
-        <MoroccoMap />
-
-        <div
-          style={{
-            position: "relative",
-            display: "grid",
-            gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-            gap: 12,
-            width: "100%",
-            maxWidth: 420,
-          }}
-          className="akal-stat-in"
-        >
-          {["Statut foncier vérifié", "Sans intermédiaire", "Couverture nationale"].map((texte) => (
-            <div
-              key={texte}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                background: "rgba(255,255,255,0.7)",
-                border: "1px solid rgba(45,106,79,0.16)",
-                borderRadius: 12,
-                padding: "12px 16px",
-                boxShadow: "0 2px 10px rgba(27,58,45,0.05)",
-              }}
-            >
-              <span style={{ display: "flex", flexShrink: 0, color: "#2D6A4F" }}>
-                <Check size={18} strokeWidth={2} />
-              </span>
-              <span style={{ fontSize: 13, color: "#1B3A2D", fontWeight: 500 }}>{texte}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AuthMapPanel variant="desktop" />
     </div>
   );
 }

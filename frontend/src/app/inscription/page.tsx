@@ -13,9 +13,10 @@ export default async function InscriptionPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
+  const cheminSuivant = next && next.startsWith("/") ? next : "/compte";
 
   const utilisateur = await getCurrentUser();
-  if (utilisateur) redirect(next && next.startsWith("/") ? next : "/compte");
+  if (utilisateur) redirect(cheminSuivant);
 
-  return <InscriptionScreen />;
+  return <InscriptionScreen next={cheminSuivant} />;
 }

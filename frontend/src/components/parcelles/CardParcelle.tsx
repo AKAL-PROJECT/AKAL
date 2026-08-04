@@ -8,22 +8,26 @@ import BadgeStatut from "./BadgeStatut";
 import ScoreBar from "./ScoreBar";
 import { MapPin, Heart, Droplets } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
+import { formatMAD } from "@/lib/format";
 
 type Props = {
   parcelle: Parcelle;
   enComparaison: boolean;
-  onToggleComparaison: (id: string) => void;
+  // Optionnels (défaut : no-op) — une Server Component (ex. app/page.tsx) ne
+  // peut pas passer de fonction à une Client Component comme celle-ci (RSC),
+  // donc les usages purement décoratifs (vitrine Home, favori/comparateur
+  // non pertinents) omettent ces deux props plutôt que de passer une
+  // fonction vide depuis le serveur.
+  onToggleComparaison?: (id: string) => void;
   favori: boolean;
-  onToggleFavori: (id: string) => void;
+  onToggleFavori?: (id: string) => void;
   // Position dans la grille — pilote le délai de l'entrée en cascade
   // (.akal-card-cascade, globals.css). Optionnel : une carte isolée hors
   // grille (ex. future page "favoris") s'anime simplement sans délai.
   index?: number;
 };
 
-const formatMAD = new Intl.NumberFormat("fr-MA");
-
-export default function CardParcelle({ parcelle, enComparaison, onToggleComparaison, favori, onToggleFavori, index }: Props) {
+export default function CardParcelle({ parcelle, enComparaison, onToggleComparaison = () => {}, favori, onToggleFavori = () => {}, index }: Props) {
   const a = parcelle;
   const image = a.photoPrincipale ?? a.photos[0] ?? null;
 

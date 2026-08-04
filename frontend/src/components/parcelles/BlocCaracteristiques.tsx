@@ -6,8 +6,7 @@ import {
   Droplets,
   TrendingUp,
 } from "@/components/icons/Icons";
-
-const fmt = new Intl.NumberFormat("fr-MA");
+import { formatMAD } from "@/lib/format";
 
 type Groupe = {
   titre: string;
@@ -77,7 +76,7 @@ function buildGroupes(a: Parcelle): Groupe[] {
           type: "texte",
           icon: <TrendingUp size={13} />,
           label: "Prix à l'hectare",
-          valeur: `${fmt.format(prixHa)} MAD/ha`,
+          valeur: `${formatMAD.format(prixHa)} MAD/ha`,
         },
       ],
     },

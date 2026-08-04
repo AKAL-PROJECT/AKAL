@@ -8,6 +8,7 @@ import { archiverAnnonceAction, marquerVendueAnnonceAction, reactiverAnnonceActi
 import BadgeStatutAnnonce from "@/components/parcelles/BadgeStatutAnnonce";
 import { FileText, Check, TrendingUp, Ruler, Grid, Heart, MessageSquare, Mail } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
+import { formatMAD } from "@/lib/format";
 import type { AnnonceProprietaire } from "@/types/parcelle";
 import BoutonAvecConfirmation from "./BoutonAvecConfirmation";
 
@@ -18,7 +19,6 @@ export const metadata: Metadata = {
   description: "Gérez vos annonces publiées, en brouillon ou archivées.",
 };
 
-const formatMAD = new Intl.NumberFormat("fr-MA");
 const formatDate = new Intl.DateTimeFormat("fr-MA", { day: "numeric", month: "long", year: "numeric" });
 
 function KpiCard({ icon, label, valeur }: { icon: React.ReactNode; label: string; valeur: string }) {
@@ -163,22 +163,12 @@ export default async function MesAnnoncesPage() {
                 </span>
               </div>
 
-              {a.statut === "brouillon" ? (
-                <Link
-                  href={`/publier?id=${a.id}`}
-                  className="btn-secondary"
-                  style={{ flexShrink: 0, padding: "6px 14px", fontSize: "13px", textDecoration: "none" }}
-                >
-                  Modifier
-                </Link>
-              ) : (
-                // Capacité backend déjà officialisée (PATCH sans restriction
-                // de statut sur le contenu, P1 #4), mais /publier?id= ne sait
-                // reprendre qu'un brouillon (EtapePhotosPublication affiche
-                // l'écran "déjà publiée" pour une annonce en_ligne) — pas
-                // d'écran d'édition pour les autres statuts pour l'instant.
+              {a.statut === "vendue" ? (
+                // Statut terminal (transitions.py) : une vente conclue n'a
+                // plus de contenu à corriger — décision produit explicite,
+                // pas une limitation technique en attente.
                 <span
-                  title="Bientôt disponible"
+                  title="Une annonce vendue n'est plus modifiable"
                   style={{
                     flexShrink: 0,
                     padding: "6px 14px",
@@ -192,6 +182,14 @@ export default async function MesAnnoncesPage() {
                 >
                   Modifier
                 </span>
+              ) : (
+                <Link
+                  href={`/publier?id=${a.id}`}
+                  className="btn-secondary"
+                  style={{ flexShrink: 0, padding: "6px 14px", fontSize: "13px", textDecoration: "none" }}
+                >
+                  Modifier
+                </Link>
               )}
 
               {(a.statut === "en_ligne" || a.statut === "archivee") && (

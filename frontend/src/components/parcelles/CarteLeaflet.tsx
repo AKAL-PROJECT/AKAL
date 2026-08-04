@@ -1,44 +1,22 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
+import { MapContainer, Marker, Popup } from "react-leaflet";
 import Link from "next/link";
 import type { Parcelle } from "@/types/parcelle";
+import TuileOSM from "@/components/TuileOSM";
+import { iconeAkal, CENTRE_MAROC } from "@/lib/leaflet";
+import { formatMAD } from "@/lib/format";
 import "leaflet/dist/leaflet.css";
 
-// Icône de marker personnalisée AKAL (pin vert forêt) — évite le bug
-// classique des icônes Leaflet cassées avec les bundlers.
-const iconeAkal = L.divIcon({
-  className: "",
-  html: `<div style="
-    width:28px;height:28px;border-radius:50% 50% 50% 0;
-    background:#2D6A4F;transform:rotate(-45deg);
-    border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);
-    display:flex;align-items:center;justify-content:center;">
-    <div style="width:8px;height:8px;border-radius:50%;background:white;transform:rotate(45deg);"></div>
-  </div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
-  popupAnchor: [0, -28],
-});
-
-const formatMAD = new Intl.NumberFormat("fr-MA");
-
 export default function CarteLeaflet({ parcelles }: { parcelles: Parcelle[] }) {
-  // Centre approximatif du Maroc
-  const centre: [number, number] = [32.0, -6.0];
-
   return (
     <MapContainer
-      center={centre}
+      center={CENTRE_MAROC}
       zoom={6}
       scrollWheelZoom
       style={{ height: "100%", width: "100%", borderRadius: "var(--radius-card)" }}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <TuileOSM />
       {parcelles.map((p) => (
         <Marker
           key={p.id}

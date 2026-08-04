@@ -1,4 +1,8 @@
+from django.contrib.auth.tokens import default_token_generator
+from django.core import mail
 from django.core.cache import cache
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
@@ -9,6 +13,8 @@ LOGIN_URL = '/api/auth/login/'
 LOGOUT_URL = '/api/auth/logout/'
 REFRESH_URL = '/api/auth/refresh/'
 ME_URL = '/api/auth/me/'
+PASSWORD_RESET_URL = '/api/auth/password-reset/'
+PASSWORD_RESET_CONFIRM_URL = '/api/auth/password-reset/confirm/'
 
 
 class AuthTestCase(APITestCase):
@@ -215,5 +221,97 @@ class LoginThrottleTests(AuthTestCase):
             self.client.post(LOGIN_URL, {'email': 'x@akal.ma', 'password': 'wrong'})
 
         response = self.client.post(LOGIN_URL, {'email': 'x@akal.ma', 'password': 'wrong'})
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+class PasswordResetTests(AuthTestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.create_user(
+            email=self.credentials['email'],
+            password=self.credentials['password'],
+            nom=self.credentials['nom'],
+            prenom=self.credentials['prenom'],
+        )
+
+    def test_request_sends_email_for_existing_user(self):
+        response = self.client.post(PASSWORD_RESET_URL, {'email': self.credentials['email']})
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.credentials['email'], mail.outbox[0].to)
+        self.assertIn('/reinitialiser-mot-de-passe?uid=', mail.outbox[0].body)
+
+    def test_request_is_silent_for_unknown_email(self):
+        # Même réponse que pour un email existant (cf. test ci-dessus) : ce
+        # endpoint ne doit jamais permettre de deviner quels comptes existent.
+        response = self.client.post(PASSWORD_RESET_URL, {'email': 'inconnu@akal.ma'})
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_confirm_changes_password(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+
+        response = self.client.post(PASSWORD_RESET_CONFIRM_URL, {
+            'uid': uid,
+            'token': token,
+            'password': 'un-nouveau-mot-de-passe-2026',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('un-nouveau-mot-de-passe-2026'))
+
+    def test_confirm_rejects_invalid_token(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+
+        response = self.client.post(PASSWORD_RESET_CONFIRM_URL, {
+            'uid': uid,
+            'token': 'jeton-invalide',
+            'password': 'un-nouveau-mot-de-passe-2026',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(self.credentials['password']))
+
+    def test_confirm_rejects_weak_password(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+
+        response = self.client.post(PASSWORD_RESET_CONFIRM_URL, {
+            'uid': uid,
+            'token': token,
+            'password': '1234',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_confirm_token_is_single_use(self):
+        # PasswordResetTokenGenerator encode le hash du mot de passe courant
+        # dans le jeton : le changer invalide automatiquement toute réutilisation.
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+
+        premiere = self.client.post(PASSWORD_RESET_CONFIRM_URL, {
+            'uid': uid, 'token': token, 'password': 'un-premier-mot-de-passe-2026',
+        })
+        seconde = self.client.post(PASSWORD_RESET_CONFIRM_URL, {
+            'uid': uid, 'token': token, 'password': 'un-second-mot-de-passe-2026',
+        })
+
+        self.assertEqual(premiere.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(seconde.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetThrottleTests(AuthTestCase):
+    def test_password_reset_is_throttled_after_three_attempts(self):
+        for _ in range(3):
+            self.client.post(PASSWORD_RESET_URL, {'email': 'x@akal.ma'})
+
+        response = self.client.post(PASSWORD_RESET_URL, {'email': 'x@akal.ma'})
 
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)

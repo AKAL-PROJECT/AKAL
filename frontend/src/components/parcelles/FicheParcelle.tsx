@@ -10,6 +10,7 @@ import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
 import SimulateurROI from "./SimulateurROI";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
+import { formatMAD } from "@/lib/format";
 import {
   MapPin,
   Heart,
@@ -40,8 +41,6 @@ const CarteFiche = dynamic(() => import("./CarteLeafletFiche"), {
     </div>
   ),
 });
-
-const formatMAD = new Intl.NumberFormat("fr-MA");
 
 function agriScoreLegende(score: number | null): string {
   if (score == null) return "AgriScore en cours de calcul pour cette parcelle.";

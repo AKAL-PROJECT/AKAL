@@ -222,6 +222,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'login': '5/min',
+        'password_reset': '3/hour',
     },
 }
 
@@ -270,6 +271,32 @@ CORS_ALLOWED_ORIGINS = [
 # Requis pour que les cookies JWT (httpOnly) passent sur les requêtes
 # cross-origin du frontend (fetch avec credentials: "include").
 CORS_ALLOW_CREDENTIALS = True
+
+# Origine du frontend, pour construire les liens absolus envoyés par email
+# (réinitialisation de mot de passe). Distinct de CORS_ALLOWED_ORIGINS
+# ci-dessus (qui liste des origines API-side autorisées) : ici une seule
+# valeur, celle vers laquelle rediriger un humain.
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
+
+
+# ──────────────────────────────────────────────
+# EMAIL — notifications transactionnelles (réinitialisation de mot de passe)
+# ──────────────────────────────────────────────
+
+# Même logique que SENTRY_DSN plus bas : EMAIL_HOST vide = pas de SMTP
+# configuré, on bascule sur le backend console (écrit l'email dans les logs)
+# plutôt que de lever une erreur ou d'échouer silencieusement en prod.
+EMAIL_HOST = env('EMAIL_HOST', default='')
+if EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='AKAL <no-reply@akal.ma>')
 
 
 # ──────────────────────────────────────────────

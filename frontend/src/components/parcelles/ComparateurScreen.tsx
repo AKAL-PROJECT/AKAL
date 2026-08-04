@@ -10,8 +10,7 @@ import { MapPin } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
 import { lireParcellesComparees } from "./comparateurStorage";
 import { AGRISCORE_ACTIF } from "@/config/features";
-
-const formatMAD = new Intl.NumberFormat("fr-MA");
+import { formatMAD } from "@/lib/format";
 
 const ACCES_EAU_LABEL: Record<AccesEau, string> = {
   irriguee: "Irriguée",
