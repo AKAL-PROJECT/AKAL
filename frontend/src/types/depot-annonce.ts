@@ -9,9 +9,17 @@ import type { AccesEau, StatutFoncier } from "./parcelle";
 export type Topographie = "plat" | "pentu" | "vallonne";
 export type AccesRoutier = "goudron" | "piste" | "difficile";
 
+// Un sommet du contour polygonal — {latitude, longitude}, jamais de GeoJSON
+// brut (même convention que latitude/longitude du point unique, cf. §2/§3 de
+// l'audit cartographie du 2026-08-05).
+export type SommetContour = { latitude: number; longitude: number };
+
 // Sous-objet parcelle tel qu'accepté/renvoyé par ParcelleEcritureSerializer.
 // `commune`/`latitude`/`longitude` restent optionnels : un brouillon peut
 // exister avant que l'étape "Localisation" ne soit renseignée (§6.1).
+// `contour` (dessin de parcelle, 2026-08-05) : optionnel, ≥3 sommets si
+// renseigné — `[]` repasse en mode Point (retire le contour existant),
+// absent du payload PATCH = ne touche pas au contour déjà enregistré.
 export type ParcelleEcriture = {
   surface_ha: number;
   statut_foncier: StatutFoncier | "";
@@ -21,6 +29,7 @@ export type ParcelleEcriture = {
   commune: number | null;
   latitude: number | null;
   longitude: number | null;
+  contour: SommetContour[] | null;
 };
 
 export type PhotoEcriture = {

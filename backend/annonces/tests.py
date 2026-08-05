@@ -162,6 +162,132 @@ class PatchProprietaireTests(AnnoncesTestBase):
         self.assertTrue(annonce.parcelle.is_geolocated())
 
 
+class ContourPolygoneTests(AnnoncesTestBase):
+    """Dessin de parcelle, mode Polygone (2026-08-05) — DonneesGeo.contour."""
+
+    # Rectangle simple, non auto-intersecté.
+    RECTANGLE = [
+        {'latitude': 33.50, 'longitude': -5.50},
+        {'latitude': 33.50, 'longitude': -5.49},
+        {'latitude': 33.51, 'longitude': -5.49},
+        {'latitude': 33.51, 'longitude': -5.50},
+    ]
+
+    # Mêmes 4 coins que RECTANGLE mais C/D permutés : les diagonales se
+    # croisent ("nœud papillon") — cas classique de polygone invalide.
+    NOEUD_PAPILLON = [
+        {'latitude': 33.50, 'longitude': -5.50},
+        {'latitude': 33.50, 'longitude': -5.49},
+        {'latitude': 33.51, 'longitude': -5.50},
+        {'latitude': 33.51, 'longitude': -5.49},
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def dessiner(self, contour):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': {'contour': contour}},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_polygone_valide_cree_donnees_geo(self):
+        response = self.dessiner(self.RECTANGLE)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertTrue(hasattr(annonce.parcelle, 'donnees_geo'))
+        self.assertEqual(annonce.parcelle.donnees_geo.contour.num_points, 5)  # anneau fermé
+
+    def test_contour_renvoye_sans_le_sommet_de_fermeture(self):
+        response = self.dessiner(self.RECTANGLE)
+
+        self.assertEqual(len(response.data['parcelle']['contour']), 4)
+
+    def test_moins_de_3_sommets_distincts_rejete(self):
+        response = self.dessiner(self.RECTANGLE[:2])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('contour', response.data['parcelle'])
+
+    def test_sommets_dupliques_comptes_comme_un_seul(self):
+        # 3 points transmis mais 2 identiques -> seulement 2 sommets distincts.
+        response = self.dessiner([self.RECTANGLE[0], self.RECTANGLE[0], self.RECTANGLE[1]])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_polygone_auto_intersecte_rejete_sans_reparation_automatique(self):
+        # Rejet strict (pas de make_valid()/buffer(0)) — décision du 2026-08-05.
+        response = self.dessiner(self.NOEUD_PAPILLON)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('invalide', response.data['parcelle']['contour'][0].lower())
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertFalse(hasattr(annonce.parcelle, 'donnees_geo'))
+
+    def test_centroide_derive_le_point_si_aucun_point_manuel(self):
+        response = self.dessiner(self.RECTANGLE)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertAlmostEqual(annonce.parcelle.latitude, 33.505, places=3)
+        self.assertAlmostEqual(annonce.parcelle.longitude, -5.495, places=3)
+        # is_geolocated() exige aussi `commune` — non couvert par dessiner(),
+        # on le pose ici pour vérifier le parcours complet mode Polygone
+        # (contour + commune, sans point manuel).
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': {'commune': self.commune.id}},
+            format='json', **self.csrf_headers(),
+        )
+        annonce.parcelle.refresh_from_db()
+        self.assertTrue(annonce.parcelle.is_geolocated())
+
+    def test_point_manuel_jamais_ecrase_par_le_centroide(self):
+        self.localiser(self.annonce_id)  # pose latitude=33.5, longitude=-5.5 manuellement
+
+        response = self.dessiner(self.RECTANGLE)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertEqual(annonce.parcelle.latitude, 33.5)
+        self.assertEqual(annonce.parcelle.longitude, -5.5)
+
+    def test_contour_vide_repasse_en_mode_point_et_retire_le_contour(self):
+        self.dessiner(self.RECTANGLE)
+
+        response = self.dessiner([])
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertFalse(hasattr(annonce.parcelle, 'donnees_geo'))
+        self.assertIsNone(response.data['parcelle']['contour'])
+
+    def test_champ_contour_absent_ne_touche_pas_au_contour_existant(self):
+        self.dessiner(self.RECTANGLE)
+
+        response = self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Autre titre'},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertTrue(hasattr(annonce.parcelle, 'donnees_geo'))
+
+    def test_creation_avec_contour_directement_au_post(self):
+        response = self.creer_brouillon(parcelle={
+            'surface_ha': 2.5, 'statut_foncier': 'melkia', 'acces_eau': 'irriguee',
+            'topographie': 'plat', 'acces_routier': 'goudron',
+            'contour': self.RECTANGLE,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        annonce = Annonce.objects.get(id=response.data['id'])
+        self.assertTrue(hasattr(annonce.parcelle, 'donnees_geo'))
+
+
 class PhotoUploadTests(AnnoncesTestBase):
     def setUp(self):
         super().setUp()
