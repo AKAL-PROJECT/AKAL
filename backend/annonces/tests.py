@@ -7,6 +7,7 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 
 import io
 
+from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase
 from PIL import Image
@@ -14,7 +15,7 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import User
-from geo.models import Commune, Province, Region
+from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
 from . import transitions
 from .models import Annonce, Photo
 
@@ -34,12 +35,37 @@ def image_jpeg(nom='photo.jpg', taille=(64, 64), octets_supplementaires=0):
     return SimpleUploadedFile(nom, buf.getvalue(), content_type='image/jpeg')
 
 
+def _polygone_carre(centre_lon, centre_lat, demi_cote=0.1):
+    """Petit carré MultiPolygon srid=4326 autour d'un centre — fixture de
+    test, pas une vraie frontière administrative."""
+    x0, y0 = centre_lon - demi_cote, centre_lat - demi_cote
+    x1, y1 = centre_lon + demi_cote, centre_lat + demi_cote
+    return MultiPolygon(Polygon(((x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0))), srid=4326)
+
+
 class AnnoncesTestBase(APITestCase):
     def setUp(self):
         self.client = APIClient(enforce_csrf_checks=True)
         self.region = Region.objects.create(id=1, code='fes-meknes', nom='Fès-Meknès')
         self.province = Province.objects.create(id=1, region=self.region, code='MEK', nom='Meknès')
         self.commune = Commune.objects.create(id=1, province=self.province, nom='Meknès Ville')
+
+        # Référentiel géométrique officiel (2026-08-06) — is_geolocated()/
+        # can_publish() se basent désormais sur commune_geom, pas sur
+        # l'ancien `commune` ci-dessus (toujours créé, gardé pour les tests
+        # qui portent spécifiquement sur la compatibilité legacy).
+        self.region_officielle = RegionOfficielle.objects.create(
+            code=3, slug='fes-meknes', nom='Fès-Meknès',
+        )
+        self.province_geom = ProvinceGeom.objects.create(
+            iso='MA-03-131', nom='Meknès', region=self.region_officielle,
+            geom=_polygone_carre(-5.5, 33.5),
+        )
+        self.commune_geom = CommuneGeom.objects.create(
+            source_fid=1, libelle='MU MEKNES VILLE', nom_affichage='Meknès Ville',
+            type_commune='MU', province=self.province_geom,
+            geom=_polygone_carre(-5.5, 33.5, demi_cote=0.05),
+        )
 
     def csrf_headers(self):
         # Pas de cookie csrftoken tant qu'aucune requête (même anonyme, ex.
@@ -79,7 +105,10 @@ class AnnoncesTestBase(APITestCase):
     def localiser(self, annonce_id):
         return self.client.patch(
             f'{ANNONCES_URL}{annonce_id}/',
-            {'parcelle': {'commune': self.commune.id, 'latitude': 33.5, 'longitude': -5.5}},
+            {'parcelle': {
+                'commune': self.commune.id, 'commune_geom': self.commune_geom.id,
+                'latitude': 33.5, 'longitude': -5.5,
+            }},
             format='json', **self.csrf_headers(),
         )
 
@@ -234,11 +263,12 @@ class ContourPolygoneTests(AnnoncesTestBase):
         annonce = Annonce.objects.get(id=self.annonce_id)
         self.assertAlmostEqual(annonce.parcelle.latitude, 33.505, places=3)
         self.assertAlmostEqual(annonce.parcelle.longitude, -5.495, places=3)
-        # is_geolocated() exige aussi `commune` — non couvert par dessiner(),
-        # on le pose ici pour vérifier le parcours complet mode Polygone
-        # (contour + commune, sans point manuel).
+        # is_geolocated() exige aussi commune_geom (référentiel officiel,
+        # 2026-08-06) — non couvert par dessiner(), on le pose ici pour
+        # vérifier le parcours complet mode Polygone (contour + commune,
+        # sans point manuel).
         self.client.patch(
-            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': {'commune': self.commune.id}},
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': {'commune_geom': self.commune_geom.id}},
             format='json', **self.csrf_headers(),
         )
         annonce.parcelle.refresh_from_db()
@@ -286,6 +316,76 @@ class ContourPolygoneTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         annonce = Annonce.objects.get(id=response.data['id'])
         self.assertTrue(hasattr(annonce.parcelle, 'donnees_geo'))
+
+
+class CommuneGeomTests(AnnoncesTestBase):
+    """
+    Référentiel géométrique officiel (2026-08-06) : is_geolocated()/
+    can_publish() se basent sur commune_geom, pas sur l'ancien `commune` —
+    et la lecture publique (région/province/commune affichées) doit
+    fonctionner pour les deux chaînes, jamais casser sur l'une des deux.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def patch_parcelle(self, **champs):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': champs},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_commune_legacy_seule_ne_suffit_pas_a_geolocaliser(self):
+        self.patch_parcelle(commune=self.commune.id, latitude=33.5, longitude=-5.5)
+
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertFalse(annonce.parcelle.is_geolocated())
+
+    def test_commune_geom_sans_commune_legacy_suffit_a_geolocaliser(self):
+        self.patch_parcelle(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertTrue(annonce.parcelle.is_geolocated())
+        self.assertIsNone(annonce.parcelle.commune_id)  # jamais rétro-rempli
+
+    def test_fiche_publique_affiche_region_province_commune_via_commune_geom(self):
+        self.patch_parcelle(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        parcelle = response.data['parcelle']
+        self.assertEqual(parcelle['region']['code'], 'fes-meknes')  # slug, jamais le code HCP numérique
+        self.assertEqual(parcelle['province'], 'Meknès')
+        self.assertEqual(parcelle['commune'], 'Meknès Ville')
+
+    def test_filtre_region_catalogue_matche_commune_geom(self):
+        self.patch_parcelle(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+        self.client.logout()
+
+        response = self.client.get(ANNONCES_URL, {'region': 'fes-meknes'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
 
 
 class PhotoUploadTests(AnnoncesTestBase):

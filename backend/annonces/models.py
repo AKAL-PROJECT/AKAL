@@ -48,6 +48,18 @@ class Parcelle(models.Model):
         'geo.Commune', on_delete=models.CASCADE, related_name='parcelles',
         null=True, blank=True,
     )
+    # Référentiel géométrique officiel (2026-08-06, cf. docs/plans) — vient
+    # en plus de `commune` ci-dessus, jamais à sa place : `commune` reste
+    # géré tel quel pour les Parcelle déjà créées avant ce champ (aucune
+    # migration/correspondance de nom rétroactive, décision explicite — un
+    # nom de commune n'est pas unique au niveau national, deux communes
+    # homonymes peuvent exister dans des provinces différentes). Les
+    # nouveaux dépôts renseignent `commune_geom` ; `is_geolocated()`
+    # ci-dessous se base dessus, pas sur l'ancien `commune`.
+    commune_geom = models.ForeignKey(
+        'geo.CommuneGeom', on_delete=models.SET_NULL, related_name='parcelles',
+        null=True, blank=True,
+    )
     surface_ha = models.DecimalField(
         max_digits=8, decimal_places=2, help_text='Surface en hectares'
     )
@@ -67,9 +79,16 @@ class Parcelle(models.Model):
         verbose_name_plural = 'Parcelles'
 
     def is_geolocated(self):
-        """Vrai si commune + coordonnées + géométrie sont renseignées (§6.1)."""
+        """
+        Vrai si commune (référentiel officiel) + coordonnées + géométrie
+        sont renseignées (§6.1).
+
+        Basé sur `commune_geom` (référentiel officiel géométrique), pas sur
+        l'ancien `commune` (décision du 2026-08-06) — cf. commentaire sur
+        `commune_geom` ci-dessus.
+        """
         return (
-            self.commune_id is not None
+            self.commune_geom_id is not None
             and self.latitude is not None
             and self.longitude is not None
             and self.geom is not None

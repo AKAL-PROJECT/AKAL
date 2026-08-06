@@ -3,8 +3,8 @@
 import { useActionState, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { enregistrerLocalisationAction, type DepotFormState } from "@/app/actions/depot-annonce";
-import { fetchCommunes, fetchProvinces, fetchRegions } from "@/lib/geo-api";
-import type { AnnonceEcriture, CommuneRef, ProvinceRef, RegionRef } from "@/types/depot-annonce";
+import { fetchCommunesGeom, fetchProvincesGeom, fetchRegionsOfficielles } from "@/lib/geo-api";
+import type { AnnonceEcriture, CommuneGeomRef, ProvinceGeomRef, RegionOfficielleRef } from "@/types/depot-annonce";
 
 const CarteLeafletPicker = dynamic(() => import("./CarteLeafletPicker"), {
   ssr: false,
@@ -55,11 +55,16 @@ export function EtapeLocalisation({
     null,
   );
 
-  const [regions, setRegions] = useState<RegionRef[]>([]);
-  const [provinces, setProvinces] = useState<ProvinceRef[]>([]);
-  const [communes, setCommunes] = useState<CommuneRef[]>([]);
-  const [regionCode, setRegionCode] = useState("");
-  const [provinceCode, setProvinceCode] = useState("");
+  // Cascade sur le référentiel géométrique officiel (2026-08-06) — 12
+  // régions/75 provinces/1536 communes réelles, cf.
+  // docs/plans/2026-08-06-communes-geo-design.md. `regionSlug`/`provinceId`
+  // ne pilotent que la cascade de sélection ; seul `communeId` (id
+  // CommuneGeom) est réellement envoyé au serveur.
+  const [regions, setRegions] = useState<RegionOfficielleRef[]>([]);
+  const [provinces, setProvinces] = useState<ProvinceGeomRef[]>([]);
+  const [communes, setCommunes] = useState<CommuneGeomRef[]>([]);
+  const [regionSlug, setRegionSlug] = useState("");
+  const [provinceId, setProvinceId] = useState("");
   const [communeId, setCommuneId] = useState("");
   // Pré-rempli si l'utilisateur revient sur cette étape après avoir déjà
   // placé un repère — la cascade région/province/commune, elle, doit être
@@ -83,7 +88,7 @@ export function EtapeLocalisation({
   );
 
   useEffect(() => {
-    fetchRegions().then(setRegions).catch(() => setRegions([]));
+    fetchRegionsOfficielles().then(setRegions).catch(() => setRegions([]));
   }, []);
 
   // Le clear des listes filles (provinces/communes) se fait directement dans
@@ -91,14 +96,14 @@ export function EtapeLocalisation({
   // setState synchrone qu'en réponse à un système externe (ici, le fetch),
   // jamais comme simple réaction à un changement d'état interne au composant.
   useEffect(() => {
-    if (!regionCode) return;
-    fetchProvinces(regionCode).then(setProvinces).catch(() => setProvinces([]));
-  }, [regionCode]);
+    if (!regionSlug) return;
+    fetchProvincesGeom(regionSlug).then(setProvinces).catch(() => setProvinces([]));
+  }, [regionSlug]);
 
   useEffect(() => {
-    if (!provinceCode) return;
-    fetchCommunes(provinceCode).then(setCommunes).catch(() => setCommunes([]));
-  }, [provinceCode]);
+    if (!provinceId) return;
+    fetchCommunesGeom({ province: Number(provinceId) }).then(setCommunes).catch(() => setCommunes([]));
+  }, [provinceId]);
 
   useEffect(() => {
     if (state?.annonce) onSuivant(state.annonce);
@@ -126,7 +131,7 @@ export function EtapeLocalisation({
       </div>
 
       <input type="hidden" name="id" value={annonce.id} />
-      <input type="hidden" name="commune" value={communeId} />
+      <input type="hidden" name="commune_geom" value={communeId} />
       <input type="hidden" name="latitude" value={position ? position[0] : ""} />
       <input type="hidden" name="longitude" value={position ? position[1] : ""} />
       <input
@@ -141,10 +146,10 @@ export function EtapeLocalisation({
           <select
             id="region"
             className="input select-chevron"
-            value={regionCode}
+            value={regionSlug}
             onChange={(e) => {
-              setRegionCode(e.target.value);
-              setProvinceCode("");
+              setRegionSlug(e.target.value);
+              setProvinceId("");
               setCommuneId("");
               setProvinces([]);
               setCommunes([]);
@@ -152,7 +157,7 @@ export function EtapeLocalisation({
           >
             <option value="">Choisir...</option>
             {regions.map((r) => (
-              <option key={r.id} value={r.code}>{r.nom}</option>
+              <option key={r.code} value={r.slug}>{r.nom}</option>
             ))}
           </select>
         </div>
@@ -161,17 +166,17 @@ export function EtapeLocalisation({
           <select
             id="province"
             className="input select-chevron"
-            value={provinceCode}
-            disabled={!regionCode}
+            value={provinceId}
+            disabled={!regionSlug}
             onChange={(e) => {
-              setProvinceCode(e.target.value);
+              setProvinceId(e.target.value);
               setCommuneId("");
               setCommunes([]);
             }}
           >
             <option value="">Choisir...</option>
             {provinces.map((p) => (
-              <option key={p.id} value={p.code}>{p.nom}</option>
+              <option key={p.id} value={p.id}>{p.nom}</option>
             ))}
           </select>
         </div>
@@ -181,12 +186,12 @@ export function EtapeLocalisation({
             id="commune"
             className="input select-chevron"
             value={communeId}
-            disabled={!provinceCode}
+            disabled={!provinceId}
             onChange={(e) => setCommuneId(e.target.value)}
           >
             <option value="">Choisir...</option>
             {communes.map((c) => (
-              <option key={c.id} value={c.id}>{c.nom}</option>
+              <option key={c.id} value={c.id}>{c.nomAffichage}</option>
             ))}
           </select>
         </div>

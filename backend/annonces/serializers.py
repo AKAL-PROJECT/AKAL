@@ -106,10 +106,19 @@ class ParcelleListSerializer(serializers.ModelSerializer):
         fields = ['id', 'surface_ha', 'statut_foncier', 'acces_eau', 'region', 'localisation']
 
     def get_region(self, obj):
-        """Retourne la région sous forme {code, nom}."""
+        """
+        Retourne la région sous forme {code, nom} — priorité au référentiel
+        géométrique officiel (`commune_geom`, 2026-08-06) si renseigné,
+        repli sur l'ancien référentiel (`commune`) sinon, pour ne pas casser
+        l'affichage des annonces déjà publiées avant son introduction. `code`
+        reste toujours le slug (jamais le code HCP numérique interne) — le
+        contrat public ne change pas selon la chaîne d'origine.
+        """
+        if obj.commune_geom_id:
+            region = obj.commune_geom.province.region
+            return RegionNestedSerializer({'code': region.slug, 'nom': region.nom}).data
         try:
-            region = obj.commune.province.region
-            return RegionNestedSerializer(region).data
+            return RegionNestedSerializer(obj.commune.province.region).data
         except AttributeError:
             return None
 
@@ -122,11 +131,17 @@ class ParcelleListSerializer(serializers.ModelSerializer):
 
 
 class ParcelleDetailSerializer(serializers.ModelSerializer):
-    """Sous-objet parcelle pour la vue détail."""
+    """
+    Sous-objet parcelle pour la vue détail.
+
+    `region`/`province`/`commune` : SerializerMethodField (pas de `source=`
+    direct) pour pouvoir arbitrer entre `commune_geom` (référentiel officiel)
+    et `commune` (legacy) — cf. get_region() ci-dessous.
+    """
 
     region = serializers.SerializerMethodField()
-    province = serializers.CharField(source='commune.province.nom', read_only=True)
-    commune = serializers.CharField(source='commune.nom', read_only=True)
+    province = serializers.SerializerMethodField()
+    commune = serializers.SerializerMethodField()
     localisation = serializers.SerializerMethodField()
 
     class Meta:
@@ -138,16 +153,33 @@ class ParcelleDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_region(self, obj):
-        """Retourne la région sous forme {code, nom}."""
+        """Retourne la région sous forme {code, nom} — cf. ParcelleListSerializer.get_region()."""
+        if obj.commune_geom_id:
+            region = obj.commune_geom.province.region
+            return RegionNestedSerializer({'code': region.slug, 'nom': region.nom}).data
         try:
-            region = obj.commune.province.region
-            return RegionNestedSerializer(region).data
+            return RegionNestedSerializer(obj.commune.province.region).data
         except AttributeError:
             return None
 
+    def get_province(self, obj):
+        if obj.commune_geom_id:
+            return obj.commune_geom.province.nom
+        if obj.commune_id:
+            return obj.commune.province.nom
+        return None
+
+    def get_commune(self, obj):
+        if obj.commune_geom_id:
+            return obj.commune_geom.nom_affichage
+        if obj.commune_id:
+            return obj.commune.nom
+        return None
+
     def get_localisation(self, obj):
         """Retourne la localisation complète avec adresse_approximative."""
-        adresse = f"{obj.commune.nom}, Maroc" if hasattr(obj, 'commune') and obj.commune else None
+        nom_commune = self.get_commune(obj)
+        adresse = f"{nom_commune}, Maroc" if nom_commune else None
         return LocalisationDetailSerializer({
             'latitude': obj.latitude,
             'longitude': obj.longitude,
@@ -337,6 +369,14 @@ class ParcelleEcritureSerializer(serializers.ModelSerializer):
     ModelSerializer standard. `to_representation` le recalcule depuis
     `donnees_geo.contour` pour que l'étape Localisation puisse se
     re-préremplir sur un brouillon déjà dessiné.
+
+    `commune_geom` (référentiel géométrique officiel, 2026-08-06) : c'est ce
+    champ, pas l'ancien `commune`, qui alimente désormais `is_geolocated()`/
+    `can_publish()`. Les deux coexistent sur Parcelle — `commune` n'est
+    jamais rétro-rempli ni retiré (cf. docs/plans/2026-08-06-communes-geo-design.md).
+    `commune_geom` n'a aucune interaction avec `contour` : on peut dessiner
+    un polygone dans n'importe quelle commune officielle choisie, les deux
+    fonctionnalités sont indépendantes.
     """
 
     contour = PointContourSerializer(many=True, required=False, allow_null=True)
@@ -345,10 +385,11 @@ class ParcelleEcritureSerializer(serializers.ModelSerializer):
         model = Parcelle
         fields = [
             'surface_ha', 'statut_foncier', 'acces_eau', 'topographie', 'acces_routier',
-            'commune', 'latitude', 'longitude', 'contour',
+            'commune', 'commune_geom', 'latitude', 'longitude', 'contour',
         ]
         extra_kwargs = {
             'commune': {'required': False, 'allow_null': True},
+            'commune_geom': {'required': False, 'allow_null': True},
             'latitude': {'required': False, 'allow_null': True},
             'longitude': {'required': False, 'allow_null': True},
         }

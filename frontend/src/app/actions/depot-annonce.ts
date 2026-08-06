@@ -70,8 +70,11 @@ export async function enregistrerInfosGeneralesAction(
   }
 }
 
-// Étape 2 — Localisation. `commune` arrive en string depuis un <select> HTML
-// (toujours du texte) — converti en number ici, jamais côté composant.
+// Étape 2 — Localisation. `commune_geom` arrive en string depuis un <select>
+// HTML (toujours du texte) — converti en number ici, jamais côté composant.
+// Référentiel géométrique officiel (2026-08-06) : c'est ce champ, pas
+// l'ancien `commune`, qui alimente is_geolocated()/can_publish() côté back —
+// `commune` n'est jamais envoyé par ce formulaire (cf. types/depot-annonce.ts).
 // `contour` (dessin de parcelle, 2026-08-05) : JSON d'un tableau de
 // {latitude, longitude} — toujours envoyé par EtapeLocalisation, `[]` inclus
 // (repasse en mode Point côté backend). JSON.parse ne peut échouer que si le
@@ -82,7 +85,7 @@ export async function enregistrerLocalisationAction(
   formData: FormData,
 ): Promise<DepotFormState> {
   const id = String(formData.get("id") ?? "");
-  const communeRaw = String(formData.get("commune") ?? "");
+  const communeGeomRaw = String(formData.get("commune_geom") ?? "");
   const latitudeRaw = String(formData.get("latitude") ?? "");
   const longitudeRaw = String(formData.get("longitude") ?? "");
   const contourRaw = String(formData.get("contour") ?? "[]");
@@ -97,7 +100,7 @@ export async function enregistrerLocalisationAction(
   try {
     const annonce = await patchBrouillon(id, {
       parcelle: {
-        commune: communeRaw ? Number(communeRaw) : null,
+        commune_geom: communeGeomRaw ? Number(communeGeomRaw) : null,
         latitude: latitudeRaw ? Number(latitudeRaw) : null,
         longitude: longitudeRaw ? Number(longitudeRaw) : null,
         contour,
