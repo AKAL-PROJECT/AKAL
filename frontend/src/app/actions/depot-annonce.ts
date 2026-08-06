@@ -72,6 +72,11 @@ export async function enregistrerInfosGeneralesAction(
 
 // Étape 2 — Localisation. `commune` arrive en string depuis un <select> HTML
 // (toujours du texte) — converti en number ici, jamais côté composant.
+// `contour` (dessin de parcelle, 2026-08-05) : JSON d'un tableau de
+// {latitude, longitude} — toujours envoyé par EtapeLocalisation, `[]` inclus
+// (repasse en mode Point côté backend). JSON.parse ne peut échouer que si le
+// hidden input a été altéré hors du composant : on retombe sur `[]` plutôt
+// que de planter l'action.
 export async function enregistrerLocalisationAction(
   _prevState: DepotFormState,
   formData: FormData,
@@ -80,6 +85,14 @@ export async function enregistrerLocalisationAction(
   const communeRaw = String(formData.get("commune") ?? "");
   const latitudeRaw = String(formData.get("latitude") ?? "");
   const longitudeRaw = String(formData.get("longitude") ?? "");
+  const contourRaw = String(formData.get("contour") ?? "[]");
+
+  let contour: { latitude: number; longitude: number }[];
+  try {
+    contour = JSON.parse(contourRaw);
+  } catch {
+    contour = [];
+  }
 
   try {
     const annonce = await patchBrouillon(id, {
@@ -87,6 +100,7 @@ export async function enregistrerLocalisationAction(
         commune: communeRaw ? Number(communeRaw) : null,
         latitude: latitudeRaw ? Number(latitudeRaw) : null,
         longitude: longitudeRaw ? Number(longitudeRaw) : null,
+        contour,
       },
     });
     return { annonce, error: "", fieldErrors: null };

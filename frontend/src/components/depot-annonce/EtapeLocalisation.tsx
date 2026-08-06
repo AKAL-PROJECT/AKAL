@@ -29,6 +29,18 @@ const CarteLeafletPicker = dynamic(() => import("./CarteLeafletPicker"), {
 const champLabelStyle: React.CSSProperties = { display: "block", fontSize: 14, fontWeight: 500, marginBottom: 6 };
 const champErreurStyle: React.CSSProperties = { color: "var(--color-erreur)", fontSize: 13, marginTop: 4 };
 
+const boutonModeStyle = (actif: boolean): React.CSSProperties => ({
+  flex: 1,
+  padding: "8px 12px",
+  fontSize: 13,
+  fontWeight: 500,
+  border: "1px solid var(--color-bordure)",
+  borderRadius: "var(--radius-sm)",
+  cursor: "pointer",
+  background: actif ? "var(--color-foret)" : "white",
+  color: actif ? "white" : "var(--color-texte)",
+});
+
 export function EtapeLocalisation({
   annonce,
   onPrecedent,
@@ -57,6 +69,18 @@ export function EtapeLocalisation({
       ? [annonce.parcelle.latitude, annonce.parcelle.longitude]
       : null,
   );
+  // Dessin de parcelle (2026-08-05) : contour optionnel, en plus du repère
+  // ci-dessus — jamais de centroïde calculé côté front (le backend, seul
+  // dépositaire de GEOS, reste l'unique source de vérité pour ce calcul ;
+  // cf. AnnonceEcritureSerializer._finaliser_contour). Le mode par défaut
+  // repart sur "polygone" si un contour existe déjà, pour le réafficher en
+  // l'état plutôt que de forcer un retour au mode Point.
+  const [contour, setContour] = useState<[number, number][]>(
+    annonce.parcelle.contour?.map((s) => [s.latitude, s.longitude] as [number, number]) ?? [],
+  );
+  const [mode, setMode] = useState<"point" | "polygone">(
+    annonce.parcelle.contour && annonce.parcelle.contour.length > 0 ? "polygone" : "point",
+  );
 
   useEffect(() => {
     fetchRegions().then(setRegions).catch(() => setRegions([]));
@@ -81,14 +105,23 @@ export function EtapeLocalisation({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const pretAContinuer = communeId !== "" && position !== null;
+  // 1 ou 2 sommets = polygone en cours, ni exploitable ni abandonné : état
+  // ambigu qui bloque la suite, quel que soit le repère par ailleurs (§5 de
+  // la décision du 2026-08-05). 0 sommet est valide (mode Point pur) ; ≥3
+  // l'est aussi (mode Polygone — le backend recalcule le centroïde si aucun
+  // repère manuel n'est posé, donc `position` seul ne conditionne plus la
+  // géolocalisation dès qu'un contour complet existe).
+  const contourAmbigu = contour.length === 1 || contour.length === 2;
+  const geolocalisee = position !== null || contour.length >= 3;
+  const pretAContinuer = communeId !== "" && geolocalisee && !contourAmbigu;
 
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
         <h2 style={{ fontSize: 20, marginBottom: 4 }}>Où se trouve votre parcelle ?</h2>
         <p style={{ fontSize: 14, color: "var(--color-secondaire)", margin: 0 }}>
-          Sélectionnez la commune, puis placez un repère précis sur la carte.
+          Sélectionnez la commune, puis placez un repère précis sur la carte
+          — ou dessinez le contour exact de la parcelle.
         </p>
       </div>
 
@@ -96,6 +129,11 @@ export function EtapeLocalisation({
       <input type="hidden" name="commune" value={communeId} />
       <input type="hidden" name="latitude" value={position ? position[0] : ""} />
       <input type="hidden" name="longitude" value={position ? position[1] : ""} />
+      <input
+        type="hidden"
+        name="contour"
+        value={JSON.stringify(contour.map(([latitude, longitude]) => ({ latitude, longitude })))}
+      />
 
       <div style={{ display: "flex", gap: 16 }}>
         <div style={{ flex: 1 }}>
@@ -157,9 +195,22 @@ export function EtapeLocalisation({
 
       <div>
         <label style={champLabelStyle}>Emplacement précis</label>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <button type="button" style={boutonModeStyle(mode === "point")} onClick={() => setMode("point")}>
+            Ajouter un point
+          </button>
+          <button type="button" style={boutonModeStyle(mode === "polygone")} onClick={() => setMode("polygone")}>
+            Dessiner un polygone
+          </button>
+        </div>
+
         <p style={{ fontSize: 13, color: "var(--color-secondaire)", margin: "0 0 8px" }}>
-          Cliquez sur la carte pour placer un repère (déplaçable ensuite par glisser-déposer).
+          {mode === "point"
+            ? "Cliquez sur la carte pour placer un repère (déplaçable ensuite par glisser-déposer)."
+            : "Cliquez sur la carte pour ajouter les sommets du contour, dans l'ordre. Chaque sommet reste déplaçable par glisser-déposer."}
         </p>
+
         <div
           style={{
             height: 320,
@@ -168,8 +219,78 @@ export function EtapeLocalisation({
             border: "1px solid var(--color-bordure)",
           }}
         >
-          <CarteLeafletPicker position={position} onChange={setPosition} />
+          <CarteLeafletPicker
+            mode={mode}
+            position={position}
+            onChangePosition={setPosition}
+            contour={contour}
+            // Mises à jour fonctionnelles : deux événements carte rapprochés
+            // (clic, glisser) avant le re-render suivant doivent tous les
+            // deux s'appliquer sur l'état le plus récent, jamais sur une
+            // fermeture obsolète (cf. commentaire CarteLeafletPicker).
+            onAjouterSommet={(sommet) => setContour((prev) => [...prev, sommet])}
+            onDeplacerSommet={(index, sommet) =>
+              setContour((prev) => prev.map((s, j) => (j === index ? sommet : s)))
+            }
+          />
         </div>
+
+        {mode === "polygone" && (
+          <div style={{ marginTop: 10 }}>
+            {contourAmbigu && (
+              <p style={champErreurStyle}>
+                Encore {3 - contour.length} sommet{3 - contour.length > 1 ? "s" : ""} pour former un polygone valide.
+              </p>
+            )}
+            {contour.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {contour.map((_, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: "var(--color-menthe)",
+                      borderRadius: 999,
+                      padding: "4px 6px 4px 10px",
+                      fontSize: 12,
+                    }}
+                  >
+                    Sommet {i + 1}
+                    <button
+                      type="button"
+                      onClick={() => setContour((prev) => prev.filter((_, j) => j !== i))}
+                      aria-label={`Supprimer le sommet ${i + 1}`}
+                      style={{
+                        border: "none",
+                        background: "none",
+                        cursor: "pointer",
+                        color: "var(--color-erreur)",
+                        fontWeight: 700,
+                        fontSize: 14,
+                        lineHeight: 1,
+                        padding: 2,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {contour.length >= 3 && (
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ marginTop: 10 }}
+                onClick={() => setMode("point")}
+              >
+                Terminer le polygone
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {state?.error && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{state.error}</p>}

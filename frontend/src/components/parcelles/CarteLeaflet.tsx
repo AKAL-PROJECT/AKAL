@@ -36,8 +36,8 @@ export default function CarteLeaflet({ parcelles }: { parcelles: Parcelle[] }) {
       style={{ height: "100%", width: "100%", borderRadius: "var(--radius-card)" }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {parcelles.map((p) => (
         <Marker
