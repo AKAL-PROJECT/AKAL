@@ -225,7 +225,14 @@ export const PARCELLES: Parcelle[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Régions — GET /api/geo/regions/ (§4.1, non paginé)
+// Régions — GET /api/geo/limites/regions/ (référentiel géométrique
+// officiel, 2026-08-06 — 12 régions réelles, cf.
+// docs/plans/2026-08-06-communes-geo-design.md). Remplace l'ancien
+// GET /api/geo/regions/ (référentiel de démo, 6 régions) comme source du
+// filtre catalogue — `code` ici est le slug (ex. "fes-meknes"), pas le code
+// HCP numérique interne, pour que le filtre `?region=` de /api/annonces/
+// reste inchangé (il matche déjà les deux référentiels, cf. backend
+// AnnonceAPIFilter.filter_region).
 // ---------------------------------------------------------------------------
 
 export type Region = { code: string; nom: string };
@@ -238,9 +245,12 @@ const REGIONS_MOCK: Region[] = [
   { code: "oriental", nom: "Oriental" },
 ];
 
+type RegionOfficielleDTO = { code: number; slug: string; nom: string };
+
 export async function getRegions(): Promise<Region[]> {
   if (USE_MOCKS) return REGIONS_MOCK;
-  return apiFetch<Region[]>("/geo/regions/");
+  const regions = await apiFetch<RegionOfficielleDTO[]>("/geo/limites/regions/");
+  return regions.map((r) => ({ code: r.slug, nom: r.nom }));
 }
 
 export const STATUTS: StatutFoncier[] = [

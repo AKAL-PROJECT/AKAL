@@ -10,9 +10,12 @@ import type { AnnonceEcriture } from "@/types/depot-annonce";
 
 const ETAPES = ["Infos générales", "Localisation", "Photos & publication"] as const;
 
+// commune_geom (référentiel géométrique officiel, 2026-08-06) est ce qui
+// alimente is_geolocated()/can_publish() côté back — pas l'ancien `commune`,
+// cf. types/depot-annonce.ts.
 function estGeolocalisee(annonce: AnnonceEcriture): boolean {
   return (
-    annonce.parcelle.commune !== null &&
+    annonce.parcelle.commune_geom !== null &&
     annonce.parcelle.latitude !== null &&
     annonce.parcelle.longitude !== null
   );

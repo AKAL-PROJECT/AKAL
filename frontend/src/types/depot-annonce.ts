@@ -10,8 +10,12 @@ export type Topographie = "plat" | "pentu" | "vallonne";
 export type AccesRoutier = "goudron" | "piste" | "difficile";
 
 // Sous-objet parcelle tel qu'accepté/renvoyé par ParcelleEcritureSerializer.
-// `commune`/`latitude`/`longitude` restent optionnels : un brouillon peut
-// exister avant que l'étape "Localisation" ne soit renseignée (§6.1).
+// `commune`/`commune_geom`/`latitude`/`longitude` restent optionnels : un
+// brouillon peut exister avant que l'étape "Localisation" ne soit renseignée
+// (§6.1). `commune_geom` (référentiel officiel, 2026-08-06) est ce qui
+// alimente désormais is_geolocated()/can_publish() côté back — `commune`
+// (legacy) reste sur le type pour la compatibilité de lecture des annonces
+// publiées avant son introduction, jamais renseigné par ce formulaire.
 export type ParcelleEcriture = {
   surface_ha: number;
   statut_foncier: StatutFoncier | "";
@@ -19,6 +23,7 @@ export type ParcelleEcriture = {
   topographie: Topographie | "";
   acces_routier: AccesRoutier | "";
   commune: number | null;
+  commune_geom: number | null;
   latitude: number | null;
   longitude: number | null;
 };
@@ -46,8 +51,23 @@ export type AnnonceEcriture = {
   photos: PhotoEcriture[];
 };
 
-// Référentiel géographique (backend/geo) — {id, code, nom} pour région/
-// province, {id, nom} pour commune (pas de code, cf. geo/models.py).
+// Référentiel géographique legacy (backend/geo) — {id, code, nom} pour
+// région/province, {id, nom} pour commune (pas de code, cf. geo/models.py).
 export type RegionRef = { id: number; code: string; nom: string };
 export type ProvinceRef = { id: number; code: string; nom: string };
 export type CommuneRef = { id: number; nom: string };
+
+// Référentiel géométrique officiel (2026-08-06, cf. docs/plans/2026-08-06-communes-geo-design.md)
+// — 12 régions (codes HCP), 75 provinces, 1536 communes réelles. Extraits
+// des `properties` des FeatureCollection GeoJSON de /api/geo/limites/ — la
+// géométrie elle-même ne sert pas ici (simple liste déroulante en cascade),
+// cf. lib/geo-api.ts.
+export type RegionOfficielleRef = { code: number; slug: string; nom: string };
+export type ProvinceGeomRef = { id: number; iso: string; nom: string; region: RegionOfficielleRef };
+export type CommuneGeomRef = {
+  id: number;
+  nomAffichage: string;
+  typeCommune: "CR" | "MU" | null; // null = non classé à la source, jamais deviné (cf. import_geo_officiel)
+  province: { id: number; nom: string };
+  region: RegionOfficielleRef;
+};

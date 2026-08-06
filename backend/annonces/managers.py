@@ -23,18 +23,25 @@ class AnnonceQuerySet(models.QuerySet):
         Charge les relations FK/OneToOne en une seule requête SQL.
 
         select_related (JOIN SQL) :
-            - parcelle                              → évite 1 requête/annonce
-            - parcelle__commune__province__region    → chaîne géo complète
-            - proprietaire                          → vendeur
+            - parcelle                                    → évite 1 requête/annonce
+            - parcelle__commune__province__region          → chaîne géo legacy
+            - parcelle__commune_geom__province__region      → chaîne géo officielle
+              (2026-08-06) — les deux sont chargées, les serializers de
+              lecture choisissent laquelle lire selon ce qui est renseigné
+              sur la Parcelle (cf. ParcelleListSerializer/ParcelleDetailSerializer)
+            - proprietaire                                → vendeur
 
         prefetch_related (requête séparée, mise en cache) :
-            - photos                                → relation inverse 1:N
+            - photos                                      → relation inverse 1:N
         """
         return self.select_related(
             'parcelle',
             'parcelle__commune',
             'parcelle__commune__province',
             'parcelle__commune__province__region',
+            'parcelle__commune_geom',
+            'parcelle__commune_geom__province',
+            'parcelle__commune_geom__province__region',
             'proprietaire',
         ).prefetch_related(
             'photos',

@@ -30,7 +30,7 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django_filters import rest_framework as dj_filters
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -68,8 +68,7 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
         label='Recherche',
     )
     region = dj_filters.CharFilter(
-        field_name='parcelle__commune__province__region__code',
-        lookup_expr='exact',
+        method='filter_region',
         label='Région (code slug)',
     )
     statut_foncier = dj_filters.ChoiceFilter(
@@ -119,6 +118,20 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
     def filter_search(self, queryset, name, value):
         """Recherche texte insensible à la casse sur titre + description."""
         return queryset.search(value)
+
+    def filter_region(self, queryset, name, value):
+        """
+        Filtre par slug de région, sur l'une ou l'autre chaîne géo
+        (référentiel legacy `commune` ou officiel `commune_geom`,
+        2026-08-06) — une annonce n'a jamais les deux à la fois, mais le
+        catalogue mélange des annonces publiées avant et après l'introduction
+        du référentiel officiel. Sans ce OR, le filtre région casserait pour
+        toute nouvelle annonce utilisant commune_geom.
+        """
+        return queryset.filter(
+            Q(parcelle__commune__province__region__code=value)
+            | Q(parcelle__commune_geom__province__region__slug=value)
+        )
 
 
 # ──────────────────────────────────────────────
