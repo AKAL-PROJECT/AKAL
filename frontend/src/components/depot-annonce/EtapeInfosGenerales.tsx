@@ -36,9 +36,11 @@ const OPTIONS_ACCES_ROUTIER = [
 export function EtapeInfosGenerales({
   annonce,
   onSuivant,
+  modeEdition = false,
 }: {
   annonce: AnnonceEcriture | null;
   onSuivant: (annonce: AnnonceEcriture) => void;
+  modeEdition?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<DepotFormState, FormData>(
     enregistrerInfosGeneralesAction,
@@ -56,7 +58,9 @@ export function EtapeInfosGenerales({
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <h2 style={{ fontSize: 20, marginBottom: 4 }}>Parlez-nous de votre parcelle</h2>
+        <h2 style={{ fontSize: 20, marginBottom: 4 }}>
+          {modeEdition ? "Modifiez les informations" : "Parlez-nous de votre parcelle"}
+        </h2>
         <p style={{ fontSize: 14, color: "var(--color-secondaire)", margin: 0 }}>
           Ces informations apparaîtront sur votre annonce.
         </p>
@@ -203,7 +207,7 @@ export function EtapeInfosGenerales({
       {state?.error && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{state.error}</p>}
 
       <button type="submit" className="btn-primary" disabled={pending} style={{ marginTop: 8, alignSelf: "flex-end" }}>
-        {pending ? "Enregistrement…" : "Continuer"}
+        {pending ? "Enregistrement…" : modeEdition ? "Enregistrer" : "Continuer"}
       </button>
     </form>
   );

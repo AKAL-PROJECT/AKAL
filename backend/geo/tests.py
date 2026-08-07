@@ -183,6 +183,26 @@ class CommuneGeomListTests(GeoOfficielTestBase):
         self.assertTrue(20 <= lat <= 37, f"lat={lat} hors emprise Maroc — inversion lon/lat suspectée")
 
 
+class CommuneGeomDetailTests(GeoOfficielTestBase):
+    """GET /api/geo/limites/communes/<id>/ (ajout 2026-08-07, pré-remplissage
+    de la cascade région/province/commune en édition d'annonce)."""
+
+    def test_retourne_une_feature_avec_province_et_region(self):
+        response = self.client.get(f'/api/geo/limites/communes/{self.commune_1.id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['type'], 'Feature')
+        self.assertEqual(response.data['id'], self.commune_1.id)
+        self.assertEqual(response.data['properties']['nom_affichage'], 'Meknès Ville')
+        self.assertEqual(response.data['properties']['province']['id'], self.province_1.id)
+        self.assertEqual(response.data['properties']['region']['slug'], 'fes-meknes')
+
+    def test_id_inexistant_retourne_404(self):
+        response = self.client.get('/api/geo/limites/communes/999999/')
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
 # ──────────────────────────────────────────────
 # Commande import_geo_officiel — logique pure (pas les vrais shapefiles)
 # ──────────────────────────────────────────────

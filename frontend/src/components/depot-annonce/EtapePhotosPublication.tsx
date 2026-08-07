@@ -21,20 +21,38 @@ export function EtapePhotosPublication({
   annonce,
   onPrecedent,
   onAnnonceMiseAJour,
+  modeEdition = false,
 }: {
   annonce: AnnonceEcriture;
   onPrecedent: () => void;
   onAnnonceMiseAJour: (annonce: AnnonceEcriture) => void;
+  // Modification d'une annonce déjà déposée (2026-08-07) : le contenu
+  // (titre/description/prix/localisation/photos) reste éditable à
+  // n'importe quel statut (PATCH sans restriction, cf. annonces/api_views.py
+  // AnnonceUpdateAPIView) — seul le bouton "Publier" n'a plus de sens ici,
+  // le changement de statut lui-même restant gouverné par les actions
+  // dédiées du dashboard (Archiver/Marquer vendue/Réactiver/Remettre en
+  // vente, cf. app/compte/annonces/ListeAnnonces.tsx).
+  modeEdition?: boolean;
 }) {
   const router = useRouter();
   const [enCompression, setEnCompression] = useState(false);
   const [erreurUpload, setErreurUpload] = useState<string | null>(null);
   const [pendingPublication, startTransition] = useTransition();
-  const [publiee, setPubliee] = useState(annonce.statut === "en_ligne");
+  // Uniquement vrai juste après un appel réussi à publierAction dans CETTE
+  // session (jamais dérivé de annonce.statut) — une annonce déjà en_ligne
+  // ouverte en modification ne doit pas réafficher l'écran "vient d'être
+  // publiée", seulement une vraie publication fraîche doit le déclencher.
+  const [vientDePublier, setVientDePublier] = useState(false);
   const [raisonsBlocage, setRaisonsBlocage] = useState<string[] | null>(null);
   const [erreurPublication, setErreurPublication] = useState<string | null>(null);
   const [suppressionEnCours, setSuppressionEnCours] = useState<string | null>(null);
   const [erreurSuppression, setErreurSuppression] = useState<string | null>(null);
+  // Suppression de photo restreinte aux brouillons côté backend (cf.
+  // PhotoDeleteAPIView.perform_destroy) — pas touché ici, on se contente de
+  // refléter honnêtement cette restriction plutôt que de laisser un bouton
+  // actif mener à un 400 silencieux.
+  const suppressionPhotoAutorisee = annonce.statut === "brouillon";
 
   async function gererSuppression(photoId: string) {
     setErreurSuppression(null);
@@ -83,7 +101,7 @@ export function EtapePhotosPublication({
       const resultat = await publierAction(annonce.id);
       if (resultat?.annonce) {
         onAnnonceMiseAJour(resultat.annonce);
-        setPubliee(true);
+        setVientDePublier(true);
         router.push(`/parcelles/${resultat.annonce.slug}`);
       } else if (resultat?.fieldErrors?.statut) {
         setRaisonsBlocage(resultat.fieldErrors.statut);
@@ -93,7 +111,7 @@ export function EtapePhotosPublication({
     });
   }
 
-  if (publiee) {
+  if (vientDePublier) {
     return (
       <div className="akal-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", textAlign: "center", padding: "32px 0" }}>
         <span
@@ -119,9 +137,13 @@ export function EtapePhotosPublication({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <h2 style={{ fontSize: 20, marginBottom: 4 }}>Ajoutez des photos</h2>
+        <h2 style={{ fontSize: 20, marginBottom: 4 }}>
+          {modeEdition ? "Modifiez les photos" : "Ajoutez des photos"}
+        </h2>
         <p style={{ fontSize: 14, color: "var(--color-secondaire)", margin: 0 }}>
-          Au moins une photo est nécessaire pour publier votre annonce.
+          {modeEdition
+            ? "Ajoutez de nouvelles photos si besoin. La suppression reste réservée aux brouillons."
+            : "Au moins une photo est nécessaire pour publier votre annonce."}
         </p>
       </div>
 
@@ -140,30 +162,32 @@ export function EtapePhotosPublication({
               }}
             >
               {photo.url && <Image src={photo.url} alt="" fill style={{ objectFit: "cover" }} sizes="96px" />}
-              <button
-                type="button"
-                onClick={() => gererSuppression(photo.id)}
-                disabled={suppressionEnCours === photo.id}
-                aria-label="Supprimer cette photo"
-                style={{
-                  position: "absolute",
-                  top: 4,
-                  right: 4,
-                  width: 22,
-                  height: 22,
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(0,0,0,0.6)",
-                  color: "white",
-                  border: "none",
-                  cursor: suppressionEnCours === photo.id ? "wait" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 0,
-                }}
-              >
-                <X size={12} />
-              </button>
+              {suppressionPhotoAutorisee && (
+                <button
+                  type="button"
+                  onClick={() => gererSuppression(photo.id)}
+                  disabled={suppressionEnCours === photo.id}
+                  aria-label="Supprimer cette photo"
+                  style={{
+                    position: "absolute",
+                    top: 4,
+                    right: 4,
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    color: "white",
+                    border: "none",
+                    cursor: suppressionEnCours === photo.id ? "wait" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -190,7 +214,7 @@ export function EtapePhotosPublication({
       </label>
       {erreurUpload && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{erreurUpload}</p>}
 
-      {raisonsBlocage && (
+      {!modeEdition && raisonsBlocage && (
         <div className="akal-alert-in" style={{ backgroundColor: "var(--color-erreur-fond)", border: "1px solid var(--color-erreur)", borderRadius: "var(--radius-sm)", padding: 12 }}>
           <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-erreur)", margin: "0 0 6px" }}>
             Impossible de publier pour le moment :
@@ -202,15 +226,26 @@ export function EtapePhotosPublication({
           </ul>
         </div>
       )}
-      {erreurPublication && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{erreurPublication}</p>}
+      {!modeEdition && erreurPublication && (
+        <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 14 }}>{erreurPublication}</p>
+      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
         <button type="button" className="btn-secondary" onClick={onPrecedent}>
           Précédent
         </button>
-        <button type="button" className="btn-primary" onClick={gererPublication} disabled={pendingPublication}>
-          {pendingPublication ? "Publication…" : "Publier l'annonce"}
-        </button>
+        {modeEdition ? (
+          // Le contenu est déjà enregistré à chaque étape (chaque "Continuer"
+          // fait un PATCH immédiat) — ce bouton ne fait que quitter le wizard,
+          // aucun changement de statut ici (cf. commentaire de tête).
+          <button type="button" className="btn-primary" onClick={() => router.push("/compte/annonces")}>
+            Terminer
+          </button>
+        ) : (
+          <button type="button" className="btn-primary" onClick={gererPublication} disabled={pendingPublication}>
+            {pendingPublication ? "Publication…" : "Publier l'annonce"}
+          </button>
+        )}
       </div>
     </div>
   );

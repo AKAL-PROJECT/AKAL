@@ -88,3 +88,22 @@ export async function fetchCommunesGeom(params: { province?: number; region?: st
     region: f.properties.region,
   }));
 }
+
+// Une seule commune, avec sa province et sa région — pas de lookup inverse
+// autrement disponible depuis un simple id (cf. api_views.py côté back).
+// Sert uniquement à reconstruire la cascade région/province/commune quand
+// on ouvre le formulaire de modification d'une annonce déjà géolocalisée
+// (EtapeLocalisation ne connaît que l'id de commune stocké sur la
+// parcelle, jamais sa région/province d'origine).
+export async function fetchCommuneGeomDetail(id: number): Promise<CommuneGeomRef> {
+  const feature = await apiFetch<{ id: number; type: "Feature"; geometry: unknown; properties: CommuneGeomProperties }>(
+    `/geo/limites/communes/${id}/`,
+  );
+  return {
+    id: feature.id,
+    nomAffichage: feature.properties.nom_affichage,
+    typeCommune: feature.properties.type_commune,
+    province: feature.properties.province,
+    region: feature.properties.region,
+  };
+}

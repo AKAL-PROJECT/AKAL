@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { enregistrerLocalisationAction, type DepotFormState } from "@/app/actions/depot-annonce";
-import { fetchCommunesGeom, fetchProvincesGeom, fetchRegionsOfficielles } from "@/lib/geo-api";
+import { fetchCommuneGeomDetail, fetchCommunesGeom, fetchProvincesGeom, fetchRegionsOfficielles } from "@/lib/geo-api";
 import type { AnnonceEcriture, CommuneGeomRef, ProvinceGeomRef, RegionOfficielleRef } from "@/types/depot-annonce";
 
 const CarteLeafletPicker = dynamic(() => import("./CarteLeafletPicker"), {
@@ -45,10 +45,17 @@ export function EtapeLocalisation({
   annonce,
   onPrecedent,
   onSuivant,
+  modeEdition = false,
 }: {
   annonce: AnnonceEcriture;
   onPrecedent: () => void;
   onSuivant: (annonce: AnnonceEcriture) => void;
+  // Modification d'une annonce déjà déposée (2026-08-07), par opposition au
+  // dépôt initial — cf. DepotAnnonceWizard. N'affecte que la copie ci-dessous ;
+  // le pré-remplissage de la cascade région/province/commune juste après
+  // s'applique dans les deux cas (utile aussi en dépôt initial si on revient
+  // en arrière après avoir déjà choisi une commune).
+  modeEdition?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<DepotFormState, FormData>(
     enregistrerLocalisationAction,
@@ -91,6 +98,33 @@ export function EtapeLocalisation({
     fetchRegionsOfficielles().then(setRegions).catch(() => setRegions([]));
   }, []);
 
+  // Pré-remplissage de la cascade région/province/commune (2026-08-07) — au
+  // montage uniquement (annonce ne change plus après, ce composant étant
+  // démonté/remonté à chaque changement d'étape du wizard, cf. `key={etape}`
+  // dans DepotAnnonceWizard). Aucun lookup inverse commune -> région/province
+  // n'existait avant l'ajout de fetchCommuneGeomDetail : sans ça, rouvrir la
+  // localisation d'une annonce déjà géolocalisée réaffichait "Choisir..."
+  // dans les trois listes malgré une commune déjà enregistrée. On ne
+  // déclenche fetchProvincesGeom/fetchCommunesGeom nous-mêmes : régler
+  // regionSlug/provinceId suffit, les deux effets de cascade existants
+  // ci-dessous s'en chargent.
+  useEffect(() => {
+    const idCommune = annonce.parcelle.commune_geom;
+    if (idCommune === null) return;
+    fetchCommuneGeomDetail(idCommune)
+      .then((commune) => {
+        setRegionSlug(commune.region.slug);
+        setProvinceId(String(commune.province.id));
+        setCommuneId(String(commune.id));
+      })
+      .catch(() => {
+        // Commune supprimée/renumérotée depuis l'enregistrement de l'annonce
+        // (improbable, référentiel figé) — on laisse la cascade vierge plutôt
+        // que de bloquer l'accès à l'étape.
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Le clear des listes filles (provinces/communes) se fait directement dans
   // les onChange des <select> ci-dessous, pas ici : un effet ne doit faire du
   // setState synchrone qu'en réponse à un système externe (ici, le fetch),
@@ -123,10 +157,13 @@ export function EtapeLocalisation({
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <h2 style={{ fontSize: 20, marginBottom: 4 }}>Où se trouve votre parcelle ?</h2>
+        <h2 style={{ fontSize: 20, marginBottom: 4 }}>
+          {modeEdition ? "Modifiez la localisation" : "Où se trouve votre parcelle ?"}
+        </h2>
         <p style={{ fontSize: 14, color: "var(--color-secondaire)", margin: 0 }}>
-          Sélectionnez la commune, puis placez un repère précis sur la carte
-          — ou dessinez le contour exact de la parcelle.
+          {modeEdition
+            ? "Changez de commune, déplacez le repère ou redessinez le contour — chaque étape est enregistrée dès que vous cliquez sur Continuer."
+            : "Sélectionnez la commune, puis placez un repère précis sur la carte — ou dessinez le contour exact de la parcelle."}
         </p>
       </div>
 
@@ -305,7 +342,7 @@ export function EtapeLocalisation({
           Précédent
         </button>
         <button type="submit" className="btn-primary" disabled={pending || !pretAContinuer}>
-          {pending ? "Enregistrement…" : "Continuer"}
+          {pending ? "Enregistrement…" : modeEdition ? "Enregistrer" : "Continuer"}
         </button>
       </div>
     </form>

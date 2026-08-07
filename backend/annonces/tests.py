@@ -650,20 +650,30 @@ class TransitionsAutoriseesTests(SimpleTestCase):
             ('en_ligne', 'archivee'),
             ('en_ligne', 'vendue'),
             ('archivee', 'en_ligne'),
+            ('vendue', 'en_ligne'),
         ]
         for depuis, vers in cas:
             with self.subTest(depuis=depuis, vers=vers):
                 self.assertTrue(transitions.transition_autorisee(depuis, vers))
 
-    def test_vendue_est_un_etat_terminal(self):
-        for cible in ('brouillon', 'en_attente', 'en_ligne', 'archivee', 'vendue'):
+    def test_vendue_ne_peut_sortir_que_vers_en_ligne(self):
+        # Remise en vente (2026-08-07) : vendue → en_ligne est la SEULE
+        # arête sortante — brouillon/en_attente/archivee/vendue restent
+        # bloqués, cf. docstring transitions.py.
+        for cible in ('brouillon', 'en_attente', 'archivee', 'vendue'):
             with self.subTest(cible=cible):
                 self.assertFalse(transitions.transition_autorisee('vendue', cible))
+        self.assertTrue(transitions.transition_autorisee('vendue', 'en_ligne'))
 
     def test_archivee_vers_vendue_non_autorise_directement(self):
         # Doit d'abord repasser par en_ligne (réactivation) — cf. docstring
         # transitions.py.
         self.assertFalse(transitions.transition_autorisee('archivee', 'vendue'))
+
+    def test_vendue_vers_archivee_non_autorise_directement(self):
+        # Doit d'abord repasser par en_ligne (remise en vente) — cf.
+        # docstring transitions.py, même logique que archivee → vendue.
+        self.assertFalse(transitions.transition_autorisee('vendue', 'archivee'))
 
 
 class TransitionsStatutTests(AnnoncesTestBase):
@@ -717,10 +727,18 @@ class TransitionsStatutTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.ARCHIVEE)
 
-    def test_vendue_est_terminal_via_api(self):
+    def test_vendue_vers_en_ligne_remise_en_vente(self):
         self._patch_statut('vendue')
 
         response = self._patch_statut('en_ligne')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.EN_LIGNE)
+
+    def test_vendue_vers_archivee_rejete_sans_remise_en_vente(self):
+        self._patch_statut('vendue')
+
+        response = self._patch_statut('archivee')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.VENDUE)

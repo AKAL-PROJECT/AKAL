@@ -22,6 +22,13 @@ Référentiel géométrique officiel (2026-08-06, cf. docs/plans) — préfixe
     GET /api/geo/limites/provinces/?region=<slug> → GeoJSON FeatureCollection, `region` obligatoire
     GET /api/geo/limites/communes/?province=<id>  → GeoJSON FeatureCollection
     GET /api/geo/limites/communes/?region=<slug>  → idem, `province` ou `region` obligatoire
+    GET /api/geo/limites/communes/<id>/           → Feature GeoJSON, une commune (ajout du
+    2026-08-07, remise en vente/édition d'annonce) — pas de lookup inverse
+    commune → région/province côté front (EtapeLocalisation ne connaît que
+    l'id de commune stocké sur la parcelle) ; cette route permet de
+    reconstruire la cascade région/province/commune pour pré-remplir le
+    formulaire de modification d'une annonce déjà géolocalisée. Même
+    serializer que la liste (une Feature au lieu d'une FeatureCollection).
 """
 
 from rest_framework import generics, permissions
@@ -162,3 +169,17 @@ class CommuneGeomListAPIView(generics.ListAPIView):
         if region_slug:
             qs = qs.filter(province__region__slug=region_slug)
         return qs.order_by('nom_affichage')
+
+
+class CommuneGeomDetailAPIView(generics.RetrieveAPIView):
+    """
+    GET /api/geo/limites/communes/<id>/
+
+    Une seule commune (Feature GeoJSON), avec province/région imbriquées —
+    cf. docstring de module. Pas de filtre : lecture publique par id, comme
+    le reste du référentiel officiel.
+    """
+
+    serializer_class = CommuneGeomSerializer
+    permission_classes = [permissions.AllowAny]
+    queryset = CommuneGeom.objects.select_related('province', 'province__region')
