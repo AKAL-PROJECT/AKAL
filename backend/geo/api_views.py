@@ -14,12 +14,35 @@ proposer aucune commune réelle, et Annonce.can_publish() ne peut jamais
 passer (il exige parcelle.commune renseigné). Décision explicite, pas une
 absorption silencieuse de scope : à signaler à Ibrahim pour relecture/
 alignement avec le reste du référentiel geo.
+
+Référentiel géométrique officiel (2026-08-06, cf. docs/plans) — préfixe
+/api/geo/limites/, lecture seule, GeoJSON pour provinces/communes :
+
+    GET /api/geo/limites/regions/                → 12 régions officielles, JSON simple
+    GET /api/geo/limites/provinces/?region=<slug> → GeoJSON FeatureCollection, `region` obligatoire
+    GET /api/geo/limites/communes/?province=<id>  → GeoJSON FeatureCollection
+    GET /api/geo/limites/communes/?region=<slug>  → idem, `province` ou `region` obligatoire
+    GET /api/geo/limites/communes/<id>/           → Feature GeoJSON, une commune (ajout du
+    2026-08-07, remise en vente/édition d'annonce) — pas de lookup inverse
+    commune → région/province côté front (EtapeLocalisation ne connaît que
+    l'id de commune stocké sur la parcelle) ; cette route permet de
+    reconstruire la cascade région/province/commune pour pré-remplir le
+    formulaire de modification d'une annonce déjà géolocalisée. Même
+    serializer que la liste (une Feature au lieu d'une FeatureCollection).
 """
 
-from rest_framework import generics
+from rest_framework import generics, permissions
+from rest_framework.exceptions import ValidationError
 
-from .models import Commune, Province, Region
-from .serializers import CommuneSerializer, ProvinceSerializer, RegionSerializer
+from .models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
+from .serializers import (
+    CommuneGeomSerializer,
+    CommuneSerializer,
+    ProvinceGeomSerializer,
+    ProvinceSerializer,
+    RegionOfficielleSerializer,
+    RegionSerializer,
+)
 
 
 class RegionListAPIView(generics.ListAPIView):
@@ -71,3 +94,92 @@ class CommuneListAPIView(generics.ListAPIView):
         if province_code:
             qs = qs.filter(province__code=province_code)
         return qs
+
+
+# ──────────────────────────────────────────────
+# Référentiel géométrique officiel (2026-08-06)
+# ──────────────────────────────────────────────
+
+class RegionOfficielleListAPIView(generics.ListAPIView):
+    """
+    GET /api/geo/limites/regions/
+
+    Les 12 régions officielles (codes HCP). Non géométrique (pas de source
+    de polygone par région — les cartes s'appuient sur les provinces/
+    communes), non paginé.
+    """
+
+    serializer_class = RegionOfficielleSerializer
+    queryset = RegionOfficielle.objects.all().order_by('code')
+    pagination_class = None
+    permission_classes = [permissions.AllowAny]
+
+
+class ProvinceGeomListAPIView(generics.ListAPIView):
+    """
+    GET /api/geo/limites/provinces/?region=<slug>
+
+    GeoJSON FeatureCollection des provinces d'une région. `region`
+    obligatoire (400 sinon) — ~123 000 sommets au total sur les 75
+    provinces, jamais de dump national non borné.
+    """
+
+    serializer_class = ProvinceGeomSerializer
+    pagination_class = None
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return ProvinceGeom.objects.none()
+        region_slug = self.request.query_params.get('region')
+        if not region_slug:
+            raise ValidationError({'region': "Ce paramètre est obligatoire."})
+        return (
+            ProvinceGeom.objects.filter(region__slug=region_slug)
+            .select_related('region')
+            .order_by('nom')
+        )
+
+
+class CommuneGeomListAPIView(generics.ListAPIView):
+    """
+    GET /api/geo/limites/communes/?province=<id>
+    GET /api/geo/limites/communes/?region=<slug>
+
+    GeoJSON FeatureCollection des communes. Au moins un des deux filtres est
+    obligatoire (400 sinon) — 1536 communes, ~260 000 sommets au total,
+    jamais de dump non borné.
+    """
+
+    serializer_class = CommuneGeomSerializer
+    pagination_class = None
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return CommuneGeom.objects.none()
+        province_id = self.request.query_params.get('province')
+        region_slug = self.request.query_params.get('region')
+        if not province_id and not region_slug:
+            raise ValidationError({'detail': "Le paramètre `province` ou `region` est obligatoire."})
+
+        qs = CommuneGeom.objects.select_related('province', 'province__region')
+        if province_id:
+            qs = qs.filter(province_id=province_id)
+        if region_slug:
+            qs = qs.filter(province__region__slug=region_slug)
+        return qs.order_by('nom_affichage')
+
+
+class CommuneGeomDetailAPIView(generics.RetrieveAPIView):
+    """
+    GET /api/geo/limites/communes/<id>/
+
+    Une seule commune (Feature GeoJSON), avec province/région imbriquées —
+    cf. docstring de module. Pas de filtre : lecture publique par id, comme
+    le reste du référentiel officiel.
+    """
+
+    serializer_class = CommuneGeomSerializer
+    permission_classes = [permissions.AllowAny]
+    queryset = CommuneGeom.objects.select_related('province', 'province__region')

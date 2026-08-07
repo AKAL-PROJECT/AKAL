@@ -37,12 +37,31 @@ Graphe des transitions autorisées :
                                 ci-dessus), donc une annonce qui ne
                                 satisferait plus les prérequis de
                                 publication resterait bloquée.
-    vendue                   : état TERMINAL — aucune transition sortante.
+    vendue     → en_ligne    : REMISE EN VENTE (2026-08-07). vendue n'est
+                                plus un état totalement terminal : ajouté sur
+                                demande explicite pour permettre à un
+                                propriétaire de défaire une vente conclue par
+                                erreur — sans passage en base de données
+                                manuel. Mêmes garde-fous que les autres
+                                transitions entrantes vers en_ligne
+                                (can_publish()). Exposée côté front par un
+                                bouton "Remettre en vente" séparé de
+                                "Réactiver" (copie de confirmation dédiée,
+                                plus insistante : cf.
+                                app/compte/annonces/ListeAnnonces.tsx).
 
 archivee → vendue n'est volontairement PAS une arête directe : une annonce
 archivée doit d'abord être réactivée (archivee → en_ligne) avant de pouvoir
 être marquée vendue — évite de dupliquer la sémantique "vente conclue" sur
-deux chemins différents.
+deux chemins différents. Pour la même raison, vendue → archivee n'est PAS
+non plus une arête directe : redevenir "archivée" depuis "vendue" doit
+repasser par en_ligne d'abord (vendue → en_ligne → archivee), même logique
+de non-duplication du sens de chaque transition.
+
+vendue ne peut sortir QUE vers en_ligne — jamais directement vers brouillon,
+en_attente ou archivee : ces trois-là resteraient sémantiquement ambigus
+depuis un état "vente conclue" (ce n'est ni un retour en rédaction, ni un
+retrait sans vente).
 """
 
 TRANSITIONS_AUTORISEES: dict[str, frozenset[str]] = {
@@ -50,7 +69,7 @@ TRANSITIONS_AUTORISEES: dict[str, frozenset[str]] = {
     "en_attente": frozenset({"en_ligne", "brouillon"}),
     "en_ligne": frozenset({"archivee", "vendue"}),
     "archivee": frozenset({"en_ligne"}),
-    "vendue": frozenset(),
+    "vendue": frozenset({"en_ligne"}),
 }
 
 

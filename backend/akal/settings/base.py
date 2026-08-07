@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 
     # Apps tierces
     'rest_framework',
+    'rest_framework_gis',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',

@@ -1,25 +1,18 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-api";
 import { getMesAnnonces, getMesStatistiques } from "@/lib/annonces-api";
-import { archiverAnnonceAction, marquerVendueAnnonceAction, reactiverAnnonceAction } from "@/app/actions/annonces";
-import BadgeStatutAnnonce from "@/components/parcelles/BadgeStatutAnnonce";
 import { FileText, Check, TrendingUp, Ruler, Grid, Heart, MessageSquare, Mail } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
 import { formatMAD } from "@/lib/format";
 import type { AnnonceProprietaire } from "@/types/parcelle";
-import BoutonAvecConfirmation from "./BoutonAvecConfirmation";
-
-const ACTION_BTN_STYLE: React.CSSProperties = { padding: "6px 14px", fontSize: "13px", whiteSpace: "nowrap" };
+import { ListeAnnonces } from "./ListeAnnonces";
 
 export const metadata: Metadata = {
   title: "Mes annonces • AKAL",
   description: "Gérez vos annonces publiées, en brouillon ou archivées.",
 };
-
-const formatDate = new Intl.DateTimeFormat("fr-MA", { day: "numeric", month: "long", year: "numeric" });
 
 function KpiCard({ icon, label, valeur }: { icon: React.ReactNode; label: string; valeur: string }) {
   return (
@@ -113,115 +106,7 @@ export default async function MesAnnoncesPage() {
           }
         />
       ) : (
-        <div className="akal-stagger" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {annonces.map((a) => (
-            <div
-              key={a.id}
-              className="card"
-              style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px", flexWrap: "wrap" }}
-            >
-              <div
-                style={{
-                  position: "relative",
-                  width: "72px",
-                  height: "72px",
-                  flexShrink: 0,
-                  borderRadius: "var(--radius-sm)",
-                  overflow: "hidden",
-                  backgroundColor: "var(--color-menthe)",
-                }}
-              >
-                {a.photoPrincipale && (
-                  <Image src={a.photoPrincipale} alt={a.titre} fill sizes="72px" style={{ objectFit: "cover" }} />
-                )}
-              </div>
-
-              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                <h3
-                  style={{
-                    fontSize: "15px",
-                    fontWeight: 500,
-                    color: "var(--color-texte)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {a.titre}
-                </h3>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--color-tertiaire)" }}>
-                  <span>{a.surface} ha</span>
-                  <span>·</span>
-                  <span>Déposée le {formatDate.format(new Date(a.createdAt))}</span>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px", flexShrink: 0 }}>
-                <BadgeStatutAnnonce statut={a.statut} />
-                <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)" }}>
-                  {formatMAD.format(a.prix)} MAD
-                </span>
-              </div>
-
-              {a.statut === "vendue" ? (
-                // Statut terminal (transitions.py) : une vente conclue n'a
-                // plus de contenu à corriger — décision produit explicite,
-                // pas une limitation technique en attente.
-                <span
-                  title="Une annonce vendue n'est plus modifiable"
-                  style={{
-                    flexShrink: 0,
-                    padding: "6px 14px",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    color: "var(--color-tertiaire)",
-                    border: "2px solid var(--color-bordure)",
-                    borderRadius: "var(--radius-btn)",
-                    cursor: "not-allowed",
-                  }}
-                >
-                  Modifier
-                </span>
-              ) : (
-                <Link
-                  href={`/publier?id=${a.id}`}
-                  className="btn-secondary"
-                  style={{ flexShrink: 0, padding: "6px 14px", fontSize: "13px", textDecoration: "none" }}
-                >
-                  Modifier
-                </Link>
-              )}
-
-              {(a.statut === "en_ligne" || a.statut === "archivee") && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
-                  {a.statut === "en_ligne" && (
-                    <>
-                      <BoutonAvecConfirmation
-                        action={archiverAnnonceAction.bind(null, a.id)}
-                        label="Archiver"
-                        className="btn-ghost"
-                        confirmMessage={`Archiver « ${a.titre} » ? Elle ne sera plus visible dans le catalogue public. Vous pourrez la réactiver plus tard.`}
-                      />
-                      <BoutonAvecConfirmation
-                        action={marquerVendueAnnonceAction.bind(null, a.id)}
-                        label="Marquer vendue"
-                        className="btn-accent"
-                        confirmMessage={`Marquer « ${a.titre} » comme vendue ? Cette action est définitive : il ne sera plus possible de la remettre en ligne.`}
-                      />
-                    </>
-                  )}
-                  {a.statut === "archivee" && (
-                    <form action={reactiverAnnonceAction.bind(null, a.id)}>
-                      <button type="submit" className="btn-secondary" style={ACTION_BTN_STYLE}>
-                        Réactiver
-                      </button>
-                    </form>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <ListeAnnonces annonces={annonces} />
       )}
     </div>
   );

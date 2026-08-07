@@ -7,6 +7,7 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 
 import io
 
+from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase
@@ -15,7 +16,7 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import User
-from geo.models import Commune, Province, Region
+from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
 from messaging.models import Conversation, Favori, Message
 from . import transitions
 from .models import Annonce, Parcelle, Photo
@@ -36,12 +37,37 @@ def image_jpeg(nom='photo.jpg', taille=(64, 64), octets_supplementaires=0):
     return SimpleUploadedFile(nom, buf.getvalue(), content_type='image/jpeg')
 
 
+def _polygone_carre(centre_lon, centre_lat, demi_cote=0.1):
+    """Petit carré MultiPolygon srid=4326 autour d'un centre — fixture de
+    test, pas une vraie frontière administrative."""
+    x0, y0 = centre_lon - demi_cote, centre_lat - demi_cote
+    x1, y1 = centre_lon + demi_cote, centre_lat + demi_cote
+    return MultiPolygon(Polygon(((x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0))), srid=4326)
+
+
 class AnnoncesTestBase(APITestCase):
     def setUp(self):
         self.client = APIClient(enforce_csrf_checks=True)
         self.region = Region.objects.create(id=1, code='fes-meknes', nom='Fès-Meknès')
         self.province = Province.objects.create(id=1, region=self.region, code='MEK', nom='Meknès')
         self.commune = Commune.objects.create(id=1, province=self.province, nom='Meknès Ville')
+
+        # Référentiel géométrique officiel (2026-08-06) — is_geolocated()/
+        # can_publish() se basent désormais sur commune_geom, pas sur
+        # l'ancien `commune` ci-dessus (toujours créé, gardé pour les tests
+        # qui portent spécifiquement sur la compatibilité legacy).
+        self.region_officielle = RegionOfficielle.objects.create(
+            code=3, slug='fes-meknes', nom='Fès-Meknès',
+        )
+        self.province_geom = ProvinceGeom.objects.create(
+            iso='MA-03-131', nom='Meknès', region=self.region_officielle,
+            geom=_polygone_carre(-5.5, 33.5),
+        )
+        self.commune_geom = CommuneGeom.objects.create(
+            source_fid=1, libelle='MU MEKNES VILLE', nom_affichage='Meknès Ville',
+            type_commune='MU', province=self.province_geom,
+            geom=_polygone_carre(-5.5, 33.5, demi_cote=0.05),
+        )
 
     def csrf_headers(self):
         # Pas de cookie csrftoken tant qu'aucune requête (même anonyme, ex.
@@ -81,7 +107,10 @@ class AnnoncesTestBase(APITestCase):
     def localiser(self, annonce_id):
         return self.client.patch(
             f'{ANNONCES_URL}{annonce_id}/',
-            {'parcelle': {'commune': self.commune.id, 'latitude': 33.5, 'longitude': -5.5}},
+            {'parcelle': {
+                'commune': self.commune.id, 'commune_geom': self.commune_geom.id,
+                'latitude': 33.5, 'longitude': -5.5,
+            }},
             format='json', **self.csrf_headers(),
         )
 
@@ -109,84 +138,6 @@ class CreationBrouillonTests(AnnoncesTestBase):
 
         user.refresh_from_db()
         self.assertEqual(user.role, User.Role.VENDEUR)
-
-
-class ContourTests(AnnoncesTestBase):
-    """Mode "Polygone" du picker carte (RC 2026-08-04) — DonneesGeo.contour,
-    ré-exposé sur ParcelleEcritureSerializer après avoir été retiré de l'API
-    lors de l'alignement contrat v1.2 (2026-07-13)."""
-
-    CONTOUR = [[33.5, -5.5], [33.51, -5.5], [33.51, -5.49], [33.5, -5.49]]
-
-    def setUp(self):
-        super().setUp()
-        self.authentifier()
-        self.annonce_id = self.creer_brouillon().data['id']
-
-    def patcher_contour(self, contour):
-        return self.client.patch(
-            f'{ANNONCES_URL}{self.annonce_id}/',
-            {'parcelle': {'commune': self.commune.id, 'latitude': 33.505, 'longitude': -5.495, 'contour': contour}},
-            format='json', **self.csrf_headers(),
-        )
-
-    def test_contour_valide_est_persiste_et_relu(self):
-        response = self.patcher_contour(self.CONTOUR)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['parcelle']['contour']), len(self.CONTOUR))
-        for point in response.data['parcelle']['contour']:
-            self.assertIn([round(point[0], 5), round(point[1], 5)], self.CONTOUR)
-
-    def test_contour_avec_moins_de_trois_points_est_rejete(self):
-        response = self.patcher_contour(self.CONTOUR[:2])
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_annonce_sans_contour_renvoie_null(self):
-        response = self.client.get(f'{ANNONCES_URL}{self.annonce_id}/')
-
-        self.assertIsNone(response.data['parcelle']['contour'])
-
-    def test_repatch_sans_contour_ne_l_efface_pas(self):
-        self.patcher_contour(self.CONTOUR)
-
-        response = self.client.patch(
-            f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Titre modifié'},
-            format='json', **self.csrf_headers(),
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['parcelle']['contour']), len(self.CONTOUR))
-
-    def test_repatch_avec_nouveau_contour_le_remplace(self):
-        self.patcher_contour(self.CONTOUR)
-        nouveau = [[34.0, -6.0], [34.01, -6.0], [34.01, -5.99]]
-
-        response = self.patcher_contour(nouveau)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['parcelle']['contour']), len(nouveau))
-
-    def test_contour_jamais_expose_sur_la_fiche_publique(self):
-        self.patcher_contour(self.CONTOUR)
-        self.uploader_photo_et_publier()
-
-        slug = Annonce.objects.get(id=self.annonce_id).slug
-        response = self.client.get(f'{ANNONCES_URL}{slug}/')
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertNotIn('contour', response.data['parcelle'])
-
-    def uploader_photo_et_publier(self):
-        self.client.patch(
-            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
-            format='multipart', **self.csrf_headers(),
-        )
-        return self.client.patch(
-            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
-            format='json', **self.csrf_headers(),
-        )
 
 
 class PatchProprietaireTests(AnnoncesTestBase):
@@ -240,6 +191,231 @@ class PatchProprietaireTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         annonce = Annonce.objects.get(id=self.annonce_id)
         self.assertTrue(annonce.parcelle.is_geolocated())
+
+
+class ContourPolygoneTests(AnnoncesTestBase):
+    """Dessin de parcelle, mode Polygone (2026-08-05) — DonneesGeo.contour."""
+
+    # Rectangle simple, non auto-intersecté.
+    RECTANGLE = [
+        {'latitude': 33.50, 'longitude': -5.50},
+        {'latitude': 33.50, 'longitude': -5.49},
+        {'latitude': 33.51, 'longitude': -5.49},
+        {'latitude': 33.51, 'longitude': -5.50},
+    ]
+
+    # Mêmes 4 coins que RECTANGLE mais C/D permutés : les diagonales se
+    # croisent ("nœud papillon") — cas classique de polygone invalide.
+    NOEUD_PAPILLON = [
+        {'latitude': 33.50, 'longitude': -5.50},
+        {'latitude': 33.50, 'longitude': -5.49},
+        {'latitude': 33.51, 'longitude': -5.50},
+        {'latitude': 33.51, 'longitude': -5.49},
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def dessiner(self, contour):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': {'contour': contour}},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_polygone_valide_cree_donnees_geo(self):
+        response = self.dessiner(self.RECTANGLE)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertTrue(hasattr(annonce.parcelle, 'donnees_geo'))
+        self.assertEqual(annonce.parcelle.donnees_geo.contour.num_points, 5)  # anneau fermé
+
+    def test_contour_renvoye_sans_le_sommet_de_fermeture(self):
+        response = self.dessiner(self.RECTANGLE)
+
+        self.assertEqual(len(response.data['parcelle']['contour']), 4)
+
+    def test_contour_jamais_expose_sur_la_fiche_publique(self):
+        # Même logique de confidentialité que la position exacte (§4.4) :
+        # le contour dessiné par le vendeur n'est lisible que via le PATCH
+        # propriétaire (ParcelleEcritureSerializer) — jamais sur la fiche
+        # publique (ParcelleDetailSerializer, dont Meta.fields omet `contour`).
+        self.dessiner(self.RECTANGLE)
+        # is_geolocated() exige aussi commune_geom (référentiel officiel,
+        # 2026-08-06) — non couvert par dessiner(), cf.
+        # test_centroide_derive_le_point_si_aucun_point_manuel ci-dessus.
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': {'commune_geom': self.commune_geom.id}},
+            format='json', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+        slug = Annonce.objects.get(id=self.annonce_id).slug
+
+        response = self.client.get(f'{ANNONCES_URL}{slug}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn('contour', response.data['parcelle'])
+
+    def test_moins_de_3_sommets_distincts_rejete(self):
+        response = self.dessiner(self.RECTANGLE[:2])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('contour', response.data['parcelle'])
+
+    def test_sommets_dupliques_comptes_comme_un_seul(self):
+        # 3 points transmis mais 2 identiques -> seulement 2 sommets distincts.
+        response = self.dessiner([self.RECTANGLE[0], self.RECTANGLE[0], self.RECTANGLE[1]])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_polygone_auto_intersecte_rejete_sans_reparation_automatique(self):
+        # Rejet strict (pas de make_valid()/buffer(0)) — décision du 2026-08-05.
+        response = self.dessiner(self.NOEUD_PAPILLON)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('invalide', response.data['parcelle']['contour'][0].lower())
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertFalse(hasattr(annonce.parcelle, 'donnees_geo'))
+
+    def test_centroide_derive_le_point_si_aucun_point_manuel(self):
+        response = self.dessiner(self.RECTANGLE)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertAlmostEqual(annonce.parcelle.latitude, 33.505, places=3)
+        self.assertAlmostEqual(annonce.parcelle.longitude, -5.495, places=3)
+        # is_geolocated() exige aussi commune_geom (référentiel officiel,
+        # 2026-08-06) — non couvert par dessiner(), on le pose ici pour
+        # vérifier le parcours complet mode Polygone (contour + commune,
+        # sans point manuel).
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': {'commune_geom': self.commune_geom.id}},
+            format='json', **self.csrf_headers(),
+        )
+        annonce.parcelle.refresh_from_db()
+        self.assertTrue(annonce.parcelle.is_geolocated())
+
+    def test_point_manuel_jamais_ecrase_par_le_centroide(self):
+        self.localiser(self.annonce_id)  # pose latitude=33.5, longitude=-5.5 manuellement
+
+        response = self.dessiner(self.RECTANGLE)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertEqual(annonce.parcelle.latitude, 33.5)
+        self.assertEqual(annonce.parcelle.longitude, -5.5)
+
+    def test_contour_vide_repasse_en_mode_point_et_retire_le_contour(self):
+        self.dessiner(self.RECTANGLE)
+
+        response = self.dessiner([])
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertFalse(hasattr(annonce.parcelle, 'donnees_geo'))
+        self.assertIsNone(response.data['parcelle']['contour'])
+
+    def test_champ_contour_absent_ne_touche_pas_au_contour_existant(self):
+        self.dessiner(self.RECTANGLE)
+
+        response = self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Autre titre'},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertTrue(hasattr(annonce.parcelle, 'donnees_geo'))
+
+    def test_creation_avec_contour_directement_au_post(self):
+        response = self.creer_brouillon(parcelle={
+            'surface_ha': 2.5, 'statut_foncier': 'melkia', 'acces_eau': 'irriguee',
+            'topographie': 'plat', 'acces_routier': 'goudron',
+            'contour': self.RECTANGLE,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        annonce = Annonce.objects.get(id=response.data['id'])
+        self.assertTrue(hasattr(annonce.parcelle, 'donnees_geo'))
+
+
+class CommuneGeomTests(AnnoncesTestBase):
+    """
+    Référentiel géométrique officiel (2026-08-06) : is_geolocated()/
+    can_publish() se basent sur commune_geom, pas sur l'ancien `commune` —
+    et la lecture publique (région/province/commune affichées) doit
+    fonctionner pour les deux chaînes, jamais casser sur l'une des deux.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def patch_parcelle(self, **champs):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': champs},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_commune_legacy_seule_ne_suffit_pas_a_geolocaliser(self):
+        self.patch_parcelle(commune=self.commune.id, latitude=33.5, longitude=-5.5)
+
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertFalse(annonce.parcelle.is_geolocated())
+
+    def test_commune_geom_sans_commune_legacy_suffit_a_geolocaliser(self):
+        self.patch_parcelle(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertTrue(annonce.parcelle.is_geolocated())
+        self.assertIsNone(annonce.parcelle.commune_id)  # jamais rétro-rempli
+
+    def test_fiche_publique_affiche_region_province_commune_via_commune_geom(self):
+        self.patch_parcelle(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        parcelle = response.data['parcelle']
+        self.assertEqual(parcelle['region']['code'], 'fes-meknes')  # slug, jamais le code HCP numérique
+        self.assertEqual(parcelle['province'], 'Meknès')
+        self.assertEqual(parcelle['commune'], 'Meknès Ville')
+
+    def test_filtre_region_catalogue_matche_commune_geom(self):
+        self.patch_parcelle(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+        self.client.logout()
+
+        response = self.client.get(ANNONCES_URL, {'region': 'fes-meknes'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
 
 
 class PhotoUploadTests(AnnoncesTestBase):
@@ -626,20 +802,30 @@ class TransitionsAutoriseesTests(SimpleTestCase):
             ('en_ligne', 'archivee'),
             ('en_ligne', 'vendue'),
             ('archivee', 'en_ligne'),
+            ('vendue', 'en_ligne'),
         ]
         for depuis, vers in cas:
             with self.subTest(depuis=depuis, vers=vers):
                 self.assertTrue(transitions.transition_autorisee(depuis, vers))
 
-    def test_vendue_est_un_etat_terminal(self):
-        for cible in ('brouillon', 'en_attente', 'en_ligne', 'archivee', 'vendue'):
+    def test_vendue_ne_peut_sortir_que_vers_en_ligne(self):
+        # Remise en vente (2026-08-07) : vendue → en_ligne est la SEULE
+        # arête sortante — brouillon/en_attente/archivee/vendue restent
+        # bloqués, cf. docstring transitions.py.
+        for cible in ('brouillon', 'en_attente', 'archivee', 'vendue'):
             with self.subTest(cible=cible):
                 self.assertFalse(transitions.transition_autorisee('vendue', cible))
+        self.assertTrue(transitions.transition_autorisee('vendue', 'en_ligne'))
 
     def test_archivee_vers_vendue_non_autorise_directement(self):
         # Doit d'abord repasser par en_ligne (réactivation) — cf. docstring
         # transitions.py.
         self.assertFalse(transitions.transition_autorisee('archivee', 'vendue'))
+
+    def test_vendue_vers_archivee_non_autorise_directement(self):
+        # Doit d'abord repasser par en_ligne (remise en vente) — cf.
+        # docstring transitions.py, même logique que archivee → vendue.
+        self.assertFalse(transitions.transition_autorisee('vendue', 'archivee'))
 
 
 class TransitionsStatutTests(AnnoncesTestBase):
@@ -693,10 +879,18 @@ class TransitionsStatutTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.ARCHIVEE)
 
-    def test_vendue_est_terminal_via_api(self):
+    def test_vendue_vers_en_ligne_remise_en_vente(self):
         self._patch_statut('vendue')
 
         response = self._patch_statut('en_ligne')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.EN_LIGNE)
+
+    def test_vendue_vers_archivee_rejete_sans_remise_en_vente(self):
+        self._patch_statut('vendue')
+
+        response = self._patch_statut('archivee')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.VENDUE)

@@ -23,6 +23,12 @@ from rest_framework import serializers
 from . import transitions
 from .models import Annonce, AgriScore, DonneesGeo, Parcelle, Photo
 
+# Sentinelle distincte de `None` : `_appliquer_parcelle` doit pouvoir
+# distinguer "le client n'a pas touché au champ `contour`" (ne rien changer)
+# de "le client a explicitement envoyé `contour: []`" (repasser en mode
+# Point, retirer le contour existant) — cf. décision du 2026-08-05.
+_CONTOUR_INCHANGE = object()
+
 
 # ──────────────────────────────────────────────
 # Sous-serializers (nested objects)
@@ -100,10 +106,19 @@ class ParcelleListSerializer(serializers.ModelSerializer):
         fields = ['id', 'surface_ha', 'statut_foncier', 'acces_eau', 'region', 'localisation']
 
     def get_region(self, obj):
-        """Retourne la région sous forme {code, nom}."""
+        """
+        Retourne la région sous forme {code, nom} — priorité au référentiel
+        géométrique officiel (`commune_geom`, 2026-08-06) si renseigné,
+        repli sur l'ancien référentiel (`commune`) sinon, pour ne pas casser
+        l'affichage des annonces déjà publiées avant son introduction. `code`
+        reste toujours le slug (jamais le code HCP numérique interne) — le
+        contrat public ne change pas selon la chaîne d'origine.
+        """
+        if obj.commune_geom_id:
+            region = obj.commune_geom.province.region
+            return RegionNestedSerializer({'code': region.slug, 'nom': region.nom}).data
         try:
-            region = obj.commune.province.region
-            return RegionNestedSerializer(region).data
+            return RegionNestedSerializer(obj.commune.province.region).data
         except AttributeError:
             return None
 
@@ -116,11 +131,17 @@ class ParcelleListSerializer(serializers.ModelSerializer):
 
 
 class ParcelleDetailSerializer(serializers.ModelSerializer):
-    """Sous-objet parcelle pour la vue détail."""
+    """
+    Sous-objet parcelle pour la vue détail.
+
+    `region`/`province`/`commune` : SerializerMethodField (pas de `source=`
+    direct) pour pouvoir arbitrer entre `commune_geom` (référentiel officiel)
+    et `commune` (legacy) — cf. get_region() ci-dessous.
+    """
 
     region = serializers.SerializerMethodField()
-    province = serializers.CharField(source='commune.province.nom', read_only=True)
-    commune = serializers.CharField(source='commune.nom', read_only=True)
+    province = serializers.SerializerMethodField()
+    commune = serializers.SerializerMethodField()
     localisation = serializers.SerializerMethodField()
 
     class Meta:
@@ -132,16 +153,33 @@ class ParcelleDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_region(self, obj):
-        """Retourne la région sous forme {code, nom}."""
+        """Retourne la région sous forme {code, nom} — cf. ParcelleListSerializer.get_region()."""
+        if obj.commune_geom_id:
+            region = obj.commune_geom.province.region
+            return RegionNestedSerializer({'code': region.slug, 'nom': region.nom}).data
         try:
-            region = obj.commune.province.region
-            return RegionNestedSerializer(region).data
+            return RegionNestedSerializer(obj.commune.province.region).data
         except AttributeError:
             return None
 
+    def get_province(self, obj):
+        if obj.commune_geom_id:
+            return obj.commune_geom.province.nom
+        if obj.commune_id:
+            return obj.commune.province.nom
+        return None
+
+    def get_commune(self, obj):
+        if obj.commune_geom_id:
+            return obj.commune_geom.nom_affichage
+        if obj.commune_id:
+            return obj.commune.nom
+        return None
+
     def get_localisation(self, obj):
         """Retourne la localisation complète avec adresse_approximative."""
-        adresse = f"{obj.commune.nom}, Maroc" if hasattr(obj, 'commune') and obj.commune else None
+        nom_commune = self.get_commune(obj)
+        adresse = f"{nom_commune}, Maroc" if nom_commune else None
         return LocalisationDetailSerializer({
             'latitude': obj.latitude,
             'longitude': obj.longitude,
@@ -289,6 +327,31 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
 # l'écriture : les DTO publics sont volontairement allégés/anonymisés,
 # l'écriture a des besoins différents — cf. décisions du 2026-07-28).
 
+class PointContourSerializer(serializers.Serializer):
+    """
+    Un sommet du contour polygonal, en {latitude, longitude} — jamais de
+    GeoJSON brut côté client (même convention que latitude/longitude du
+    point unique, cf. AnnonceEcritureSerializer._appliquer_parcelle).
+    """
+
+    latitude = serializers.FloatField()
+    longitude = serializers.FloatField()
+
+
+def _contour_en_points(parcelle):
+    """
+    Convertit DonneesGeo.contour (GEOS Polygon, anneau fermé) en liste de
+    sommets {latitude, longitude} tels que saisis par l'utilisateur — sans
+    le sommet de fermeture dupliqué (contrainte interne PostGIS/GEOS, pas
+    une donnée métier). Retourne None si la parcelle n'a pas de contour.
+    """
+    donnees_geo = getattr(parcelle, 'donnees_geo', None)
+    if donnees_geo is None or donnees_geo.contour is None:
+        return None
+    anneau = donnees_geo.contour.coords[0]  # [(lng, lat), ..., (lng0, lat0)]
+    return [{'latitude': lat, 'longitude': lng} for lng, lat in anneau[:-1]]
+
+
 class ParcelleEcritureSerializer(serializers.ModelSerializer):
     """
     Champs Parcelle modifiables via le dépôt d'annonce.
@@ -299,57 +362,45 @@ class ParcelleEcritureSerializer(serializers.ModelSerializer):
     serveur depuis latitude/longitude dans AnnonceEcritureSerializer, pour
     ne jamais demander au client de manipuler du GeoJSON/WKT directement.
 
-    `contour` (RC 2026-08-04) : sommets du polygone dessiné par le vendeur en
-    mode "Polygone" du picker carte, `[[lat, lng], ...]`, ≥3 points — ne
-    remplace pas latitude/longitude (le frontend soumet toujours un point,
-    son centroïde côté client, en plus du contour), donc aucun changement
-    requis à Parcelle.is_geolocated()/Annonce.can_publish(). N'existe pas
-    sur le modèle Parcelle (vit sur DonneesGeo.contour, OneToOne) : jamais
-    assigné par le ModelSerializer par défaut, géré à la main par
-    AnnonceEcritureSerializer._appliquer_contour(). write_only côté
-    déclaration DRF (pour éviter que to_representation() par défaut tente
-    de lire un attribut `contour` inexistant sur Parcelle) — la valeur de
-    lecture est réinjectée manuellement par to_representation() ci-dessous.
-    Volontairement jamais exposé sur les serializers de lecture publics
-    (ParcelleListSerializer/ParcelleDetailSerializer) : seul le propriétaire,
-    via AnnonceUpdateAPIView, peut le relire — même logique de confidentialité
-    que la position exacte, jamais montrée telle quelle publiquement non plus.
+    `contour` (dessin de parcelle, 2026-08-05) : optionnel, liste de sommets
+    {latitude, longitude} — même convention anti-GeoJSON. N'est pas un champ
+    du modèle Parcelle (porté par DonneesGeo, OneToOne) : construit/validé
+    par AnnonceEcritureSerializer._finaliser_contour(), jamais par le
+    ModelSerializer standard. `to_representation` le recalcule depuis
+    `donnees_geo.contour` pour que l'étape Localisation puisse se
+    re-préremplir sur un brouillon déjà dessiné.
+
+    `commune_geom` (référentiel géométrique officiel, 2026-08-06) : c'est ce
+    champ, pas l'ancien `commune`, qui alimente désormais `is_geolocated()`/
+    `can_publish()`. Les deux coexistent sur Parcelle — `commune` n'est
+    jamais rétro-rempli ni retiré (cf. docs/plans/2026-08-06-communes-geo-design.md).
+    `commune_geom` n'a aucune interaction avec `contour` : on peut dessiner
+    un polygone dans n'importe quelle commune officielle choisie, les deux
+    fonctionnalités sont indépendantes.
     """
 
-    contour = serializers.ListField(
-        child=serializers.ListField(child=serializers.FloatField(), min_length=2, max_length=2),
-        required=False, allow_null=True, write_only=True,
-    )
+    contour = PointContourSerializer(many=True, required=False, allow_null=True)
 
     class Meta:
         model = Parcelle
         fields = [
             'surface_ha', 'statut_foncier', 'acces_eau', 'topographie', 'acces_routier',
-            'commune', 'latitude', 'longitude', 'contour',
+            'commune', 'commune_geom', 'latitude', 'longitude', 'contour',
         ]
         extra_kwargs = {
             'commune': {'required': False, 'allow_null': True},
+            'commune_geom': {'required': False, 'allow_null': True},
             'latitude': {'required': False, 'allow_null': True},
             'longitude': {'required': False, 'allow_null': True},
         }
 
-    def validate_contour(self, value):
-        if value is not None and len(value) < 3:
-            raise serializers.ValidationError('Un contour doit avoir au moins 3 sommets.')
-        return value
-
     def to_representation(self, instance):
+        # `contour` n'est pas un attribut de Parcelle : le ModelSerializer
+        # standard le saute silencieusement (SkipField, champ required=False
+        # sans valeur résolvable) — on le recalcule nous-mêmes ici plutôt que
+        # de laisser une valeur par défaut ambiguë.
         data = super().to_representation(instance)
-        donnees_geo = getattr(instance, 'donnees_geo', None)
-        if donnees_geo is None:
-            data['contour'] = None
-        else:
-            # exterior_ring.coords ferme le polygone (premier == dernier) et
-            # est en (lng, lat) côté PostGIS — inversé ici pour retrouver le
-            # [lat, lng] envoyé par le frontend, sans le point de fermeture
-            # (le frontend referme lui-même le tracé à l'affichage).
-            coords = list(donnees_geo.contour.exterior_ring.coords)[:-1]
-            data['contour'] = [[lat, lng] for lng, lat in coords]
+        data['contour'] = _contour_en_points(instance)
         return data
 
 
@@ -404,48 +455,97 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _appliquer_parcelle(parcelle, parcelle_data):
-        """Applique les champs Parcelle, reconstruit `geom` si lat/lng fournis.
+        """
+        Applique les champs Parcelle, reconstruit `geom` si lat/lng fournis.
 
-        `contour` est retiré ici (jamais un champ du modèle Parcelle) mais
-        PAS traité dans cette méthode : il nécessite parcelle.pk (FK
-        OneToOne DonneesGeo), donc géré séparément par _appliquer_contour(),
-        appelée après le .save() de la parcelle par create()/update().
+        Retourne le `contour` transmis par le client (liste de sommets
+        validés par PointContourSerializer), ou la sentinelle
+        `_CONTOUR_INCHANGE` si le champ était absent du payload — la pose
+        effective du contour est différée à `_finaliser_contour()`, appelée
+        après `parcelle.save()` (le lien OneToOne DonneesGeo → Parcelle exige
+        une PK).
         """
         lat = parcelle_data.pop('latitude', None)
         lng = parcelle_data.pop('longitude', None)
-        parcelle_data.pop('contour', None)
+        contour = parcelle_data.pop('contour', _CONTOUR_INCHANGE)
         for champ, valeur in parcelle_data.items():
             setattr(parcelle, champ, valeur)
         if lat is not None and lng is not None:
             parcelle.latitude = lat
             parcelle.longitude = lng
             parcelle.geom = Point(lng, lat, srid=4326)
+        return contour
 
     @staticmethod
-    def _appliquer_contour(parcelle, contour):
-        """Crée/remplace le DonneesGeo.contour associé si un contour est
-        fourni — même convention que geom pour latitude/longitude ci-dessus :
-        une valeur absente ou nulle est un no-op, jamais un effacement
-        implicite (pas de suppression de contour via ce endpoint pour l'instant)."""
-        if not contour:
+    def _finaliser_contour(parcelle, contour):
+        """
+        Pose/retire le contour polygonal (DonneesGeo) puis, si aucun point
+        manuel n'est déjà posé sur la parcelle, dérive son repère
+        (latitude/longitude/geom) du centroïde géométrique du contour — un
+        point déjà renseigné (manuel ou issu d'un centroïde précédent) n'est
+        jamais écrasé (décision du 2026-08-05, cf. EtapeLocalisation).
+
+        `contour` :
+            - `_CONTOUR_INCHANGE` (champ absent du payload) → ne touche à rien ;
+            - `[]` (0 sommet, explicite) → repasse en mode Point, retire le
+              contour existant s'il y en avait un ;
+            - liste de ≥3 sommets distincts formant un polygone valide → pose
+              le contour. Rejet strict (400) sinon — jamais de réparation
+              automatique (make_valid/buffer(0)) d'un tracé manuel invalide :
+              on redemande explicitement à l'utilisateur de redessiner.
+        """
+        if contour is _CONTOUR_INCHANGE:
             return
-        points = [(lng, lat) for lat, lng in contour]
-        points.append(points[0])  # ferme l'anneau (PostGIS l'exige)
-        DonneesGeo.objects.update_or_create(parcelle=parcelle, defaults={'contour': Polygon(points, srid=4326)})
+        if not contour:
+            DonneesGeo.objects.filter(parcelle=parcelle).delete()
+            return
+
+        # Dédoublonne en conservant l'ordre — deux sommets consécutifs
+        # identiques (double-clic accidentel) ne comptent que pour un seul
+        # point réel du tracé.
+        sommets = [(p['longitude'], p['latitude']) for p in contour]
+        sommets_distincts = list(dict.fromkeys(sommets))
+        if len(sommets_distincts) < 3:
+            raise serializers.ValidationError({
+                'parcelle': {'contour': ["Un polygone nécessite au moins 3 sommets distincts."]}
+            })
+
+        anneau = sommets_distincts + [sommets_distincts[0]]  # ferme l'anneau, exigé par GEOS
+        polygon = Polygon(anneau, srid=4326)
+        if not polygon.valid:
+            raise serializers.ValidationError({
+                'parcelle': {'contour': [
+                    "Le contour dessiné est invalide (segments qui se croisent). Veuillez le redessiner."
+                ]}
+            })
+
+        DonneesGeo.objects.update_or_create(parcelle=parcelle, defaults={'contour': polygon})
+
+        if parcelle.latitude is None or parcelle.longitude is None:
+            centroide = polygon.centroid
+            parcelle.latitude = centroide.y
+            parcelle.longitude = centroide.x
+            parcelle.geom = Point(centroide.x, centroide.y, srid=4326)
+            parcelle.save(update_fields=['latitude', 'longitude', 'geom'])
 
     def create(self, validated_data):
         parcelle_data = validated_data.pop('parcelle', {})
         validated_data.pop('statut', None)  # forcé BROUILLON par la vue, jamais par le client
 
-        parcelle = Parcelle()
-        contour = parcelle_data.get('contour')
-        self._appliquer_parcelle(parcelle, parcelle_data)
-        parcelle.save()
-        self._appliquer_contour(parcelle, contour)
+        # Transaction explicite (absente avant l'ajout du contour) : un
+        # contour invalide lève une ValidationError depuis
+        # _finaliser_contour(), *après* parcelle.save() — sans elle, la
+        # Parcelle resterait committée en base sans Annonce pour la
+        # référencer.
+        with transaction.atomic():
+            parcelle = Parcelle()
+            contour = self._appliquer_parcelle(parcelle, parcelle_data)
+            parcelle.save()
+            self._finaliser_contour(parcelle, contour)
 
-        return Annonce.objects.create(
-            parcelle=parcelle, statut=Annonce.StatutAnnonce.BROUILLON, **validated_data
-        )
+            return Annonce.objects.create(
+                parcelle=parcelle, statut=Annonce.StatutAnnonce.BROUILLON, **validated_data
+            )
 
     def update(self, instance, validated_data):
         parcelle_data = validated_data.pop('parcelle', None)
@@ -454,10 +554,9 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
             if parcelle_data:
-                contour = parcelle_data.get('contour')
-                self._appliquer_parcelle(instance.parcelle, parcelle_data)
+                contour = self._appliquer_parcelle(instance.parcelle, parcelle_data)
                 instance.parcelle.save()
-                self._appliquer_contour(instance.parcelle, contour)
+                self._finaliser_contour(instance.parcelle, contour)
 
             for champ, valeur in validated_data.items():
                 setattr(instance, champ, valeur)

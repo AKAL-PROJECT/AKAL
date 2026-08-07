@@ -70,28 +70,40 @@ export async function enregistrerInfosGeneralesAction(
   }
 }
 
-// Étape 2 — Localisation. `commune` arrive en string depuis un <select> HTML
-// (toujours du texte) — converti en number ici, jamais côté composant.
+// Étape 2 — Localisation. `commune_geom` arrive en string depuis un <select>
+// HTML (toujours du texte) — converti en number ici, jamais côté composant.
+// Référentiel géométrique officiel (2026-08-06) : c'est ce champ, pas
+// l'ancien `commune`, qui alimente is_geolocated()/can_publish() côté back —
+// `commune` n'est jamais envoyé par ce formulaire (cf. types/depot-annonce.ts).
+// `contour` (dessin de parcelle, 2026-08-05) : JSON d'un tableau de
+// {latitude, longitude} — toujours envoyé par EtapeLocalisation, `[]` inclus
+// (repasse en mode Point côté backend). JSON.parse ne peut échouer que si le
+// hidden input a été altéré hors du composant : on retombe sur `[]` plutôt
+// que de planter l'action.
 export async function enregistrerLocalisationAction(
   _prevState: DepotFormState,
   formData: FormData,
 ): Promise<DepotFormState> {
   const id = String(formData.get("id") ?? "");
-  const communeRaw = String(formData.get("commune") ?? "");
+  const communeGeomRaw = String(formData.get("commune_geom") ?? "");
   const latitudeRaw = String(formData.get("latitude") ?? "");
   const longitudeRaw = String(formData.get("longitude") ?? "");
-  // JSON [[lat, lng], ...] posé par EtapeLocalisation.tsx uniquement quand le
-  // vendeur a choisi le mode Polygone et tracé ≥3 sommets — "" sinon (mode
-  // Point, ou tracé abandonné en repassant en mode Point avant validation).
-  const contourRaw = String(formData.get("contour") ?? "");
+  const contourRaw = String(formData.get("contour") ?? "[]");
+
+  let contour: { latitude: number; longitude: number }[];
+  try {
+    contour = JSON.parse(contourRaw);
+  } catch {
+    contour = [];
+  }
 
   try {
     const annonce = await patchBrouillon(id, {
       parcelle: {
-        commune: communeRaw ? Number(communeRaw) : null,
+        commune_geom: communeGeomRaw ? Number(communeGeomRaw) : null,
         latitude: latitudeRaw ? Number(latitudeRaw) : null,
         longitude: longitudeRaw ? Number(longitudeRaw) : null,
-        contour: contourRaw ? (JSON.parse(contourRaw) as [number, number][]) : null,
+        contour,
       },
     });
     return { annonce, error: "", fieldErrors: null };
