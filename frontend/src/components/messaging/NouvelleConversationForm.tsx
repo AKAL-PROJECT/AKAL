@@ -5,8 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { demarrerConversationAction, type MessagingFormState } from "@/app/actions/messaging";
 import type { Parcelle } from "@/types/parcelle";
-
-const formatMAD = new Intl.NumberFormat("fr-MA");
+import { formatMAD } from "@/lib/format";
 
 export function NouvelleConversationForm({ parcelle }: { parcelle: Parcelle }) {
   const [state, formAction, pending] = useActionState<MessagingFormState, FormData>(

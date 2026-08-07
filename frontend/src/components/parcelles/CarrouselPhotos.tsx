@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, ViewTransition } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Images, X } from "@/components/icons/Icons";
 
@@ -8,6 +8,9 @@ type Props = {
   photos: string[];
   titre: string;
   badge?: string | null;
+  // Identifiant de la parcelle — porte le nom du morph partagé avec la photo
+  // du catalogue (CardParcelle.tsx, même `parcelle-photo-${id}`).
+  id: string;
 };
 
 // Galerie : grille "1 grande photo + 4 miniatures" sur desktop (badge "Voir
@@ -15,7 +18,7 @@ type Props = {
 // mobile. Le clic sur n'importe quelle photo ouvre une visionneuse plein
 // écran qui réutilise la navigation clavier/flèches — aucune fonctionnalité
 // perdue par rapport à l'ancien carrousel inline, juste déplacée en overlay.
-export default function CarrouselPhotos({ photos, titre, badge }: Props) {
+export default function CarrouselPhotos({ photos, titre, badge, id }: Props) {
   const [actif, setActif] = useState(0);
   const [ouvert, setOuvert] = useState(false);
   const n = photos.length;
@@ -73,7 +76,9 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
             aria-label={`Voir ${titre} en plein écran`}
             style={{ position: "relative", gridColumn: "1", gridRow: rows === 2 ? "1 / 3" : "1", border: "none", padding: 0, cursor: "pointer" }}
           >
-            <Image src={photos[0]} alt={titre} fill priority sizes="60vw" style={{ objectFit: "cover" }} />
+            <ViewTransition name={`parcelle-photo-${id}`} share="morph">
+              <Image src={photos[0]} alt={titre} fill priority sizes="60vw" style={{ objectFit: "cover" }} />
+            </ViewTransition>
             {badge && (
               <span
                 style={{
@@ -132,7 +137,9 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
           className="hidden-mobile"
           style={{ position: "relative", height: "420px", borderRadius: "var(--radius-card)", overflow: "hidden", boxShadow: "var(--shadow-card)" }}
         >
-          <Image src={photos[0]} alt={titre} fill priority sizes="65vw" style={{ objectFit: "cover" }} />
+          <ViewTransition name={`parcelle-photo-${id}`} share="morph">
+            <Image src={photos[0]} alt={titre} fill priority sizes="65vw" style={{ objectFit: "cover" }} />
+          </ViewTransition>
           {badge && (
             <span
               style={{
@@ -164,7 +171,9 @@ export default function CarrouselPhotos({ photos, titre, badge }: Props) {
           cursor: "pointer",
         }}
       >
-        <Image src={photos[0]} alt={titre} fill priority sizes="100vw" style={{ objectFit: "cover" }} />
+        <ViewTransition name={`parcelle-photo-${id}`} share="morph">
+          <Image src={photos[0]} alt={titre} fill priority sizes="100vw" style={{ objectFit: "cover" }} />
+        </ViewTransition>
         {badge && (
           <span
             style={{

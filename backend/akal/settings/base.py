@@ -223,6 +223,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'login': '5/min',
+        'password_reset': '3/hour',
     },
 }
 
@@ -272,6 +273,32 @@ CORS_ALLOWED_ORIGINS = [
 # cross-origin du frontend (fetch avec credentials: "include").
 CORS_ALLOW_CREDENTIALS = True
 
+# Origine du frontend, pour construire les liens absolus envoyés par email
+# (réinitialisation de mot de passe). Distinct de CORS_ALLOWED_ORIGINS
+# ci-dessus (qui liste des origines API-side autorisées) : ici une seule
+# valeur, celle vers laquelle rediriger un humain.
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
+
+
+# ──────────────────────────────────────────────
+# EMAIL — notifications transactionnelles (réinitialisation de mot de passe)
+# ──────────────────────────────────────────────
+
+# Même logique que SENTRY_DSN plus bas : EMAIL_HOST vide = pas de SMTP
+# configuré, on bascule sur le backend console (écrit l'email dans les logs)
+# plutôt que de lever une erreur ou d'échouer silencieusement en prod.
+EMAIL_HOST = env('EMAIL_HOST', default='')
+if EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='AKAL <no-reply@akal.ma>')
+
 
 # ──────────────────────────────────────────────
 # CACHE — Redis via django-redis
@@ -288,3 +315,87 @@ CACHES = {
         'TIMEOUT': 60,  # TTL par défaut : 60 secondes
     }
 }
+
+
+# ──────────────────────────────────────────────
+# LOGGING (audit du 2026-08-03)
+# ──────────────────────────────────────────────
+#
+# Un seul handler (stdout) : Render capture et indexe le stdout/stderr de
+# chaque service sans configuration supplémentaire — suffisant comme
+# stratégie minimale. Migrer vers un handler dédié (fichier, syslog, service
+# de log externe) seulement si Render devient insuffisant.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'akal': {
+            'format': '{asctime} {levelname} {name} — {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'akal',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        # django.request logue déjà les 500 en ERROR et les 400 en WARNING
+        # par défaut, via un AdminEmailHandler natif — on le remplace par la
+        # console : ADMINS/EMAIL_* ne sont configurés nulle part dans ce
+        # projet, donc le comportement par défaut de Django serait un
+        # mail_admins silencieusement no-op plutôt qu'une vraie sortie.
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+# Sentry (section MONITORING ci-dessous) s'attache à ce logging via
+# LoggingIntegration : tout logger.error()/logger.exception() applicatif,
+# dans n'importe quelle app (accounts, annonces, geo, messaging), devient un
+# événement Sentry sans câblage supplémentaire — pas besoin de déclarer un
+# logger dédié par app tant qu'aucune n'appelle encore
+# logging.getLogger(__name__) explicitement.
+
+
+# ──────────────────────────────────────────────
+# MONITORING — Sentry (audit du 2026-08-03)
+# ──────────────────────────────────────────────
+#
+# No-op tant que SENTRY_DSN n'est pas défini (dev comme prod) — créer un
+# projet Sentry (sentry.io ou self-hosted) et renseigner la variable d'env
+# active le monitoring sans toucher au code. DjangoIntegration capture les
+# exceptions non gérées (dont les 500 des routes legacy retirées cette même
+# session) ; LoggingIntegration capture en plus tout logger.error()/
+# logger.exception() applicatif au niveau ERROR+.
+SENTRY_DSN = env('SENTRY_DSN', default='')
+
+if SENTRY_DSN:
+    # pyrefly: ignore [missing-import]
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=env('SENTRY_ENVIRONMENT', default='development'),
+        integrations=[
+            DjangoIntegration(),
+            # event_level='ERROR' : seuls logger.error()/exception() partent
+            # vers Sentry (level=None désactive la capture en simples
+            # "breadcrumbs" des logs INFO/DEBUG, bruyante et peu utile ici).
+            LoggingIntegration(level=None, event_level='ERROR'),
+        ],
+        traces_sample_rate=env.float('SENTRY_TRACES_SAMPLE_RATE', default=0.1),
+        # RGPD (loi 09-08) — même principe que ProprietaireSerializer
+        # (UUID uniquement, cf. annonces/serializers.py) : jamais
+        # d'email/nom envoyés à un service tiers par défaut.
+        send_default_pii=False,
+    )

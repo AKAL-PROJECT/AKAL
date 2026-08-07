@@ -577,3 +577,31 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
             instance.save()
 
         return instance
+
+
+# ──────────────────────────────────────────────
+# STATISTIQUES — Dashboard propriétaire
+# ──────────────────────────────────────────────
+
+class MesStatistiquesSerializer(serializers.Serializer):
+    """
+    Statistiques du propriétaire connecté, hors décompte par statut
+    d'annonce (déjà dérivable côté front depuis GET /mes-annonces/, cf.
+    MesStatistiquesAPIView dans api_views.py — pas de duplication ici).
+
+    favoris_recus         → favoris posés par d'autres utilisateurs sur les
+                             annonces du propriétaire (sens inverse de
+                             GET /api/favoris/, qui liste SES propres favoris).
+    conversations_recues  → fils ouverts par des acheteurs sur ses annonces
+                             (exclut les conversations qu'il a lui-même
+                             initiées en tant qu'acheteur ailleurs).
+    messages_non_lus      → messages non lus reçus dans ces conversations,
+                             jamais ses propres messages (même logique que
+                             ConversationListSerializer.get_messages_non_lus()
+                             dans messaging/serializers.py, mais en agrégat
+                             global plutôt que par conversation).
+    """
+
+    favoris_recus = serializers.IntegerField(read_only=True)
+    conversations_recues = serializers.IntegerField(read_only=True)
+    messages_non_lus = serializers.IntegerField(read_only=True)

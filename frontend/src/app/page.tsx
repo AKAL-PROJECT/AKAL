@@ -1,31 +1,17 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import dynamic from "next/dynamic";
-import { PARCELLES } from "@/data/parcelles";
+import { getParcelles } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
 import ScoreBar from "@/components/parcelles/ScoreBar";
 import BadgeStatut from "@/components/parcelles/BadgeStatut";
 import { Reveal } from "@/components/Reveal";
+import CouvertureSection from "@/components/home/CouvertureSection";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight, MapPin } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
 
-// Composant réel derrière "CarteMaroc" (carte SVG des 12 régions + spotlight
-// cyclique) : src/components/connexion/MoroccoMap.tsx — aucun fichier
-// CarteMaroc.tsx / regions.ts / useSpotlight.ts n'existe dans ce projet,
-// alias local plutôt que duplication. ssr:false obligatoire (setInterval +
-// animations démarrées au montage, cf. le composant lui-même).
-const CarteMaroc = dynamic(() => import("@/components/connexion/MoroccoMap"), {
-  ssr: false,
-  loading: () => (
-    <div style={{ height: "320px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-foret)", fontSize: "14px" }}>
-      Chargement de la carte…
-    </div>
-  ),
-});
-
-// cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés.
+// cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés. Sert
+// uniquement au <select> du formulaire de recherche du Hero ci-dessous
+// (aucune interactivité region→carte ici, cf. CouvertureSection pour ça).
 const REGIONS = [
   { code: "casablanca-settat", nom: "Casablanca-Settat" },
   { code: "meknes-tafilalet", nom: "Meknès-Tafilalet" },
@@ -52,8 +38,13 @@ const RAISONS = [
   { icone: MessageSquare, titre: "Des échanges directs", desc: "Un espace pour mettre en relation propriétaires et acheteurs, sans intermédiaire." },
 ];
 
-export default function Home() {
-  const vedettes = PARCELLES.slice(0, 3);
+export default async function Home() {
+  // Même appel que le catalogue (/parcelles) et generateStaticParams
+  // (app/parcelles/[slug]/page.tsx) — page_size au max autorisé par le
+  // contrat (§4.2), aucun flux de données spécifique à la Home. `count` est
+  // le vrai total serveur (peut dépasser 50), jamais recalculé côté client.
+  const { results: parcelles, count: totalCount } = await getParcelles({ page_size: 50 });
+  const vedettes = parcelles.slice(0, 3);
   const parcelleVitrine = vedettes[0];
 
   return (
@@ -69,109 +60,113 @@ export default function Home() {
         <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.4 }} />
 
         <div
+          className="akal-hero-grid"
           style={{
             position: "relative",
-            maxWidth: "1240px",
-            margin: "0 auto",
-            padding: "clamp(48px, 8vw, 96px) 24px clamp(56px, 8vw, 88px)",
             display: "grid",
             gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)",
-            gap: "clamp(32px, 5vw, 64px)",
-            alignItems: "center",
+            alignItems: "stretch",
           }}
-          className="akal-hero-grid"
         >
-          {/* Colonne texte */}
-          <div>
-            <span className="eyebrow akal-push-up" style={{ animationDelay: "0ms" }}>
-              Marketplace foncière — Maroc
-            </span>
-
-            <h1
-              className="display-1 akal-push-up"
-              style={{ color: "var(--color-nuit)", margin: "18px 0 20px", animationDelay: "80ms" }}
-            >
-              La terre, sans zones d&apos;ombre.
-            </h1>
-
-            <p
-              className="lede akal-push-up"
-              style={{ maxWidth: "460px", margin: "0 0 32px", animationDelay: "160ms" }}
-            >
-              AKAL réunit statut foncier vérifié, données agronomiques et échanges directs — pour
-              aborder la terre agricole marocaine en toute clarté.
-            </p>
-
-            <form
-              action="/parcelles"
-              method="GET"
-              className="akal-push-up"
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px",
-                padding: "8px",
-                maxWidth: "540px",
-                backgroundColor: "white",
-                border: "1px solid var(--color-bordure)",
-                borderRadius: "var(--radius-lg)",
-                boxShadow: "var(--shadow-2)",
-                animationDelay: "240ms",
-              }}
-            >
-              <select name="region" className="select-chevron akal-hero-field" style={heroFieldStyle} defaultValue="">
-                <option value="">Région</option>
-                {REGIONS.map((r) => (
-                  <option key={r.code} value={r.code}>{r.nom}</option>
-                ))}
-              </select>
-              <div style={{ width: "1px", alignSelf: "stretch", backgroundColor: "var(--color-bordure)" }} className="hidden-mobile" />
-              <input name="prix_max" type="number" placeholder="Budget max (MAD)" className="akal-hero-field" style={heroFieldStyle} />
-              <button
-                type="submit"
-                className="btn-primary"
-                style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <Search size={16} />
-                Rechercher
-              </button>
-            </form>
-
-            <Link
-              href="#comment-ca-marche"
-              className="akal-push-up"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                color: "var(--color-foret)",
-                fontSize: "14px",
-                fontWeight: 500,
-                marginTop: "24px",
-                textDecoration: "none",
-                animationDelay: "300ms",
-              }}
-            >
-              Comment ça marche
-              <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          {/* Colonne visuelle — photo aérienne de parcelles.
-              Visible aussi en mobile (pleine largeur, empilée sous le texte
-              via .akal-hero-grid en 1 colonne sous 900px) — auparavant
-              masquée par .hidden-mobile. */}
+          {/* Colonne texte — posée sur une trame parcellaire cadastrale
+              ultra-discrète (grille de bornage + bornes), cf. .akal-texture-cadastre. */}
           <div
-            className="akal-push-up"
             style={{
               position: "relative",
-              aspectRatio: "5 / 6",
-              borderRadius: "var(--radius-xl)",
-              overflow: "hidden",
-              boxShadow: "var(--shadow-4)",
-              animationDelay: "200ms",
+              padding: "clamp(48px, 8vw, 96px) clamp(28px, 5vw, 64px) clamp(56px, 8vw, 88px) clamp(24px, 6vw, 64px)",
             }}
           >
+            <div className="akal-texture-cadastre" aria-hidden />
+
+            <div style={{ position: "relative", maxWidth: "620px" }}>
+              <span className="eyebrow akal-push-up" style={{ animationDelay: "0ms" }}>
+                Marketplace foncière — Maroc
+              </span>
+
+              <h1
+                className="display-1 akal-push-up"
+                style={{ color: "var(--color-nuit)", margin: "18px 0 20px", animationDelay: "80ms" }}
+              >
+                La terre, sans zones d&apos;ombre.
+              </h1>
+
+              <p
+                className="lede akal-push-up"
+                style={{ maxWidth: "460px", margin: "0 0 32px", animationDelay: "160ms" }}
+              >
+                AKAL réunit statut foncier vérifié, données agronomiques et échanges directs — pour
+                aborder la terre agricole marocaine en toute clarté.
+              </p>
+
+              {/* Objet posé — fond translucide + ombre longue, sans bordure dure
+                  (remplace le liseré .color-bordure par un ring via box-shadow). */}
+              <form
+                action="/parcelles"
+                method="GET"
+                className="akal-push-up"
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                  padding: "8px",
+                  maxWidth: "540px",
+                  backgroundColor: "rgba(255,255,255,0.85)",
+                  backdropFilter: "blur(6px)",
+                  borderRadius: "var(--radius-lg)",
+                  boxShadow: "0 24px 56px -24px rgba(27,58,45,0.38), 0 0 0 1px rgba(27,58,45,0.07)",
+                  animationDelay: "240ms",
+                }}
+              >
+                <label style={{ display: "block", flex: "1 1 140px" }}>
+                  <span className="sr-only">Région</span>
+                  <select name="region" className="select-chevron akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} defaultValue="">
+                    <option value="">Région</option>
+                    {REGIONS.map((r) => (
+                      <option key={r.code} value={r.code}>{r.nom}</option>
+                    ))}
+                  </select>
+                </label>
+                <div style={{ width: "1px", alignSelf: "stretch", backgroundColor: "var(--color-bordure)" }} className="hidden-mobile" />
+                <label style={{ display: "block", flex: "1 1 140px" }}>
+                  <span className="sr-only">Budget maximum en dirhams</span>
+                  <input name="prix_max" type="number" placeholder="Budget max (MAD)" className="akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} />
+                </label>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <Search size={16} />
+                  Rechercher
+                </button>
+              </form>
+
+              <Link
+                href="#comment-ca-marche"
+                className="akal-push-up"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  color: "var(--color-foret)",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  marginTop: "24px",
+                  textDecoration: "none",
+                  animationDelay: "300ms",
+                }}
+              >
+                Comment ça marche
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Colonne visuelle — photo aérienne plein bleed, fondue vers la
+              colonne texte (cf. .akal-hero-fondu). Visible aussi en mobile
+              (pleine largeur, empilée sous le texte via .akal-hero-grid en
+              1 colonne sous 900px). */}
+          <div className="akal-hero-visuel akal-push-up" style={{ animationDelay: "200ms" }}>
             {/* Fichier à déposer par vos soins : frontend/public/images/hero-parcelles.jpg
                 (non versionné ici, cf. compte-rendu). */}
             <Image
@@ -179,23 +174,26 @@ export default function Home() {
               alt="Vue aérienne de parcelles agricoles marocaines, cultures et chemins délimitant les propriétés"
               fill
               priority
-              sizes="(max-width: 900px) 100vw, 45vw"
+              sizes="(max-width: 900px) 100vw, 48vw"
               style={{ objectFit: "cover" }}
             />
 
             {/* Teinte de marque — unifie la photo à la palette AKAL. */}
             <div
               aria-hidden
-              style={{ position: "absolute", inset: 0, backgroundColor: "var(--color-foret)", mixBlendMode: "multiply", opacity: 0.35 }}
+              style={{ position: "absolute", inset: 0, backgroundColor: "var(--color-foret)", mixBlendMode: "multiply", opacity: 0.28 }}
             />
 
-            {/* Dégradé de lisibilité — transparent en haut, nuit ~85% en bas. */}
+            {/* Fondu gauche — raccorde le bord de l'image au fond de la colonne texte. */}
+            <div className="akal-hero-fondu" aria-hidden />
+
+            {/* Voile bas — asseoit la carte catalogue ancrée, transparent en haut, nuit ~82% en bas. */}
             <div
               aria-hidden
               style={{
                 position: "absolute",
                 inset: 0,
-                background: "linear-gradient(180deg, rgba(27,58,45,0) 0%, rgba(27,58,45,0.3) 55%, rgba(27,58,45,0.85) 100%)",
+                background: "linear-gradient(180deg, rgba(27,58,45,0) 0%, rgba(27,58,45,0.25) 55%, rgba(27,58,45,0.82) 100%)",
               }}
             />
 
@@ -234,7 +232,8 @@ export default function Home() {
               style={{ position: "absolute", left: "63%", top: "58%", width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "var(--color-terre)", transform: "translate(-50%,-50%)", boxShadow: "0 0 0 2px rgba(255,255,255,0.5)" }}
             />
 
-            {/* Chip donnée — vraie parcelle du catalogue, pas de statistique inventée */}
+            {/* Carte catalogue — ancrée en bas-gauche de l'image plein bleed ;
+                vraie parcelle du catalogue, pas de statistique inventée. */}
             {parcelleVitrine && (
               <div
                 className="akal-chip-donnee akal-pop-in"
@@ -243,8 +242,8 @@ export default function Home() {
                   left: "24px",
                   bottom: "24px",
                   right: "24px",
-                  maxWidth: "260px",
-                  padding: "16px",
+                  maxWidth: "320px",
+                  padding: "18px",
                   animationDelay: "520ms",
                 }}
               >
@@ -302,70 +301,7 @@ export default function Home() {
       </Reveal>
 
       {/* ═══════════════════════ Valeur — couverture ═══════════════════════ */}
-      <section style={{ maxWidth: "1140px", margin: "clamp(64px, 10vw, 120px) auto", padding: "0 24px" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "clamp(32px, 6vw, 64px)",
-            alignItems: "center",
-          }}
-        >
-          <Reveal>
-            <div>
-              <span className="eyebrow">Couverture nationale</span>
-              <h2 className="display-2" style={{ color: "var(--color-nuit)", margin: "14px 0 16px" }}>
-                La terre n&apos;est jamais loin.
-              </h2>
-              <p className="lede" style={{ margin: "0 0 28px", maxWidth: "440px" }}>
-                Explorez les terres disponibles à travers le Maroc, région par région.
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "28px" }}>
-                {REGIONS.map((r) => (
-                  <Link
-                    key={r.code}
-                    href={`/parcelles?region=${r.code}`}
-                    className="akal-chip-region akal-focusable"
-                    style={{ fontSize: "13px", color: "var(--color-texte)", backgroundColor: "white", border: "1px solid var(--color-bordure)", borderRadius: "var(--radius-full)", padding: "8px 16px", textDecoration: "none" }}
-                  >
-                    {r.nom}
-                  </Link>
-                ))}
-              </div>
-              {/* CTA vers l'onglet Carte de la Navbar — même route ("/parcelles"),
-                  pas de paramètre dédié pour présélectionner la vue carte :
-                  le catalogue n'a pas de mode piloté par l'URL (mode local,
-                  cf. app/parcelles/page.tsx), atterrit donc en vue grille. */}
-              <Link href="/parcelles" className="akal-link-fleche">
-                Voir la carte complète →
-              </Link>
-            </div>
-          </Reveal>
-
-          <Reveal delayMs={80}>
-            <div
-              style={{
-                borderRadius: "var(--radius-xl)",
-                backgroundColor: "var(--color-rosee)",
-                position: "relative",
-                overflow: "hidden",
-                boxShadow: "var(--shadow-2)",
-                padding: "28px 20px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "16px",
-              }}
-            >
-              <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.35 }} />
-              <CarteMaroc />
-              <span style={{ position: "relative", fontSize: "13px", fontWeight: 500, color: "var(--color-nuit)", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "var(--radius-sm)", padding: "6px 12px" }}>
-                {PARCELLES.length} parcelles disponibles
-              </span>
-            </div>
-          </Reveal>
-        </div>
-      </section>
+      <CouvertureSection parcelles={parcelles} totalCount={totalCount} />
 
       {/* ═══════════════════════ Fonctionnalités ═══════════════════════ */}
       <section id="comment-ca-marche" style={{ maxWidth: "1000px", margin: "0 auto clamp(64px, 10vw, 120px)", padding: "0 24px" }}>
@@ -435,17 +371,13 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
           {vedettes.map((p, i) => (
             <div key={p.id} className="akal-card-cascade" style={{ animationDelay: `${i * 60}ms` }}>
-              {/* vedettes = PARCELLES (mock figé, cf. data/parcelles.ts), pas
-                  de vraie Annonce en base — comparateur et favori restent
-                  décoratifs ici pour la même raison (aucun id réel à
-                  persister), comme sur le reste de cette page. */}
-              <CardParcelle
-                parcelle={p}
-                enComparaison={false}
-                onToggleComparaison={() => {}}
-                favori={false}
-                onToggleFavori={() => {}}
-              />
+              {/* vedettes = mêmes vraies annonces que le catalogue (getParcelles(),
+                  cf. Home ci-dessus) — favori/comparateur restent décoratifs
+                  ici volontairement : la Home est une vitrine de découverte,
+                  pas le catalogue interactif (useFavorisIds()/état comparateur
+                  vivent dans /parcelles, cf. "Voir toutes les parcelles" plus
+                  bas pour l'expérience complète). */}
+              <CardParcelle parcelle={p} enComparaison={false} favori={false} />
             </div>
           ))}
         </div>

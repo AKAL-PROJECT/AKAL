@@ -126,6 +126,26 @@ export async function getMesAnnonces(): Promise<AnnonceProprietaire[]> {
   return annonces.map(mapAnnonceToAnnonceProprietaire);
 }
 
+export type MesStatistiquesDTO = {
+  favoris_recus: number;
+  conversations_recues: number;
+  messages_non_lus: number;
+};
+
+// Favoris/conversations reçus, messages non lus (dashboard propriétaire) —
+// tout à 0 si non authentifié ou en cas d'échec, même convention que
+// getMesAnnonces() ci-dessus (bloc de stats non bloquant, jamais de throw).
+// Appelée uniquement par app/compte/annonces/page.tsx (Server Component) :
+// PAS de fetchWithAuth, même raison que getMesAnnonces() ci-dessus.
+export async function getMesStatistiques(): Promise<MesStatistiquesDTO> {
+  const res = await fetch(`${API_URL}/annonces/mes-annonces/statistiques/`, {
+    headers: { Cookie: await cookieHeader() },
+    cache: "no-store",
+  });
+  if (!res.ok) return { favoris_recus: 0, conversations_recues: 0, messages_non_lus: 0 };
+  return (await res.json()) as MesStatistiquesDTO;
+}
+
 // Restreint aux brouillons (statut BROUILLON) côté serveur — l'édition
 // d'annonces déjà en_ligne reste hors périmètre F03. Le backend réordonne
 // les photos restantes pour garder `ordre` contigu à partir de 0. Appelée

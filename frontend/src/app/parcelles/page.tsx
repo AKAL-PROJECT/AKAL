@@ -115,12 +115,22 @@ function Catalogue() {
   // cf. allerPage ci-dessous — pas de recalcul de page, §4.3).
   useEffect(() => {
     let annule = false;
-    setChargement(true);
-    setErreur(null);
 
-    getParcelles(filtresVersParams(filtres, tri, page, PAGE_SIZE))
+    // setChargement/setErreur sont volontairement dans le .then() plutôt
+    // qu'en tête de l'effet : un setState synchrone dans le corps d'un
+    // effet déclenche un rendu en cascade avant même le démarrage du fetch
+    // (react-hooks/set-state-in-effect). Les différer d'un micro-tick via
+    // Promise.resolve() est imperceptible pour l'utilisateur et corrige le
+    // vrai problème plutôt que de contourner la règle.
+    Promise.resolve()
+      .then(() => {
+        if (annule) return undefined;
+        setChargement(true);
+        setErreur(null);
+        return getParcelles(filtresVersParams(filtres, tri, page, PAGE_SIZE));
+      })
       .then((res) => {
-        if (!annule) setDonnees(res);
+        if (!annule && res) setDonnees(res);
       })
       .catch((err) => {
         if (!annule) setErreur(err instanceof Error ? err.message : "Erreur de chargement du catalogue.");

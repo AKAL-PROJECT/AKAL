@@ -35,7 +35,12 @@ const LABEL_STYLE: Record<Side, React.CSSProperties> = {
 
 const CYCLE_SECONDS = 4;
 
-export default function MoroccoMap() {
+// `compact` : version réduite pour le bandeau mobile (cf. .connexion-map-mobile,
+// globals.css) — les libellés de région sont illisibles à cette taille et
+// disparaissent, les points animés restent seuls porteurs de l'identité
+// (« couverture nationale vivante »), pas besoin de nommer chaque région.
+export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "compact" }) {
+  const isCompact = variant === "compact";
   const [active, setActive] = useState(0);
 
   useEffect(() => {
@@ -46,7 +51,7 @@ export default function MoroccoMap() {
   }, []);
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: "480px", aspectRatio: "1282 / 1299" }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: isCompact ? "200px" : "480px", aspectRatio: "1282 / 1299" }}>
       <div
         className="akal-drift"
         style={{
@@ -131,24 +136,26 @@ export default function MoroccoMap() {
                 transition: "width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out",
               }}
             />
-            <div style={LABEL_STYLE[r.side]}>
-              <div
-                style={{
-                  display: "inline-block",
-                  background: "rgba(248,245,240,0.92)",
-                  borderRadius: "5px",
-                  padding: "1px 6px",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  letterSpacing: "0.3px",
-                  color: "#1B3A2D",
-                  opacity: isActive ? 1 : 0.72,
-                  transition: "opacity 0.4s ease-out",
-                }}
-              >
-                {r.name}
+            {!isCompact && (
+              <div style={LABEL_STYLE[r.side]}>
+                <div
+                  style={{
+                    display: "inline-block",
+                    background: "rgba(248,245,240,0.92)",
+                    borderRadius: "5px",
+                    padding: "1px 6px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: "0.3px",
+                    color: "#1B3A2D",
+                    opacity: isActive ? 1 : 0.72,
+                    transition: "opacity 0.4s ease-out",
+                  }}
+                >
+                  {r.name}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         );
       })}

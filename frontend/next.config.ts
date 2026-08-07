@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 // Dev uniquement : MinIO (stockage médias, cf. F03) tourne en local sur un
 // host loopback (localhost:9000). Next.js bloque par défaut toute image dont
@@ -21,6 +22,12 @@ if (!isDev && process.env.NEXT_PUBLIC_USE_MOCKS === "true") {
 }
 
 const nextConfig: NextConfig = {
+  // Morph photo catalogue → fiche parcelle (React <ViewTransition>, App
+  // Router) — dégrade proprement sans animation sur les navigateurs sans
+  // support de la View Transitions API, aucune dépendance ajoutée.
+  experimental: {
+    viewTransition: true,
+  },
   images: {
     remotePatterns: [
       // Mock data du catalogue (photos Unsplash) — à retirer avec les mocks.
@@ -41,4 +48,19 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry (audit du 2026-08-03) — l'upload des source maps a besoin de
+// SENTRY_ORG/SENTRY_PROJECT/SENTRY_AUTH_TOKEN (cf. .env.example) ; sans eux
+// le plugin webpack de Sentry saute cette étape avec un avertissement, pas
+// une erreur de build (silent masque cet avertissement hors CI). Le
+// monitoring runtime lui-même (Sentry.init dans instrumentation*.ts) ne
+// dépend en rien de ces trois variables — seul NEXT_PUBLIC_SENTRY_DSN compte.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+});

@@ -11,9 +11,6 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # ── Anciennes routes template-based (rétrocompatibilité) ──
-    path('annonces/', include('annonces.urls')),
-
     # ── API REST v1 ──
     path('api/annonces/', include('annonces.api_urls')),
     path('api/geo/', include('geo.urls')),

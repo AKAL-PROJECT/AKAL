@@ -1,29 +1,17 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Polygon, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Polygon, useMapEvents } from "react-leaflet";
 import L from "leaflet";
+import TuileOSM from "@/components/TuileOSM";
+import { iconeAkal, CENTRE_MAROC } from "@/lib/leaflet";
 import "leaflet/dist/leaflet.css";
-
-// Même icône que CarteLeaflet.tsx (pin vert forêt, évite le bug classique
-// des icônes Leaflet cassées avec les bundlers).
-const iconeAkal = L.divIcon({
-  className: "",
-  html: `<div style="
-    width:28px;height:28px;border-radius:50% 50% 50% 0;
-    background:#2D6A4F;transform:rotate(-45deg);
-    border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);
-    display:flex;align-items:center;justify-content:center;">
-    <div style="width:8px;height:8px;border-radius:50%;background:white;transform:rotate(45deg);"></div>
-  </div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
-  popupAnchor: [0, -28],
-});
 
 // Icône numérotée pour un sommet du contour — distincte du repère principal
 // (rond orange plutôt que pin vert) pour qu'on ne confonde jamais "le point
 // de la parcelle" et "un sommet du polygone" sur une carte qui affiche les
-// deux à la fois (dessin de parcelle, 2026-08-05).
+// deux à la fois (dessin de parcelle, 2026-08-05). Import runtime de
+// `leaflet` (pas type-only) : même garde-fou que lib/leaflet.ts, ce module
+// n'est chargé que par des composants "use client" en ssr:false.
 function iconeSommet(index: number) {
   return L.divIcon({
     className: "",
@@ -37,9 +25,6 @@ function iconeSommet(index: number) {
     iconAnchor: [11, 11],
   });
 }
-
-// Centre approximatif du Maroc — vue par défaut tant qu'aucun point ni sommet n'existe.
-const CENTRE_MAROC: [number, number] = [32.0, -6.0];
 
 // Capte les clics sur la carte : ajoute/déplace le repère en mode "point",
 // ajoute un sommet en mode "polygone" — un seul MapContainer, le mode
@@ -92,10 +77,7 @@ export default function CarteLeafletPicker({
       zoom={position || contour.length ? 13 : 6}
       style={{ height: "100%", width: "100%", borderRadius: "var(--radius-card)" }}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <TuileOSM />
       <GestionnaireClics mode={mode} onAjouterPoint={onChangePosition} onAjouterSommet={onAjouterSommet} />
 
       {position && (

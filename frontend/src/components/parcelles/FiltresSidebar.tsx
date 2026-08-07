@@ -10,6 +10,7 @@ import {
 } from "@/data/parcelles";
 import { STATUT_FONCIER_LABEL } from "./BadgeStatut";
 import { Search, X, ChevronDown, Check } from "@/components/icons/Icons";
+import { formatMAD } from "@/lib/format";
 
 type Props = {
   ouverte: boolean;
@@ -37,8 +38,6 @@ function parseNum(v: string): number | null {
 // reste un input libre pour dépasser ces bornes si besoin.
 const PRIX_MAX_BORNE = 5_000_000;
 const SURFACE_MAX_BORNE = 50;
-
-const fmtMAD = new Intl.NumberFormat("fr-MA");
 
 // ── Dropdown Région : liste custom avec cascade d'apparition au clic ──────
 function DropdownRegion({
@@ -292,7 +291,7 @@ export default function FiltresSidebar({
             <label style={labelStyle}>
               Prix max
               <span style={{ float: "right", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
-                {f.prixMax != null ? `${fmtMAD.format(f.prixMax)} MAD` : "Illimité"}
+                {f.prixMax != null ? `${formatMAD.format(f.prixMax)} MAD` : "Illimité"}
               </span>
             </label>
             <input

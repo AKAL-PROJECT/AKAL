@@ -8,6 +8,7 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 import io
 
 from django.contrib.gis.geos import MultiPolygon, Polygon
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase
 from PIL import Image
@@ -16,8 +17,9 @@ from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import User
 from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
+from messaging.models import Conversation, Favori, Message
 from . import transitions
-from .models import Annonce, Photo
+from .models import Annonce, Parcelle, Photo
 
 ANNONCES_URL = '/api/annonces/'
 
@@ -234,6 +236,34 @@ class ContourPolygoneTests(AnnoncesTestBase):
         response = self.dessiner(self.RECTANGLE)
 
         self.assertEqual(len(response.data['parcelle']['contour']), 4)
+
+    def test_contour_jamais_expose_sur_la_fiche_publique(self):
+        # Même logique de confidentialité que la position exacte (§4.4) :
+        # le contour dessiné par le vendeur n'est lisible que via le PATCH
+        # propriétaire (ParcelleEcritureSerializer) — jamais sur la fiche
+        # publique (ParcelleDetailSerializer, dont Meta.fields omet `contour`).
+        self.dessiner(self.RECTANGLE)
+        # is_geolocated() exige aussi commune_geom (référentiel officiel,
+        # 2026-08-06) — non couvert par dessiner(), cf.
+        # test_centroide_derive_le_point_si_aucun_point_manuel ci-dessus.
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': {'commune_geom': self.commune_geom.id}},
+            format='json', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+        slug = Annonce.objects.get(id=self.annonce_id).slug
+
+        response = self.client.get(f'{ANNONCES_URL}{slug}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn('contour', response.data['parcelle'])
 
     def test_moins_de_3_sommets_distincts_rejete(self):
         response = self.dessiner(self.RECTANGLE[:2])
@@ -636,6 +666,128 @@ class MesAnnoncesTests(AnnoncesTestBase):
         ids = [a['id'] for a in response.data]
         self.assertNotIn(annonce_a_id, ids)
         self.assertEqual(len(response.data), 1)
+
+
+class MesStatistiquesTests(AnnoncesTestBase):
+    """
+    GET /api/annonces/mes-annonces/statistiques/ — favoris/conversations
+    reçus, messages non lus (dashboard propriétaire). Les fixtures Favori/
+    Conversation/Message sont créées directement en base (comme
+    MessagingTestBase.creer_annonce) plutôt que via l'API : ce endpoint
+    n'agrège que des compteurs, peu importe comment les lignes sont nées.
+    """
+
+    def setUp(self):
+        super().setUp()
+        # Plusieurs signup/login par test (vendeur + acheteur) : même
+        # précaution que messaging/tests.py::MessagingTestBase contre le
+        # throttle 'login' (5/min) partagé entre tests sur la même IP.
+        cache.clear()
+
+    def se_connecter(self, email):
+        self.client.logout()
+        self.client.post('/api/auth/login/', {'email': email, 'password': 'un-mot-de-passe-solide-2026'})
+
+    def creer_annonce_en_ligne(self, proprietaire, titre='Belle parcelle'):
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, surface_ha=2.5, statut_foncier='melkia',
+            acces_eau='irriguee', topographie='plat', acces_routier='goudron',
+            latitude=33.5, longitude=-5.5,
+        )
+        return Annonce.objects.create(
+            parcelle=parcelle, proprietaire=proprietaire, titre=titre,
+            description='Une description suffisamment longue.', prix_mad=150000,
+            statut=Annonce.StatutAnnonce.EN_LIGNE,
+        )
+
+    def statistiques(self):
+        return self.client.get(f'{ANNONCES_URL}mes-annonces/statistiques/')
+
+    def test_refuse_si_non_authentifie(self):
+        response = self.statistiques()
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_zero_partout_sans_activite_recue(self):
+        vendeur = self.authentifier('vendeur@akal.ma')
+        self.creer_annonce_en_ligne(vendeur)
+
+        response = self.statistiques()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {
+            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
+        })
+
+    def test_compte_les_favoris_recus_sur_ses_annonces(self):
+        vendeur = self.authentifier('vendeur@akal.ma')
+        annonce = self.creer_annonce_en_ligne(vendeur)
+        acheteur = self.authentifier('acheteur@akal.ma')
+        Favori.objects.create(user=acheteur, annonce=annonce)
+
+        self.se_connecter('vendeur@akal.ma')
+        response = self.statistiques()
+
+        self.assertEqual(response.data['favoris_recus'], 1)
+
+    def test_compte_les_conversations_recues_et_les_messages_non_lus(self):
+        vendeur = self.authentifier('vendeur@akal.ma')
+        annonce = self.creer_annonce_en_ligne(vendeur)
+        acheteur = self.authentifier('acheteur@akal.ma')
+        conversation = Conversation.objects.create(annonce=annonce, initiateur=acheteur)
+        Message.objects.create(conversation=conversation, auteur=acheteur, contenu='Bonjour, toujours dispo ?')
+
+        self.se_connecter('vendeur@akal.ma')
+        response = self.statistiques()
+
+        self.assertEqual(response.data['conversations_recues'], 1)
+        self.assertEqual(response.data['messages_non_lus'], 1)
+
+    def test_exclut_les_messages_du_proprietaire_lui_meme_du_compte_non_lus(self):
+        vendeur = self.authentifier('vendeur@akal.ma')
+        annonce = self.creer_annonce_en_ligne(vendeur)
+        acheteur = self.authentifier('acheteur@akal.ma')
+        conversation = Conversation.objects.create(annonce=annonce, initiateur=acheteur)
+
+        self.se_connecter('vendeur@akal.ma')
+        Message.objects.create(conversation=conversation, auteur=vendeur, contenu='Oui, toujours disponible.')
+        response = self.statistiques()
+
+        # Le message vient du propriétaire lui-même : jamais compté comme
+        # "reçu", même s'il est is_lu=False (valeur par défaut du modèle).
+        self.assertEqual(response.data['messages_non_lus'], 0)
+
+    def test_ignore_les_messages_deja_lus(self):
+        vendeur = self.authentifier('vendeur@akal.ma')
+        annonce = self.creer_annonce_en_ligne(vendeur)
+        acheteur = self.authentifier('acheteur@akal.ma')
+        conversation = Conversation.objects.create(annonce=annonce, initiateur=acheteur)
+        Message.objects.create(conversation=conversation, auteur=acheteur, contenu='Bonjour', is_lu=True)
+
+        self.se_connecter('vendeur@akal.ma')
+        response = self.statistiques()
+
+        self.assertEqual(response.data['messages_non_lus'], 0)
+
+    def test_n_inclut_pas_l_activite_recue_par_un_autre_proprietaire(self):
+        vendeur_a = self.authentifier('vendeur-a@akal.ma')
+        annonce_a = self.creer_annonce_en_ligne(vendeur_a)
+        self.client.logout()
+        vendeur_b = self.authentifier('vendeur-b@akal.ma')
+        self.creer_annonce_en_ligne(vendeur_b, titre='Annonce du vendeur B')
+        acheteur = self.authentifier('acheteur@akal.ma')
+        Favori.objects.create(user=acheteur, annonce=annonce_a)
+        conversation = Conversation.objects.create(annonce=annonce_a, initiateur=acheteur)
+        Message.objects.create(conversation=conversation, auteur=acheteur, contenu='Bonjour')
+
+        self.se_connecter('vendeur-b@akal.ma')
+        response = self.statistiques()
+
+        # Toute l'activité créée ci-dessus porte sur l'annonce du vendeur A,
+        # pas du vendeur B connecté ici — rien ne doit lui être attribué.
+        self.assertEqual(response.data, {
+            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
+        })
 
 
 class TransitionsAutoriseesTests(SimpleTestCase):

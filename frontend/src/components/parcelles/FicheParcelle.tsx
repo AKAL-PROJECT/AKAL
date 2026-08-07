@@ -10,6 +10,7 @@ import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
 import SimulateurROI from "./SimulateurROI";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
+import { formatMAD } from "@/lib/format";
 import {
   MapPin,
   Heart,
@@ -40,8 +41,6 @@ const CarteFiche = dynamic(() => import("./CarteLeafletFiche"), {
     </div>
   ),
 });
-
-const formatMAD = new Intl.NumberFormat("fr-MA");
 
 function agriScoreLegende(score: number | null): string {
   if (score == null) return "AgriScore en cours de calcul pour cette parcelle.";
@@ -97,7 +96,11 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
           Accueil
         </Link>
         <span>/</span>
-        <Link href="/parcelles" style={{ color: "var(--color-tertiaire)", textDecoration: "none" }}>
+        <Link
+          href="/parcelles"
+          style={{ color: "var(--color-tertiaire)", textDecoration: "none" }}
+          transitionTypes={["nav-back"]}
+        >
           Catalogue
         </Link>
         <span>/</span>
@@ -109,6 +112,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
         href="/parcelles"
         className="hidden-desktop"
         style={{ alignItems: "center", gap: "6px", fontSize: "14px", color: "var(--color-foret)", textDecoration: "none", marginBottom: "16px" }}
+        transitionTypes={["nav-back"]}
       >
         <ChevronLeft size={16} />
         Retour au catalogue
@@ -117,16 +121,19 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
       {/* ── Layout 2 colonnes ────────────────────────────────────── */}
       <div className="fiche-layout">
 
-        {/* Colonne principale */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "28px" }}>
+        {/* Colonne principale — .akal-stagger porte le rythme d'entrée de
+            chaque bloc (délai par nth-child, cf. globals.css), plus posé
+            que le fade simultané précédent. */}
+        <div className="akal-stagger" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "28px" }}>
 
-          {/* Carrousel photos */}
-          <div className="akal-fade-in">
-            <CarrouselPhotos photos={a.photos} titre={a.titre} badge={a.badge} />
+          {/* Carrousel photos — id porte le nom du morph partagé avec la
+              photo de la carte catalogue (CardParcelle.tsx). */}
+          <div>
+            <CarrouselPhotos photos={a.photos} titre={a.titre} badge={a.badge} id={a.id} />
           </div>
 
           {/* Titre + localisation + badges */}
-          <div className="akal-fade-in" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               <BadgeStatut statut={a.parcelle.statutFoncier} />
               {a.parcelle.accesEau !== "bour" && (
@@ -213,10 +220,14 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
 
         {/* ── Colonne contact (sticky) ─────────────────────────── */}
         <aside className="fiche-aside">
-          <div className="card akal-fade-in" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px", animationDelay: "80ms" }}>
+          <div className="card akal-fade-in" style={{ position: "relative", overflow: "hidden", padding: "24px", display: "flex", flexDirection: "column", gap: "20px", animationDelay: "80ms" }}>
+            {/* Trame parcellaire cadastrale — même signature graphique que le
+                Hero (globals.css .akal-texture-cadastre), très discrète
+                derrière le bloc contact. */}
+            <div className="akal-texture-cadastre" aria-hidden />
 
             {/* Prix */}
-            <div>
+            <div style={{ position: "relative" }}>
               <div style={{ fontSize: "22px", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
                 {formatMAD.format(a.prix)} MAD
               </div>
@@ -267,7 +278,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                   transition: "all 200ms ease",
                 }}
               >
-                <Heart size={14} fill={favori ? "var(--color-terre)" : "none"} />
+                <Heart size={14} fill={favori ? "var(--color-terre)" : "none"} className={favori ? "akal-heart-burst" : undefined} />
                 {favori ? "Sauvegardé" : "Sauvegarder"}
               </button>
               <button

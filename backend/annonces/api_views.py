@@ -7,6 +7,11 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
     - GET  /api/annonces/mes-annonces/ → Liste de toutes les annonces du
       propriétaire connecté, tous statuts confondus (dashboard propriétaire,
       hors contrat F03 initial — ajout du 2026-07-29)
+    - GET  /api/annonces/mes-annonces/statistiques/ → Favoris reçus,
+      conversations reçues, messages non lus du propriétaire connecté
+      (dashboard propriétaire — ajout du 2026-08-03). Le décompte par statut
+      d'annonce n'est PAS dupliqué ici : déjà dérivable côté front depuis
+      GET /mes-annonces/ ci-dessus.
     - GET  /api/annonces/<slug>/  → Détail complet d'une annonce (public, en_ligne)
     - GET/PATCH /api/annonces/<uuid:pk>/ → Lecture/édition par son propriétaire
       (F03) — jamais scopé à en_ligne(), contrairement au détail public
@@ -38,9 +43,20 @@ from rest_framework.fields import ImageField as DRFImageField
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+# Import cross-app annonces -> messaging (sens inverse de l'existant
+# messaging -> annonces) : aucun cycle, les FK de messaging.models vers
+# annonces.Annonce sont déjà en référence string ('annonces.Annonce').
+from messaging.models import Conversation, Favori, Message
 
 from .models import Annonce, Parcelle, Photo
-from .serializers import AnnonceListSerializer, AnnonceDetailSerializer, AnnonceEcritureSerializer
+from .serializers import (
+    AnnonceListSerializer,
+    AnnonceDetailSerializer,
+    AnnonceEcritureSerializer,
+    MesStatistiquesSerializer,
+)
 
 
 # ──────────────────────────────────────────────
@@ -254,6 +270,58 @@ class MesAnnoncesListAPIView(generics.ListAPIView):
         )
 
 
+class MesStatistiquesAPIView(APIView):
+    """
+    GET /api/annonces/mes-annonces/statistiques/
+
+    Statistiques du dashboard propriétaire — favoris reçus, conversations
+    reçues, messages non lus. Volontairement PAS de décompte par statut
+    d'annonce ici (brouillon/en_ligne/archivee/vendue) : cette donnée est
+    déjà entièrement dérivable côté front depuis la réponse de
+    GET /mes-annonces/ (liste déjà chargée par le dashboard), la dupliquer
+    serait un aller-retour réseau pour rien.
+
+    4 requêtes simples, toutes indexées sur une FK (annonce/proprietaire,
+    conversation) — pas de N+1, pas de préchargement nécessaire :
+        - favoris_recus : Favori posés par d'autres sur les annonces de
+          l'utilisateur (sens inverse de GET /api/favoris/).
+        - conversations_recues : Conversation où l'utilisateur est le
+          propriétaire de l'annonce (exclut celles qu'il a lui-même
+          initiées en tant qu'acheteur — contrairement à
+          messaging.api_views._conversations_de(), qui mélange les deux rôles).
+        - messages_non_lus : Message non lus dans ces conversations, jamais
+          les messages de l'utilisateur lui-même (même filtre que
+          ConversationListSerializer.get_messages_non_lus(), en agrégat).
+    """
+
+    permission_classes = [IsAuthenticated]
+    # Jamais instancié par le framework (get() ci-dessous construit et
+    # remplit le serializer lui-même) — sert uniquement d'indice statique
+    # pour drf-spectacular, qui ne sait pas deviner le corps de réponse
+    # d'une APIView nue. Sans ça, l'endpoint apparaît dans Swagger sans
+    # schéma de réponse documenté.
+    serializer_class = MesStatistiquesSerializer
+
+    def get(self, request):
+        favoris_recus = Favori.objects.filter(
+            annonce__proprietaire=request.user
+        ).count()
+        conversations_recues = Conversation.objects.filter(
+            annonce__proprietaire=request.user
+        ).count()
+        messages_non_lus = Message.objects.filter(
+            conversation__annonce__proprietaire=request.user,
+            is_lu=False,
+        ).exclude(auteur=request.user).count()
+
+        serializer = MesStatistiquesSerializer({
+            'favoris_recus': favoris_recus,
+            'conversations_recues': conversations_recues,
+            'messages_non_lus': messages_non_lus,
+        })
+        return Response(serializer.data)
+
+
 # ──────────────────────────────────────────────
 # Permission propriétaire (F03)
 # ──────────────────────────────────────────────
@@ -322,6 +390,12 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
     http_method_names = ['get', 'patch', 'head', 'options']
 
     def get_queryset(self):
+        # PAS de select_related('parcelle__donnees_geo') : ParcelleEcritureSerializer
+        # peut créer/remplacer ce DonneesGeo pendant l'update() de la même
+        # requête (cf. _appliquer_contour) — un select_related le mettrait en
+        # cache AVANT cette mutation, et to_representation() renverrait alors
+        # l'ancien contour au lieu du nouveau. Requête supplémentaire
+        # négligeable ici (vue mono-objet, pas une liste).
         return (
             Annonce.objects
             .filter(proprietaire=self.request.user)

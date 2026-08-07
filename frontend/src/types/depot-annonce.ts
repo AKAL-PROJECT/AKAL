@@ -45,10 +45,11 @@ export type PhotoEcriture = {
   ordre: number;
 };
 
-// Statut manipulable par ce formulaire — seule la transition brouillon ->
-// en_ligne est autorisée côté serveur (validate_statut), archivee/vendue
-// sont hors périmètre F03.
-export type StatutBrouillon = "brouillon" | "en_ligne";
+// Statut manipulable par ce formulaire. brouillon/en_ligne : dépôt initial
+// (F03). archivee : édition d'une annonce archivée réintroduite pour la
+// RC (le PATCH contenu backend est déjà sans restriction de statut, cf.
+// AnnonceUpdateAPIView) — vendue reste hors périmètre, statut terminal.
+export type StatutBrouillon = "brouillon" | "en_ligne" | "archivee";
 
 export type AnnonceEcriture = {
   id: string;

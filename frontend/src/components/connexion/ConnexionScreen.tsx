@@ -2,8 +2,8 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Mail, Lock, Eye, EyeOff, Check } from "@/components/icons/Icons";
-import MoroccoMap from "@/components/connexion/MoroccoMap";
+import { Mail, Lock, Eye, EyeOff } from "@/components/icons/Icons";
+import AuthMapPanel from "@/components/connexion/AuthMapPanel";
 import { loginAction, type AuthFormState } from "@/app/actions/auth";
 
 const iconWrapStyle: React.CSSProperties = {
@@ -21,7 +21,13 @@ const inputBaseStyle: React.CSSProperties = {
   paddingLeft: 42,
 };
 
-export default function ConnexionScreen({ next }: { next: string }) {
+export default function ConnexionScreen({
+  next,
+  motDePasseReinitialise = false,
+}: {
+  next: string;
+  motDePasseReinitialise?: boolean;
+}) {
   const [showPassword, setShowPassword] = useState(false);
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(loginAction, null);
 
@@ -36,6 +42,8 @@ export default function ConnexionScreen({ next }: { next: string }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/uploads/akal-wordmark.svg" alt="AKAL" className="connexion-intro-word" style={{ height: 30, width: "auto" }} />
       </div>
+
+      <AuthMapPanel variant="mobile" />
 
       {/* Colonne formulaire */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box" }}>
@@ -63,6 +71,22 @@ export default function ConnexionScreen({ next }: { next: string }) {
             <span style={{ fontSize: 22, fontWeight: 500, color: "#2D6A4F" }}>Comparez.</span>
             <span style={{ fontSize: 22, fontWeight: 500, color: "#2D6A4F" }}>Investissez.</span>
           </div>
+
+          {motDePasseReinitialise && (
+            <p
+              className="akal-alert-in"
+              style={{
+                fontSize: 14,
+                color: "var(--color-foret)",
+                backgroundColor: "var(--color-rosee)",
+                borderRadius: "var(--radius-sm)",
+                padding: "10px 14px",
+                margin: "0 0 20px",
+              }}
+            >
+              Mot de passe réinitialisé. Connectez-vous avec votre nouveau mot de passe.
+            </p>
+          )}
 
           <form
             className="akal-rise"
@@ -100,11 +124,12 @@ export default function ConnexionScreen({ next }: { next: string }) {
                 <label htmlFor="connexion-password" style={{ fontSize: 12, letterSpacing: "0.5px", color: "#2D6A4F" }}>
                   Mot de passe
                 </label>
-                <span
-                  style={{ fontSize: 12, color: "#C4622D", cursor: "pointer", borderBottom: "1px solid rgba(196,98,45,0.35)", paddingBottom: 1 }}
+                <Link
+                  href="/mot-de-passe-oublie"
+                  style={{ fontSize: 12, color: "#C4622D", borderBottom: "1px solid rgba(196,98,45,0.35)", paddingBottom: 1 }}
                 >
                   Mot de passe oublié ?
-                </span>
+                </Link>
               </div>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <span style={iconWrapStyle}>
@@ -156,7 +181,7 @@ export default function ConnexionScreen({ next }: { next: string }) {
           <div className="akal-rise" style={{ marginTop: 24, fontSize: 14, color: "#2D6A4F", animationDelay: "0.34s" }}>
             Pas encore de compte ?{" "}
             <Link
-              href="/inscription"
+              href={next !== "/compte" ? `/inscription?next=${encodeURIComponent(next)}` : "/inscription"}
               style={{ color: "#C4622D", textDecoration: "none", borderBottom: "1px solid rgba(196,98,45,0.4)", paddingBottom: 1 }}
             >
               Créer un compte
@@ -165,82 +190,7 @@ export default function ConnexionScreen({ next }: { next: string }) {
         </div>
       </div>
 
-      {/* Colonne carte vivante */}
-      <div
-        className="connexion-map-col"
-        style={{
-          flex: 1,
-          minWidth: 0,
-          position: "relative",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 28,
-          padding: "44px 48px",
-          boxSizing: "border-box",
-          overflow: "hidden",
-          borderLeft: "1px solid rgba(45,106,79,0.12)",
-          background: "radial-gradient(115% 85% at 68% 32%, #EDF4EC 0%, #F6F2EB 52%, #F2ECE3 100%)",
-        }}
-      >
-        <svg
-          viewBox="0 0 600 760"
-          preserveAspectRatio="xMidYMid slice"
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.45, pointerEvents: "none" }}
-          fill="none"
-          stroke="#2D6A4F"
-          strokeOpacity={0.14}
-          strokeWidth={1.2}
-        >
-          <path d="M-40 210 C120 160 240 250 360 200 S560 130 660 190" />
-          <path d="M-40 250 C120 200 240 290 360 240 S560 170 660 230" />
-          <path d="M-40 300 C130 250 250 340 370 290 S570 220 660 285" />
-          <path d="M-40 360 C140 315 260 400 380 350 S580 285 660 350" />
-          <path d="M-40 430 C150 385 270 470 390 420 S590 355 660 420" />
-          <path d="M-40 510 C160 465 280 550 400 500 S600 435 660 500" />
-          <path d="M-40 590 C170 545 290 630 410 580 S610 515 660 580" />
-          <ellipse cx="410" cy="300" rx="150" ry="110" />
-          <ellipse cx="410" cy="300" rx="105" ry="76" />
-          <ellipse cx="410" cy="300" rx="62" ry="44" />
-        </svg>
-
-        <MoroccoMap />
-
-        <div
-          style={{
-            position: "relative",
-            display: "grid",
-            gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-            gap: 12,
-            width: "100%",
-            maxWidth: 420,
-          }}
-          className="akal-stat-in"
-        >
-          {/* Mêmes affirmations que la Home (app/page.tsx) — délibérément pas de
-              chiffre ni de capacité IA/satellite non disponible dans le MVP. */}
-          {["Statut foncier vérifié", "Sans intermédiaire", "Couverture nationale"].map((texte) => (
-            <div
-              key={texte}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                background: "rgba(255,255,255,0.7)",
-                border: "1px solid rgba(45,106,79,0.16)",
-                borderRadius: 12,
-                padding: "12px 16px",
-                boxShadow: "0 2px 10px rgba(27,58,45,0.05)",
-              }}
-            >
-              <span style={{ display: "flex", flexShrink: 0, color: "#2D6A4F" }}>
-                <Check size={18} strokeWidth={2} />
-              </span>
-              <span style={{ fontSize: 13, color: "#1B3A2D", fontWeight: 500 }}>{texte}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AuthMapPanel variant="desktop" />
     </div>
   );
 }
