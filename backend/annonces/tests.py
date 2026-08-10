@@ -47,6 +47,13 @@ def _polygone_carre(centre_lon, centre_lat, demi_cote=0.1):
 
 class AnnoncesTestBase(APITestCase):
     def setUp(self):
+        # De nombreux tests de ce module créent un utilisateur via
+        # self.authentifier() (vrai POST /api/auth/signup/) — sans ce reset,
+        # le scope 'signup' (5/hour, throttle go-live du 2026-08-10) est vite
+        # dépassé par le cumul des tests du fichier, jamais par un seul test
+        # isolément. Même précaution que accounts.tests.AuthTestCase pour
+        # 'login'.
+        cache.clear()
         self.client = APIClient(enforce_csrf_checks=True)
         self.region = Region.objects.create(id=1, code='fes-meknes', nom='Fès-Meknès')
         self.province = Province.objects.create(id=1, region=self.region, code='MEK', nom='Meknès')
