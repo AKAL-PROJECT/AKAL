@@ -1,0 +1,143 @@
+name: CI
+
+# Reproduit exactement les validations exécutées manuellement avant chaque
+# fusion depuis le chantier de consolidation du 2026-08-10 (cf. historique
+# git : chaque merge --no-ff dans main a été précédé de check +
+# makemigrations --check + tests côté backend, et de lint + tsc + tests +
+# build côté frontend). Cette CI ne fait qu'automatiser ce qui était déjà
+# fait à la main, rien de plus.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (Django)
+    runs-on: ubuntu-latest
+
+    # Postgres/PostGIS et Redis ont un support natif "services" (image +
+    # commande de démarrage par défaut suffisante). MinIO n'en a pas — son
+    # image ne démarre le serveur que si on lui passe explicitement la
+    # commande `server /data`, impossible à exprimer dans le bloc `services`
+    # (pas de clé `command`) — d'où un `docker run` manuel en step, calqué
+    # sur backend/docker-compose.yml (mêmes identifiants, même init de bucket
+    # via `mc`).
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: akal_user
+          POSTGRES_PASSWORD: akal_password
+          POSTGRES_DB: akal_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SECRET_KEY: ci-secret-key-jamais-utilisee-en-production
+      DJANGO_SETTINGS_MODULE: akal.settings.dev
+      DATABASE_URL: postgis://akal_user:akal_password@localhost:5432/akal_db
+      REDIS_URL: redis://localhost:6379/1
+      # Identifiants MinIO du docker-compose local (backend/docker-compose.yml)
+      # — jamais des secrets réels, MinIO ne sert que le bucket éphémère du run.
+      AWS_ACCESS_KEY_ID: akal
+      AWS_SECRET_ACCESS_KEY: akal12345
+      AWS_STORAGE_BUCKET_NAME: akal-media
+      AWS_S3_ENDPOINT_URL: http://localhost:9000
+      AWS_S3_REGION_NAME: us-east-1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Démarrer MinIO (même config que backend/docker-compose.yml)
+        run: |
+          docker run -d --name minio -p 9000:9000 -p 9001:9001 \
+            -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID \
+            -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
+            minio/minio server /data --console-address ":9001"
+
+      - name: Attendre MinIO puis créer le bucket (équivalent du service minio-init local)
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9000/minio/health/live && break
+            sleep 2
+          done
+          docker run --rm --network host minio/mc sh -c "
+            mc alias set local http://localhost:9000 $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY &&
+            mc mb --ignore-existing local/$AWS_STORAGE_BUCKET_NAME &&
+            mc anonymous set download local/$AWS_STORAGE_BUCKET_NAME
+          "
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dépendances système (GeoDjango / PostGIS — mêmes paquets que backend/Dockerfile)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils libproj-dev gdal-bin python3-gdal gcc libpq-dev
+
+      - name: Dépendances Python
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Django check
+        working-directory: backend
+        run: python manage.py check
+
+      - name: makemigrations --check --dry-run
+        working-directory: backend
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Tests
+        working-directory: backend
+        run: python manage.py test
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Dépendances
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: TypeScript
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
