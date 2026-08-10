@@ -35,7 +35,7 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Sum
 from django_filters import rest_framework as dj_filters
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -50,7 +50,7 @@ from rest_framework.views import APIView
 # annonces.Annonce sont déjà en référence string ('annonces.Annonce').
 from messaging.models import Conversation, Favori, Message
 
-from .models import Annonce, Parcelle, Photo
+from .models import Annonce, Parcelle, Photo, StatistiqueAnnonce
 from .serializers import (
     AnnonceListSerializer,
     AnnonceDetailSerializer,
@@ -275,13 +275,15 @@ class MesStatistiquesAPIView(APIView):
     GET /api/annonces/mes-annonces/statistiques/
 
     Statistiques du dashboard propriétaire — favoris reçus, conversations
-    reçues, messages non lus. Volontairement PAS de décompte par statut
-    d'annonce ici (brouillon/en_ligne/archivee/vendue) : cette donnée est
-    déjà entièrement dérivable côté front depuis la réponse de
-    GET /mes-annonces/ (liste déjà chargée par le dashboard), la dupliquer
-    serait un aller-retour réseau pour rien.
+    reçues, messages non lus, vues totales. Volontairement PAS de décompte
+    par statut d'annonce ici (brouillon/en_ligne/archivee/vendue) : cette
+    donnée est déjà entièrement dérivable côté front depuis la réponse de
+    GET /mes-annonces/ (liste déjà chargée par le dashboard, cf.
+    compte/annonces/page.tsx::calculerKpis() côté front) — la dupliquer
+    serait un aller-retour réseau pour rien (revérifié le 2026-08-10 avant
+    l'ajout de vues_totales ci-dessous : toujours vrai, décision reconduite).
 
-    4 requêtes simples, toutes indexées sur une FK (annonce/proprietaire,
+    5 requêtes simples, toutes indexées sur une FK (annonce/proprietaire,
     conversation) — pas de N+1, pas de préchargement nécessaire :
         - favoris_recus : Favori posés par d'autres sur les annonces de
           l'utilisateur (sens inverse de GET /api/favoris/).
@@ -292,6 +294,15 @@ class MesStatistiquesAPIView(APIView):
         - messages_non_lus : Message non lus dans ces conversations, jamais
           les messages de l'utilisateur lui-même (même filtre que
           ConversationListSerializer.get_messages_non_lus(), en agrégat).
+        - vues_totales : somme de StatistiqueAnnonce.vues sur toutes les
+          annonces de l'utilisateur. Ajout du 2026-08-10 — donnée réellement
+          nouvelle (pas dérivable de GET /mes-annonces/, contrairement au
+          décompte par statut ci-dessus) : StatistiqueAnnonce existe déjà en
+          base (modèle + admin) mais n'est encore incrémenté nulle part dans
+          le code — vaut donc 0 pour tout le monde tant qu'un mécanisme de
+          comptage de vues n'est pas construit ailleurs. Champ ajouté par
+          anticipation (forward-compatible), pas parce qu'il affiche déjà
+          une valeur utile aujourd'hui.
     """
 
     permission_classes = [IsAuthenticated]
@@ -313,11 +324,15 @@ class MesStatistiquesAPIView(APIView):
             conversation__annonce__proprietaire=request.user,
             is_lu=False,
         ).exclude(auteur=request.user).count()
+        vues_totales = StatistiqueAnnonce.objects.filter(
+            annonce__proprietaire=request.user,
+        ).aggregate(total=Sum('vues'))['total'] or 0
 
         serializer = MesStatistiquesSerializer({
             'favoris_recus': favoris_recus,
             'conversations_recues': conversations_recues,
             'messages_non_lus': messages_non_lus,
+            'vues_totales': vues_totales,
         })
         return Response(serializer.data)
 

@@ -35,13 +35,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from annonces.models import Annonce
-from .models import Conversation, Favori, Message
+from .models import Conversation, Favori, Message, Notification
 from .serializers import (
     ConversationListSerializer,
     EnvoyerMessageSerializer,
     EnvoyerReponseSerializer,
     FavoriSerializer,
     MessageSerializer,
+    NotificationSerializer,
 )
 
 
@@ -218,3 +219,52 @@ class FavoriToggleAPIView(APIView):
 
         Favori.objects.create(user=request.user, annonce=annonce)
         return Response({'is_favori': True, 'annonce': str(annonce.id)}, status=status.HTTP_201_CREATED)
+
+
+# ──────────────────────────────────────────────
+# Notifications
+# ──────────────────────────────────────────────
+
+class NotificationListAPIView(generics.ListAPIView):
+    """
+    GET /api/notifications/
+
+    Notifications du destinataire connecté, plus récentes d'abord (Meta.ordering
+    du modèle). Non paginé — même choix que /api/favoris/ (volume par
+    utilisateur toujours faible).
+    """
+
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return Notification.objects.filter(destinataire=self.request.user).select_related('annonce')
+
+
+class NotificationMarkLuAPIView(generics.UpdateAPIView):
+    """
+    PATCH /api/notifications/<uuid:pk>/  {"is_lu": true}
+
+    Marque une notification comme lue (ou non lue). Scoping par queryset
+    (même principe que ConversationMessagesAPIView.get_conversation()) : une
+    notification qui n'appartient pas au destinataire connecté n'existe
+    simplement pas de son point de vue → 404, jamais 403.
+    """
+
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['patch', 'head', 'options']
+
+    def get_queryset(self):
+        return Notification.objects.filter(destinataire=self.request.user)
+
+
+class NotificationMarkAllReadAPIView(APIView):
+    """POST /api/notifications/mark-all-read/ → marque toutes les notifications non lues comme lues."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        count = Notification.objects.filter(destinataire=request.user, is_lu=False).update(is_lu=True)
+        return Response({'detail': f"{count} notification(s) marquée(s) comme lue(s)."})

@@ -600,8 +600,15 @@ class MesStatistiquesSerializer(serializers.Serializer):
                              ConversationListSerializer.get_messages_non_lus()
                              dans messaging/serializers.py, mais en agrégat
                              global plutôt que par conversation).
+    vues_totales           → somme de StatistiqueAnnonce.vues sur toutes les
+                             annonces du propriétaire. Ajout du 2026-08-10 —
+                             vaut 0 pour tout le monde tant qu'aucun
+                             mécanisme n'incrémente StatistiqueAnnonce (le
+                             modèle existe déjà, mais rien ne l'alimente
+                             encore) ; champ ajouté par anticipation.
     """
 
     favoris_recus = serializers.IntegerField(read_only=True)
     conversations_recues = serializers.IntegerField(read_only=True)
     messages_non_lus = serializers.IntegerField(read_only=True)
+    vues_totales = serializers.IntegerField(read_only=True)

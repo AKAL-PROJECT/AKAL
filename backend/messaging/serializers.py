@@ -20,7 +20,7 @@ from rest_framework import serializers
 
 from annonces.models import Annonce
 from annonces.serializers import AnnonceListSerializer
-from .models import Conversation, Favori, Message
+from .models import Conversation, Favori, Message, Notification
 
 
 # ──────────────────────────────────────────────
@@ -238,3 +238,24 @@ class FavoriSerializer(serializers.ModelSerializer):
         model = Favori
         fields = ['id', 'annonce', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+
+# ──────────────────────────────────────────────
+# Notifications
+# ──────────────────────────────────────────────
+
+class NotificationSerializer(serializers.ModelSerializer):
+    """
+    Une notification (lecture ET écriture partielle) — seul `is_lu` est
+    modifiable (absent de `read_only_fields`), réutilisé tel quel par
+    NotificationListAPIView (lecture) et NotificationMarkLuAPIView (PATCH
+    `{"is_lu": true}`, cf. api_views.py) : ListAPIView n'appelle jamais
+    `.update()`, donc aucun risque qu'un GET laisse passer une écriture.
+    """
+
+    annonce_id = serializers.UUIDField(source='annonce.id', read_only=True, default=None)
+
+    class Meta:
+        model = Notification
+        fields = ['id', 'type_notif', 'titre', 'message', 'annonce_id', 'is_lu', 'created_at']
+        read_only_fields = ['id', 'type_notif', 'titre', 'message', 'annonce_id', 'created_at']

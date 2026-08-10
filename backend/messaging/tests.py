@@ -15,11 +15,13 @@ from rest_framework.test import APIClient, APITestCase
 from accounts.models import User
 from annonces.models import Annonce, Parcelle
 from geo.models import Commune, Province, Region
-from .models import Conversation, Favori
+from .models import Conversation, Favori, Notification
 
 CONVERSATIONS_URL = '/api/conversations/'
 FAVORIS_URL = '/api/favoris/'
 TOGGLE_URL = '/api/favoris/toggle/'
+NOTIFICATIONS_URL = '/api/notifications/'
+MARK_ALL_READ_URL = '/api/notifications/mark-all-read/'
 
 
 # ──────────────────────────────────────────────
@@ -463,3 +465,155 @@ class FavoriListTests(FavorisTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, [])
+
+
+# ──────────────────────────────────────────────
+# Notifications (signaux)
+# ──────────────────────────────────────────────
+
+class NotificationSignalsTests(MessagingTestBase):
+    """Les signaux (messaging/signals.py) créent la bonne Notification, pour le bon destinataire."""
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier('vendeur-notif@akal.ma')
+        self.client.logout()
+        self.annonce = self.creer_annonce(self.vendeur)
+        self.acheteur = self.authentifier('acheteur-notif@akal.ma')
+
+    def demarrer_conversation(self, contenu='Bonjour, toujours disponible ?'):
+        return self.client.post(
+            CONVERSATIONS_URL, {'annonce': str(self.annonce.id), 'contenu': contenu},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_demarrer_une_conversation_notifie_le_vendeur_deux_fois(self):
+        # Démarrer une conversation crée à la fois la Conversation ET le
+        # premier Message → deux notifications distinctes pour le vendeur
+        # (CONTACT_RECU puis NOUVEAU_MESSAGE) — comportement volontaire de
+        # signals.py, pas un doublon accidentel (cf. sa docstring).
+        self.demarrer_conversation('Bonjour !')
+
+        notifs = list(Notification.objects.filter(destinataire=self.vendeur).order_by('created_at'))
+        self.assertEqual(len(notifs), 2)
+        self.assertEqual(notifs[0].type_notif, Notification.TypeNotif.CONTACT_RECU)
+        self.assertEqual(notifs[1].type_notif, Notification.TypeNotif.NOUVEAU_MESSAGE)
+
+    def test_repondre_dans_un_fil_existant_ne_notifie_quune_fois(self):
+        self.demarrer_conversation('Premier message')
+        conversation = Conversation.objects.get(annonce=self.annonce, initiateur=self.acheteur)
+        Notification.objects.all().delete()  # isole l'effet de la réponse ci-dessous
+        self.se_connecter('vendeur-notif@akal.ma')
+
+        self.client.post(
+            self.messages_url(conversation.id), {'contenu': 'Réponse du vendeur'},
+            format='json', **self.csrf_headers(),
+        )
+
+        notifs = Notification.objects.filter(destinataire=self.acheteur)
+        self.assertEqual(notifs.count(), 1)
+        self.assertEqual(notifs.first().type_notif, Notification.TypeNotif.NOUVEAU_MESSAGE)
+
+    def test_favori_notifie_le_proprietaire(self):
+        self.client.force_authenticate(self.acheteur)
+
+        self.client.post(TOGGLE_URL, {'annonce': str(self.annonce.id)})
+
+        notifs = Notification.objects.filter(
+            destinataire=self.vendeur, type_notif=Notification.TypeNotif.NOUVEAU_FAVORI,
+        )
+        self.assertEqual(notifs.count(), 1)
+
+    def test_favori_sur_sa_propre_annonce_ne_notifie_personne(self):
+        self.client.force_authenticate(self.vendeur)
+
+        self.client.post(TOGGLE_URL, {'annonce': str(self.annonce.id)})
+
+        self.assertFalse(Notification.objects.filter(type_notif=Notification.TypeNotif.NOUVEAU_FAVORI).exists())
+
+    def test_retrait_dun_favori_ne_notifie_pas(self):
+        self.client.force_authenticate(self.acheteur)
+        self.client.post(TOGGLE_URL, {'annonce': str(self.annonce.id)})
+        Notification.objects.all().delete()
+
+        self.client.post(TOGGLE_URL, {'annonce': str(self.annonce.id)})  # retrait (toggle off)
+
+        self.assertFalse(Notification.objects.filter(type_notif=Notification.TypeNotif.NOUVEAU_FAVORI).exists())
+
+
+# ──────────────────────────────────────────────
+# Notifications (API)
+# ──────────────────────────────────────────────
+
+class NotificationAPITests(MessagingTestBase):
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier('vendeur-api-notif@akal.ma')
+        self.client.logout()
+        self.annonce = self.creer_annonce(self.vendeur)
+        self.acheteur = self.authentifier('acheteur-api-notif@akal.ma')
+        self.client.post(
+            CONVERSATIONS_URL, {'annonce': str(self.annonce.id), 'contenu': 'Bonjour !'},
+            format='json', **self.csrf_headers(),
+        )
+        # À ce stade, le vendeur a 2 notifications (contact_recu + nouveau_message),
+        # l'acheteur aucune — client encore authentifié en tant qu'acheteur.
+
+    def test_liste_requiert_authentification(self):
+        self.client.logout()
+
+        response = self.client.get(NOTIFICATIONS_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_liste_ne_retourne_que_les_notifications_du_destinataire(self):
+        self.se_connecter('vendeur-api-notif@akal.ma')
+
+        response = self.client.get(NOTIFICATIONS_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_acheteur_ne_voit_aucune_notification_du_vendeur(self):
+        response = self.client.get(NOTIFICATIONS_URL)  # toujours connecté en tant qu'acheteur
+
+        self.assertEqual(response.data, [])
+
+    def test_marquer_lue_scope_au_destinataire(self):
+        self.se_connecter('vendeur-api-notif@akal.ma')
+        notif = Notification.objects.filter(destinataire=self.vendeur).first()
+
+        response = self.client.patch(
+            f'{NOTIFICATIONS_URL}{notif.id}/', {'is_lu': True}, format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['is_lu'])
+        notif.refresh_from_db()
+        self.assertTrue(notif.is_lu)
+
+    def test_marquer_lue_notification_dautrui_retourne_404(self):
+        # Toujours connecté en tant qu'acheteur ici — la notification ciblée
+        # appartient au vendeur.
+        notif_du_vendeur = Notification.objects.filter(destinataire=self.vendeur).first()
+
+        response = self.client.patch(
+            f'{NOTIFICATIONS_URL}{notif_du_vendeur.id}/', {'is_lu': True}, format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_marquer_toutes_lues(self):
+        self.se_connecter('vendeur-api-notif@akal.ma')
+
+        response = self.client.post(MARK_ALL_READ_URL, **self.csrf_headers())
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Notification.objects.filter(destinataire=self.vendeur, is_lu=False).count(), 0)
+
+    def test_marquer_toutes_lues_requiert_authentification(self):
+        self.client.logout()
+
+        response = self.client.post(MARK_ALL_READ_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

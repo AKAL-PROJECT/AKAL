@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/conversations/', include('messaging.api_urls')),
     path('api/favoris/', include('messaging.urls')),
+    path('api/notifications/', include('messaging.notifications_urls')),
 
     # ── OpenAPI / Swagger (drf-spectacular) ──
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
