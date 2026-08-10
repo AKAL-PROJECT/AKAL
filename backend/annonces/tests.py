@@ -914,6 +914,85 @@ class PhotoUploadThrottleTests(AnnoncesTestBase):
         self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
 
+# ──────────────────────────────────────────────
+# Quota d'annonces actives (audit go-live du 2026-08-10)
+# ──────────────────────────────────────────────
+
+class AnnonceQuotaTests(AnnoncesTestBase):
+    """
+    POST /api/annonces/ — quota de 20 annonces actives (brouillon/en_attente/
+    en_ligne) par propriétaire, complément du throttling 'annonce_create'.
+
+    Les 20 annonces pré-existantes de chaque test sont créées directement en
+    base (jamais via l'API) : ça isole complètement ce test du throttling
+    'annonce_create' (20/hour, même chiffre par coïncidence — mélanger les
+    deux via l'API rendrait ambigu lequel des deux mécanismes bloque la
+    21e requête). Seule la requête réellement testée passe par l'API.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier()
+
+    def creer_annonces_en_base(self, n, statut):
+        for i in range(n):
+            parcelle = Parcelle.objects.create(
+                surface_ha=2.5, statut_foncier='melkia', acces_eau='irriguee',
+                topographie='plat', acces_routier='goudron',
+            )
+            Annonce.objects.create(
+                parcelle=parcelle, proprietaire=self.vendeur, titre=f'Annonce quota {i}',
+                description='Une description suffisamment longue pour être valide.',
+                prix_mad=100000, statut=statut,
+            )
+
+    def test_refuse_la_creation_au_dela_de_la_limite(self):
+        self.creer_annonces_en_base(20, Annonce.StatutAnnonce.BROUILLON)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_autorise_juste_sous_la_limite(self):
+        self.creer_annonces_en_base(19, Annonce.StatutAnnonce.BROUILLON)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_en_attente_et_en_ligne_comptent_aussi(self):
+        self.creer_annonces_en_base(10, Annonce.StatutAnnonce.EN_LIGNE)
+        self.creer_annonces_en_base(10, Annonce.StatutAnnonce.EN_ATTENTE)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_les_annonces_archivees_ne_comptent_pas(self):
+        self.creer_annonces_en_base(20, Annonce.StatutAnnonce.ARCHIVEE)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_les_annonces_vendues_ne_comptent_pas(self):
+        self.creer_annonces_en_base(20, Annonce.StatutAnnonce.VENDUE)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_quota_isole_par_utilisateur(self):
+        self.creer_annonces_en_base(20, Annonce.StatutAnnonce.BROUILLON)
+        epuise = self.creer_brouillon()
+        self.assertEqual(epuise.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.client.logout()
+        self.authentifier(email='autre-vendeur-quota@akal.ma')
+        autre = self.creer_brouillon()
+        self.assertEqual(autre.status_code, status.HTTP_201_CREATED)
+
+
 class TransitionsAutoriseesTests(SimpleTestCase):
     """Tests purs sur annonces/transitions.py — sans base de données."""
 

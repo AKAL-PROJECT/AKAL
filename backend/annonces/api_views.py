@@ -169,6 +169,21 @@ class AnnoncePagination(PageNumberPagination):
 # Vues API
 # ──────────────────────────────────────────────
 
+# Quota d'annonces actives par propriétaire (audit go-live du 2026-08-10,
+# complément du throttling 'annonce_create' ci-dessous — deux protections
+# indépendantes : le throttle borne le débit de création, le quota borne le
+# stock accumulé). Compte brouillon + en_attente + en_ligne uniquement,
+# jamais archivee/vendue (décision produit du 2026-08-10) : une annonce
+# vendue ou archivée n'est plus un risque d'abus actif, un vendeur qui a
+# conclu des ventes ne doit pas être bloqué pour en déposer de nouvelles.
+MAX_ANNONCES_ACTIVES = 20
+STATUTS_ANNONCES_ACTIVES = (
+    Annonce.StatutAnnonce.BROUILLON,
+    Annonce.StatutAnnonce.EN_ATTENTE,
+    Annonce.StatutAnnonce.EN_LIGNE,
+)
+
+
 class AnnonceListCreateAPIView(generics.ListCreateAPIView):
     """
     GET  /api/annonces/  → Liste paginée des annonces en ligne avec filtres et tri.
@@ -231,6 +246,20 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
         )
 
     def perform_create(self, serializer):
+        # Quota vérifié AVANT toute écriture (cf. MAX_ANNONCES_ACTIVES
+        # ci-dessus) — jamais de création partielle suivie d'un rejet.
+        annonces_actives = Annonce.objects.filter(
+            proprietaire=self.request.user, statut__in=STATUTS_ANNONCES_ACTIVES,
+        ).count()
+        if annonces_actives >= MAX_ANNONCES_ACTIVES:
+            raise serializers.ValidationError({
+                'detail': (
+                    f"Vous avez atteint la limite de {MAX_ANNONCES_ACTIVES} annonces actives ou en "
+                    "brouillon. Archivez, publiez ou supprimez une annonce existante avant d'en "
+                    "déposer une nouvelle."
+                ),
+            })
+
         annonce = serializer.save(proprietaire=self.request.user)
         if self.request.user.role != self.request.user.Role.VENDEUR:
             self.request.user.role = self.request.user.Role.VENDEUR
