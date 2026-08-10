@@ -19,7 +19,7 @@ from accounts.models import User
 from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
 from messaging.models import Conversation, Favori, Message
 from . import transitions
-from .models import Annonce, Parcelle, Photo
+from .models import Annonce, Parcelle, Photo, StatistiqueAnnonce
 
 ANNONCES_URL = '/api/annonces/'
 
@@ -671,10 +671,11 @@ class MesAnnoncesTests(AnnoncesTestBase):
 class MesStatistiquesTests(AnnoncesTestBase):
     """
     GET /api/annonces/mes-annonces/statistiques/ — favoris/conversations
-    reçus, messages non lus (dashboard propriétaire). Les fixtures Favori/
-    Conversation/Message sont créées directement en base (comme
-    MessagingTestBase.creer_annonce) plutôt que via l'API : ce endpoint
-    n'agrège que des compteurs, peu importe comment les lignes sont nées.
+    reçus, messages non lus, vues totales (dashboard propriétaire). Les
+    fixtures Favori/Conversation/Message/StatistiqueAnnonce sont créées
+    directement en base (comme MessagingTestBase.creer_annonce) plutôt que
+    via l'API : ce endpoint n'agrège que des compteurs, peu importe comment
+    les lignes sont nées.
     """
 
     def setUp(self):
@@ -716,7 +717,7 @@ class MesStatistiquesTests(AnnoncesTestBase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {
-            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
+            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0, 'vues_totales': 0,
         })
 
     def test_compte_les_favoris_recus_sur_ses_annonces(self):
@@ -786,8 +787,32 @@ class MesStatistiquesTests(AnnoncesTestBase):
         # Toute l'activité créée ci-dessus porte sur l'annonce du vendeur A,
         # pas du vendeur B connecté ici — rien ne doit lui être attribué.
         self.assertEqual(response.data, {
-            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
+            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0, 'vues_totales': 0,
         })
+
+    def test_somme_les_vues_de_toutes_ses_annonces(self):
+        vendeur = self.authentifier('vendeur@akal.ma')
+        annonce_a = self.creer_annonce_en_ligne(vendeur, titre='Annonce A')
+        annonce_b = self.creer_annonce_en_ligne(vendeur, titre='Annonce B')
+        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-01', vues=3)
+        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-02', vues=2)
+        StatistiqueAnnonce.objects.create(annonce=annonce_b, date='2026-08-01', vues=5)
+
+        response = self.statistiques()
+
+        self.assertEqual(response.data['vues_totales'], 10)
+
+    def test_n_inclut_pas_les_vues_dun_autre_proprietaire(self):
+        vendeur_a = self.authentifier('vendeur-a@akal.ma')
+        annonce_a = self.creer_annonce_en_ligne(vendeur_a)
+        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-01', vues=7)
+        self.client.logout()
+        vendeur_b = self.authentifier('vendeur-b@akal.ma')
+        self.creer_annonce_en_ligne(vendeur_b, titre='Annonce du vendeur B')
+
+        response = self.statistiques()
+
+        self.assertEqual(response.data['vues_totales'], 0)
 
 
 class TransitionsAutoriseesTests(SimpleTestCase):

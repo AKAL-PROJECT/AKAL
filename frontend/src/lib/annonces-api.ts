@@ -130,19 +130,26 @@ export type MesStatistiquesDTO = {
   favoris_recus: number;
   conversations_recues: number;
   messages_non_lus: number;
+  // Ajout du 2026-08-10 — somme des vues sur toutes les annonces du
+  // propriétaire. Vaut 0 pour tout le monde tant qu'aucun mécanisme ne
+  // compte réellement les vues côté backend (StatistiqueAnnonce existe en
+  // base mais n'est encore incrémenté nulle part) : champ typé par
+  // anticipation, pas encore affiché dans une carte KPI ici.
+  vues_totales: number;
 };
 
-// Favoris/conversations reçus, messages non lus (dashboard propriétaire) —
-// tout à 0 si non authentifié ou en cas d'échec, même convention que
-// getMesAnnonces() ci-dessus (bloc de stats non bloquant, jamais de throw).
-// Appelée uniquement par app/compte/annonces/page.tsx (Server Component) :
-// PAS de fetchWithAuth, même raison que getMesAnnonces() ci-dessus.
+// Favoris/conversations reçus, messages non lus, vues totales (dashboard
+// propriétaire) — tout à 0 si non authentifié ou en cas d'échec, même
+// convention que getMesAnnonces() ci-dessus (bloc de stats non bloquant,
+// jamais de throw). Appelée uniquement par app/compte/annonces/page.tsx
+// (Server Component) : PAS de fetchWithAuth, même raison que
+// getMesAnnonces() ci-dessus.
 export async function getMesStatistiques(): Promise<MesStatistiquesDTO> {
   const res = await fetch(`${API_URL}/annonces/mes-annonces/statistiques/`, {
     headers: { Cookie: await cookieHeader() },
     cache: "no-store",
   });
-  if (!res.ok) return { favoris_recus: 0, conversations_recues: 0, messages_non_lus: 0 };
+  if (!res.ok) return { favoris_recus: 0, conversations_recues: 0, messages_non_lus: 0, vues_totales: 0 };
   return (await res.json()) as MesStatistiquesDTO;
 }
 
