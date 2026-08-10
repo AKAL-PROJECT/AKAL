@@ -822,6 +822,98 @@ class MesStatistiquesTests(AnnoncesTestBase):
         self.assertEqual(response.data['vues_totales'], 0)
 
 
+# ──────────────────────────────────────────────
+# Throttling — annonce_create / photo_upload (audit go-live du 2026-08-10)
+# ──────────────────────────────────────────────
+
+class AnnonceCreateThrottleTests(AnnoncesTestBase):
+    """POST /api/annonces/ — scope 'annonce_create' (20/hour)."""
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+
+    def test_throttled_after_twenty_creations(self):
+        for _ in range(20):
+            self.creer_brouillon()
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_throttle_isole_par_utilisateur(self):
+        for _ in range(20):
+            self.creer_brouillon()
+        epuise = self.creer_brouillon()
+        self.assertEqual(epuise.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Un deuxième utilisateur n'a jamais consommé son propre quota.
+        self.client.logout()
+        self.authentifier(email='autre-vendeur@akal.ma')
+        autre = self.creer_brouillon()
+        self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+class PhotoUploadThrottleTests(AnnoncesTestBase):
+    """
+    PATCH /api/annonces/<uuid>/ avec photos[] — scope 'photo_upload' (30/hour).
+
+    Une seule annonce créée en setUp (pas une par tentative) : ça évite tout
+    croisement avec le scope 'annonce_create' (20/hour) — MAX_PHOTOS_PAR_ANNONCE
+    (10) sera dépassé en boucle et rejeté en 400 après la 10e, mais ça n'a
+    aucune importance ici : le throttle compte la requête, jamais le résultat
+    métier (même logique que SignupThrottleTests sur un email dupliqué).
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def patcher_avec_photo(self):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+
+    def test_throttled_after_thirty_uploads(self):
+        for _ in range(30):
+            self.patcher_avec_photo()
+
+        response = self.patcher_avec_photo()
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_edition_de_contenu_sans_photo_nest_jamais_comptee(self):
+        # Le point d'attention explicite de ce lot : une édition de contenu
+        # pure (titre, prix...) sur ce même endpoint ne doit JAMAIS consommer
+        # le quota 'photo_upload', même largement au-delà de sa limite (30) —
+        # seul un upload avec des photos réelles peut coûter du stockage.
+        for _ in range(35):
+            response = self.client.patch(
+                f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Titre modifié'},
+                format='json', **self.csrf_headers(),
+            )
+            self.assertNotEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_throttle_isole_par_utilisateur(self):
+        for _ in range(30):
+            self.patcher_avec_photo()
+        epuise = self.patcher_avec_photo()
+        self.assertEqual(epuise.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Un deuxième utilisateur, sur sa propre annonce, n'a jamais consommé
+        # son propre quota.
+        self.client.logout()
+        self.authentifier(email='autre-vendeur-photo@akal.ma')
+        autre_annonce_id = self.creer_brouillon().data['id']
+        autre = self.client.patch(
+            f'{ANNONCES_URL}{autre_annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
 class TransitionsAutoriseesTests(SimpleTestCase):
     """Tests purs sur annonces/transitions.py — sans base de données."""
 
