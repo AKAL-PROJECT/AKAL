@@ -32,3 +32,20 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+# HSTS (audit go-live du 2026-08-10) — force le navigateur à toujours
+# revenir en HTTPS sur ce domaine, même si un lien/favori HTTP traîne
+# quelque part. Sans danger à activer directement à la valeur max ici :
+# SECURE_SSL_REDIRECT est déjà inconditionnel ci-dessus (toute requête HTTP
+# est de toute façon redirigée), HSTS ne fait que renforcer une politique
+# déjà en place, pas en introduire une nouvelle.
+# SECURE_HSTS_PRELOAD ajoute seulement l'indicateur `preload` dans l'en-tête
+# — ça n'inscrit PAS automatiquement le domaine dans la liste de préchargement
+# des navigateurs (Chromium et consorts) : cette étape est un envoi manuel,
+# séparé et volontaire sur https://hstspreload.org, jamais faite depuis ce
+# fichier. Décision de la faire ou non laissée à plus tard, une fois le
+# domaine réellement en production depuis un moment (le retrait d'un domaine
+# de cette liste est lent, mieux vaut ne le soumettre qu'une fois confiant).
+SECURE_HSTS_SECONDS = 31536000  # 1 an
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
