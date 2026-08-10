@@ -47,6 +47,13 @@ def _polygone_carre(centre_lon, centre_lat, demi_cote=0.1):
 
 class AnnoncesTestBase(APITestCase):
     def setUp(self):
+        # De nombreux tests de ce module créent un utilisateur via
+        # self.authentifier() (vrai POST /api/auth/signup/) — sans ce reset,
+        # le scope 'signup' (5/hour, throttle go-live du 2026-08-10) est vite
+        # dépassé par le cumul des tests du fichier, jamais par un seul test
+        # isolément. Même précaution que accounts.tests.AuthTestCase pour
+        # 'login'.
+        cache.clear()
         self.client = APIClient(enforce_csrf_checks=True)
         self.region = Region.objects.create(id=1, code='fes-meknes', nom='Fès-Meknès')
         self.province = Province.objects.create(id=1, region=self.region, code='MEK', nom='Meknès')
@@ -813,6 +820,177 @@ class MesStatistiquesTests(AnnoncesTestBase):
         response = self.statistiques()
 
         self.assertEqual(response.data['vues_totales'], 0)
+
+
+# ──────────────────────────────────────────────
+# Throttling — annonce_create / photo_upload (audit go-live du 2026-08-10)
+# ──────────────────────────────────────────────
+
+class AnnonceCreateThrottleTests(AnnoncesTestBase):
+    """POST /api/annonces/ — scope 'annonce_create' (20/hour)."""
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+
+    def test_throttled_after_twenty_creations(self):
+        for _ in range(20):
+            self.creer_brouillon()
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_throttle_isole_par_utilisateur(self):
+        for _ in range(20):
+            self.creer_brouillon()
+        epuise = self.creer_brouillon()
+        self.assertEqual(epuise.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Un deuxième utilisateur n'a jamais consommé son propre quota.
+        self.client.logout()
+        self.authentifier(email='autre-vendeur@akal.ma')
+        autre = self.creer_brouillon()
+        self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+class PhotoUploadThrottleTests(AnnoncesTestBase):
+    """
+    PATCH /api/annonces/<uuid>/ avec photos[] — scope 'photo_upload' (30/hour).
+
+    Une seule annonce créée en setUp (pas une par tentative) : ça évite tout
+    croisement avec le scope 'annonce_create' (20/hour) — MAX_PHOTOS_PAR_ANNONCE
+    (10) sera dépassé en boucle et rejeté en 400 après la 10e, mais ça n'a
+    aucune importance ici : le throttle compte la requête, jamais le résultat
+    métier (même logique que SignupThrottleTests sur un email dupliqué).
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def patcher_avec_photo(self):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+
+    def test_throttled_after_thirty_uploads(self):
+        for _ in range(30):
+            self.patcher_avec_photo()
+
+        response = self.patcher_avec_photo()
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_edition_de_contenu_sans_photo_nest_jamais_comptee(self):
+        # Le point d'attention explicite de ce lot : une édition de contenu
+        # pure (titre, prix...) sur ce même endpoint ne doit JAMAIS consommer
+        # le quota 'photo_upload', même largement au-delà de sa limite (30) —
+        # seul un upload avec des photos réelles peut coûter du stockage.
+        for _ in range(35):
+            response = self.client.patch(
+                f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Titre modifié'},
+                format='json', **self.csrf_headers(),
+            )
+            self.assertNotEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_throttle_isole_par_utilisateur(self):
+        for _ in range(30):
+            self.patcher_avec_photo()
+        epuise = self.patcher_avec_photo()
+        self.assertEqual(epuise.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Un deuxième utilisateur, sur sa propre annonce, n'a jamais consommé
+        # son propre quota.
+        self.client.logout()
+        self.authentifier(email='autre-vendeur-photo@akal.ma')
+        autre_annonce_id = self.creer_brouillon().data['id']
+        autre = self.client.patch(
+            f'{ANNONCES_URL}{autre_annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+# ──────────────────────────────────────────────
+# Quota d'annonces actives (audit go-live du 2026-08-10)
+# ──────────────────────────────────────────────
+
+class AnnonceQuotaTests(AnnoncesTestBase):
+    """
+    POST /api/annonces/ — quota de 20 annonces actives (brouillon/en_attente/
+    en_ligne) par propriétaire, complément du throttling 'annonce_create'.
+
+    Les 20 annonces pré-existantes de chaque test sont créées directement en
+    base (jamais via l'API) : ça isole complètement ce test du throttling
+    'annonce_create' (20/hour, même chiffre par coïncidence — mélanger les
+    deux via l'API rendrait ambigu lequel des deux mécanismes bloque la
+    21e requête). Seule la requête réellement testée passe par l'API.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier()
+
+    def creer_annonces_en_base(self, n, statut):
+        for i in range(n):
+            parcelle = Parcelle.objects.create(
+                surface_ha=2.5, statut_foncier='melkia', acces_eau='irriguee',
+                topographie='plat', acces_routier='goudron',
+            )
+            Annonce.objects.create(
+                parcelle=parcelle, proprietaire=self.vendeur, titre=f'Annonce quota {i}',
+                description='Une description suffisamment longue pour être valide.',
+                prix_mad=100000, statut=statut,
+            )
+
+    def test_refuse_la_creation_au_dela_de_la_limite(self):
+        self.creer_annonces_en_base(20, Annonce.StatutAnnonce.BROUILLON)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_autorise_juste_sous_la_limite(self):
+        self.creer_annonces_en_base(19, Annonce.StatutAnnonce.BROUILLON)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_en_attente_et_en_ligne_comptent_aussi(self):
+        self.creer_annonces_en_base(10, Annonce.StatutAnnonce.EN_LIGNE)
+        self.creer_annonces_en_base(10, Annonce.StatutAnnonce.EN_ATTENTE)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_les_annonces_archivees_ne_comptent_pas(self):
+        self.creer_annonces_en_base(20, Annonce.StatutAnnonce.ARCHIVEE)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_les_annonces_vendues_ne_comptent_pas(self):
+        self.creer_annonces_en_base(20, Annonce.StatutAnnonce.VENDUE)
+
+        response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_quota_isole_par_utilisateur(self):
+        self.creer_annonces_en_base(20, Annonce.StatutAnnonce.BROUILLON)
+        epuise = self.creer_brouillon()
+        self.assertEqual(epuise.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.client.logout()
+        self.authentifier(email='autre-vendeur-quota@akal.ma')
+        autre = self.creer_brouillon()
+        self.assertEqual(autre.status_code, status.HTTP_201_CREATED)
 
 
 class TransitionsAutoriseesTests(SimpleTestCase):

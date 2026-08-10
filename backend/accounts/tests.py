@@ -225,6 +225,53 @@ class LoginThrottleTests(AuthTestCase):
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
 
+class SignupThrottleTests(AuthTestCase):
+    """
+    GET /api/auth/signup/ — scope 'signup' (5/hour), en plus du plancher
+    global 'anon' (audit go-live du 2026-08-10). Même principe que
+    LoginThrottleTests : peu importe que chaque tentative réussisse ou
+    échoue (email dupliqué, validation...), toutes comptent pour le quota.
+    """
+
+    def payload(self, email='throttle-signup@akal.ma'):
+        return {
+            'email': email, 'password': 'un-mot-de-passe-solide-2026',
+            'nom': 'Test', 'prenom': 'Throttle',
+        }
+
+    def test_signup_is_throttled_after_five_attempts(self):
+        for _ in range(5):
+            self.client.post(SIGNUP_URL, self.payload())
+
+        response = self.client.post(SIGNUP_URL, self.payload())
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_throttle_isole_par_adresse_ip(self):
+        # Épuise le quota d'une première IP...
+        for _ in range(5):
+            self.client.post(SIGNUP_URL, self.payload(), REMOTE_ADDR='10.0.0.1')
+        epuise = self.client.post(SIGNUP_URL, self.payload(), REMOTE_ADDR='10.0.0.1')
+        self.assertEqual(epuise.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # ... une deuxième IP n'a jamais consommé son propre quota : jamais
+        # 429 pour elle, quel que soit l'état de la première (isolation).
+        autre = self.client.post(
+            SIGNUP_URL, self.payload(email='autre-ip@akal.ma'), REMOTE_ADDR='10.0.0.2',
+        )
+        self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_endpoint_public_reste_accessible_sous_la_limite(self):
+        # Sanity check du plancher global 'anon' (1000/hour) : un petit
+        # nombre de requêtes anonymes sur un endpoint public non scopé (ici
+        # /api/auth/me/, qui ne dépend d'aucun état applicatif préalable)
+        # ne doit jamais être bloqué — le throttle global est un filet
+        # anti-abus grossier, pas une gêne pour un usage normal.
+        for _ in range(5):
+            response = self.client.get(ME_URL)
+            self.assertNotEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
 class PasswordResetTests(AuthTestCase):
     def setUp(self):
         super().setUp()

@@ -32,6 +32,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
 from annonces.models import Annonce
@@ -66,9 +67,19 @@ class ConversationListCreateAPIView(generics.ListCreateAPIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    # Lu par ScopedRateThrottle sur POST uniquement (cf. get_throttles) —
+    # démarrer un contact est un envoi de message au sens throttling (audit
+    # go-live du 2026-08-10), même scope que la réponse dans un fil existant
+    # (ConversationMessagesAPIView).
+    throttle_scope = 'message'
 
     def get_serializer_class(self):
         return EnvoyerMessageSerializer if self.request.method == 'POST' else ConversationListSerializer
+
+    def get_throttles(self):
+        if self.request.method == 'POST':
+            return [UserRateThrottle(), ScopedRateThrottle()]
+        return [UserRateThrottle()]
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
@@ -109,6 +120,15 @@ class ConversationMessagesAPIView(generics.ListCreateAPIView):
 
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
+    # Même scope 'message' que ConversationListCreateAPIView.POST — répondre
+    # dans un fil existant est le même vecteur d'abus (spam) que démarrer un
+    # nouveau contact.
+    throttle_scope = 'message'
+
+    def get_throttles(self):
+        if self.request.method == 'POST':
+            return [UserRateThrottle(), ScopedRateThrottle()]
+        return [UserRateThrottle()]
 
     def get_conversation(self):
         # Scoping par queryset (comme AnnonceUpdateAPIView) : un fil auquel

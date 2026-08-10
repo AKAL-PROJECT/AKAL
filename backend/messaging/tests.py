@@ -617,3 +617,58 @@ class NotificationAPITests(MessagingTestBase):
         response = self.client.post(MARK_ALL_READ_URL)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+# ──────────────────────────────────────────────
+# Throttling — message (audit go-live du 2026-08-10)
+# ──────────────────────────────────────────────
+
+class MessageThrottleTests(MessagingTestBase):
+    """
+    Scope 'message' (40/hour), partagé entre POST /api/conversations/
+    (démarrer un contact) et POST .../messages/ (répondre) — même vecteur
+    de spam. Testé ici via le premier, get_or_create() rend la répétition
+    du même appel sûre (ajoute un message au même fil, ne recrée jamais de
+    conversation, cf. EnvoyerMessageSerializer).
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier('vendeur-throttle@akal.ma')
+        self.client.logout()
+        self.annonce = self.creer_annonce(self.vendeur)
+        self.acheteur = self.authentifier('acheteur-throttle@akal.ma')
+
+    def demarrer(self):
+        return self.client.post(
+            CONVERSATIONS_URL, {'annonce': str(self.annonce.id), 'contenu': 'Bonjour !'},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_throttled_after_forty_messages(self):
+        for _ in range(40):
+            self.demarrer()
+
+        response = self.demarrer()
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_throttle_isole_par_utilisateur(self):
+        for _ in range(40):
+            self.demarrer()
+        epuise = self.demarrer()
+        self.assertEqual(epuise.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Un deuxième acheteur, sur une autre annonce, n'a jamais consommé
+        # son propre quota.
+        self.client.logout()
+        autre_vendeur = self.authentifier('vendeur-isolation@akal.ma')
+        self.client.logout()
+        autre_annonce = self.creer_annonce(autre_vendeur, titre='Autre parcelle')
+        self.authentifier('acheteur-isolation@akal.ma')
+
+        autre = self.client.post(
+            CONVERSATIONS_URL, {'annonce': str(autre_annonce.id), 'contenu': 'Bonjour !'},
+            format='json', **self.csrf_headers(),
+        )
+        self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)

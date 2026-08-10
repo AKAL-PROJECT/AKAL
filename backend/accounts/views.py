@@ -21,7 +21,7 @@ from django.utils.http import urlsafe_base64_encode
 from rest_framework import exceptions, generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -67,10 +67,20 @@ def _clear_auth_cookies(response):
 
 
 class SignupView(generics.CreateAPIView):
-    """Inscription publique. Rôle limité à VENDEUR/ACHETEUR (cf. serializer)."""
+    """
+    Inscription publique. Rôle limité à VENDEUR/ACHETEUR (cf. serializer).
+
+    Throttle (audit go-live du 2026-08-10) : AnonRateThrottle applique le
+    plancher global ('anon'), ScopedRateThrottle applique en plus la limite
+    serrée 'signup' — la création de compte est l'endpoint public en
+    écriture le moins cher à abuser (aucune donnée requise hors email/mdp),
+    donc le plus exposé à un script en boucle.
+    """
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [AnonRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'signup'
     serializer_class = SignupSerializer
 
     def create(self, request, *args, **kwargs):

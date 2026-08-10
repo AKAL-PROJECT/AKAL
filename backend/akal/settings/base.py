@@ -221,9 +221,40 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'accounts.authentication.CookieJWTAuthentication',
     ],
+    # ──────────────────────────────────────────────
+    # Rate-limiting (audit go-live du 2026-08-10) — deux niveaux :
+    #   1. Un plancher global (anon/user) sur TOUS les endpoints, y compris
+    #      ceux qui n'ont jamais été explicitement pensés pour ça (référentiel
+    #      geo, catalogue, favoris...) — filet de sécurité, pas une limite
+    #      métier fine. anon est volontairement plus permissif qu'un vrai
+    #      anti-scraping : bloquer un abus grossier (script en boucle serrée),
+    #      pas gêner un parcours de navigation normal (pagination, filtres).
+    #   2. Des scopes métier serrés sur les actions d'écriture les plus
+    #      sensibles (signup, dépôt d'annonce, upload photo, envoi de
+    #      message) — cf. chaque vue pour le throttle_scope appliqué.
+    # Valeurs de départ, à ajuster avec de la vraie donnée de trafic une fois
+    # en prod — pas des constantes gravées dans le marbre.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
     'DEFAULT_THROTTLE_RATES': {
+        # anon/user volontairement larges : ce sont des planchers globaux
+        # (filet anti-script-en-boucle), pas des limites métier précises —
+        # celles-ci vivent dans les scopes ci-dessous. Des valeurs trop
+        # serrées ici feraient plus de dégâts que de bien : elles finiraient
+        # par déclencher sur un simple parcours de navigation normal (ou,
+        # en test, sur le volume cumulé de la suite — le test client Django
+        # partage la même IP 127.0.0.1 pour toute la suite, donc un seuil
+        # anon trop bas romprait des tests sans rapport avec le throttling).
+        'anon': '1000/hour',
+        'user': '5000/hour',
         'login': '5/min',
         'password_reset': '3/hour',
+        'signup': '5/hour',
+        'annonce_create': '20/hour',
+        'photo_upload': '30/hour',
+        'message': '40/hour',
     },
 }
 

@@ -43,6 +43,7 @@ from rest_framework.fields import ImageField as DRFImageField
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
 # Import cross-app annonces -> messaging (sens inverse de l'existant
@@ -168,6 +169,21 @@ class AnnoncePagination(PageNumberPagination):
 # Vues API
 # ──────────────────────────────────────────────
 
+# Quota d'annonces actives par propriétaire (audit go-live du 2026-08-10,
+# complément du throttling 'annonce_create' ci-dessous — deux protections
+# indépendantes : le throttle borne le débit de création, le quota borne le
+# stock accumulé). Compte brouillon + en_attente + en_ligne uniquement,
+# jamais archivee/vendue (décision produit du 2026-08-10) : une annonce
+# vendue ou archivée n'est plus un risque d'abus actif, un vendeur qui a
+# conclu des ventes ne doit pas être bloqué pour en déposer de nouvelles.
+MAX_ANNONCES_ACTIVES = 20
+STATUTS_ANNONCES_ACTIVES = (
+    Annonce.StatutAnnonce.BROUILLON,
+    Annonce.StatutAnnonce.EN_ATTENTE,
+    Annonce.StatutAnnonce.EN_LIGNE,
+)
+
+
 class AnnonceListCreateAPIView(generics.ListCreateAPIView):
     """
     GET  /api/annonces/  → Liste paginée des annonces en ligne avec filtres et tri.
@@ -196,6 +212,9 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
         dj_filters.DjangoFilterBackend,
     ]
     ordering = ['-date_publication']  # Tri par défaut (liste)
+    # Lu uniquement par ScopedRateThrottle sur POST (cf. get_throttles) — sans
+    # effet sur GET, qui reste sur le plancher global anon/user par défaut.
+    throttle_scope = 'annonce_create'
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -206,6 +225,15 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
         if self.request.method == 'POST':
             return [IsAuthenticated()]
         return [permissions.AllowAny()]
+
+    def get_throttles(self):
+        # Audit go-live du 2026-08-10 : un dépôt d'annonce illimité permet de
+        # spammer le catalogue (brouillons jamais publiés, mais visibles du
+        # propriétaire, stockés indéfiniment) — scope dédié en plus du
+        # plancher générique 'user'. GET reste public, jamais concerné.
+        if self.request.method == 'POST':
+            return [UserRateThrottle(), ScopedRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         if self.request.method == 'POST':
@@ -218,6 +246,20 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
         )
 
     def perform_create(self, serializer):
+        # Quota vérifié AVANT toute écriture (cf. MAX_ANNONCES_ACTIVES
+        # ci-dessus) — jamais de création partielle suivie d'un rejet.
+        annonces_actives = Annonce.objects.filter(
+            proprietaire=self.request.user, statut__in=STATUTS_ANNONCES_ACTIVES,
+        ).count()
+        if annonces_actives >= MAX_ANNONCES_ACTIVES:
+            raise serializers.ValidationError({
+                'detail': (
+                    f"Vous avez atteint la limite de {MAX_ANNONCES_ACTIVES} annonces actives ou en "
+                    "brouillon. Archivez, publiez ou supprimez une annonce existante avant d'en "
+                    "déposer une nouvelle."
+                ),
+            })
+
         annonce = serializer.save(proprietaire=self.request.user)
         if self.request.user.role != self.request.user.Role.VENDEUR:
             self.request.user.role = self.request.user.Role.VENDEUR
@@ -362,6 +404,31 @@ MAX_PHOTO_OCTETS = 2 * 1024 * 1024  # 2 Mo
 MAX_PHOTOS_PAR_ANNONCE = 10
 
 
+class PhotoUploadRateThrottle(ScopedRateThrottle):
+    """
+    Scope 'photo_upload' (audit go-live du 2026-08-10) — une photo coûte du
+    stockage S3/MinIO réel (jusqu'à 2 Mo × 10 par annonce) même déposée par
+    un compte authentifié et légitime : c'est le vecteur d'abus le plus
+    cher de toute l'API, pas seulement un problème de volume de requêtes.
+    D'où un scope dédié, plus strict que le plancher générique 'user'.
+
+    Ne s'applique QU'aux requêtes qui déposent effectivement des photos —
+    AnnonceUpdateAPIView.patch() sert aussi les éditions de contenu pur
+    (titre, prix, statut...) sur ce même endpoint, qui ne doivent jamais
+    être comptées ici ni consommer ce quota (cf. allow_request ci-dessous,
+    retour anticipé avant tout accès au cache de throttling).
+
+    Le scope réel est lu sur `view.throttle_scope` par ScopedRateThrottle
+    (jamais sur un attribut `scope` posé ici) — cf. AnnonceUpdateAPIView
+    ci-dessous, qui doit donc déclarer `throttle_scope = 'photo_upload'`.
+    """
+
+    def allow_request(self, request, view):
+        if not request.FILES.getlist('photos[]'):
+            return True
+        return super().allow_request(request, view)
+
+
 class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
     """
     GET/PATCH /api/annonces/<uuid:pk>/
@@ -403,6 +470,17 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
     # (édition partielle) est spécifié. On le retire explicitement plutôt
     # que de laisser RetrieveUpdateAPIView l'exposer par défaut.
     http_method_names = ['get', 'patch', 'head', 'options']
+    # UserRateThrottle : plancher générique (toute édition, avec ou sans
+    # photo). PhotoUploadRateThrottle : scope 'photo_upload' strict, mais
+    # seulement si la requête contient réellement des photos (cf. sa propre
+    # docstring) — GET ne déclenche jamais ni l'un ni l'autre de façon
+    # gênante, IsAuthenticated exclut déjà l'anonyme. throttle_scope doit
+    # être posé ICI (sur la vue) : ScopedRateThrottle.allow_request() lit
+    # `view.throttle_scope`, jamais un attribut `scope` sur la classe de
+    # throttle elle-même — piège vérifié en pratique (le throttle laissait
+    # tout passer silencieusement sans cette ligne).
+    throttle_classes = [UserRateThrottle, PhotoUploadRateThrottle]
+    throttle_scope = 'photo_upload'
 
     def get_queryset(self):
         # PAS de select_related('parcelle__donnees_geo') : ParcelleEcritureSerializer
