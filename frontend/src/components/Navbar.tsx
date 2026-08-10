@@ -7,7 +7,7 @@ import { Heart, MessageSquare, Menu, X } from "@/components/icons/Icons";
 import { logoutAction } from "@/app/actions/auth";
 import type { User } from "@/lib/auth-api";
 
-export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
+export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: User | null; messagesNonLus: number }) {
   const pathname = usePathname();
   const isCatalogue = pathname.startsWith("/parcelles");
   const [scrolled, setScrolled] = useState(false);
@@ -130,8 +130,40 @@ export default function Navbar({ utilisateur }: { utilisateur: User | null }) {
         <Link href="/favoris" className="akal-icon-link akal-focusable" style={{ color: "var(--color-foret)", display: "flex" }} title="Favoris" aria-label="Favoris">
           <Heart size={24} strokeWidth={1.7} />
         </Link>
-        <Link href="/messages" className="akal-icon-link akal-focusable" style={{ color: "var(--color-foret)", display: "flex" }} title="Messages" aria-label="Messages">
+        <Link
+          href="/messages"
+          className="akal-icon-link akal-focusable"
+          style={{ color: "var(--color-foret)", display: "flex", position: "relative" }}
+          title={messagesNonLus > 0 ? `Messages (${messagesNonLus} non lu${messagesNonLus > 1 ? "s" : ""})` : "Messages"}
+          aria-label={messagesNonLus > 0 ? `Messages, ${messagesNonLus} non lu${messagesNonLus > 1 ? "s" : ""}` : "Messages"}
+        >
           <MessageSquare size={24} strokeWidth={1.7} />
+          {messagesNonLus > 0 && (
+            // Même pastille que le fil non lu dans l'inbox (InboxScreen.tsx),
+            // en position absolue pour se superposer à l'icône — pas de
+            // nouveau style, réutilisation du langage visuel déjà établi.
+            <span
+              className="akal-notify-dot"
+              style={{
+                position: "absolute",
+                top: -4,
+                right: -6,
+                minWidth: 16,
+                height: 16,
+                borderRadius: "50%",
+                backgroundColor: "var(--color-terre)",
+                color: "white",
+                fontSize: 10,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 3px",
+              }}
+            >
+              {messagesNonLus > 9 ? "9+" : messagesNonLus}
+            </span>
+          )}
         </Link>
 
         {utilisateur ? (

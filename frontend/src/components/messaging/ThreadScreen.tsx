@@ -124,7 +124,7 @@ export function ThreadScreen({
           disabled={pending}
         />
         <button type="submit" className="btn-primary" disabled={pending || !contenu.trim()}>
-          Envoyer
+          {pending ? "Envoi…" : "Envoyer"}
         </button>
       </form>
       {erreur && <p className="akal-alert-in" style={{ color: "var(--color-erreur)", fontSize: 13, margin: "0 0 16px" }}>{erreur}</p>}

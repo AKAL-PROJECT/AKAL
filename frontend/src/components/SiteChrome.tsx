@@ -11,9 +11,11 @@ const CHROMELESS_ROUTES = ["/connexion", "/inscription"];
 export default function SiteChrome({
   children,
   utilisateur,
+  messagesNonLus,
 }: {
   children: React.ReactNode;
   utilisateur: User | null;
+  messagesNonLus: number;
 }) {
   const pathname = usePathname();
 
@@ -23,7 +25,7 @@ export default function SiteChrome({
 
   return (
     <>
-      <Navbar utilisateur={utilisateur} />
+      <Navbar utilisateur={utilisateur} messagesNonLus={messagesNonLus} />
       <div style={{ flex: 1 }}>{children}</div>
       <Footer />
     </>

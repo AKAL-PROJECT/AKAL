@@ -22,6 +22,8 @@ import {
 } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
 
+const formatDate = new Intl.DateTimeFormat("fr-MA", { day: "numeric", month: "long", year: "numeric" });
+
 const CarteFiche = dynamic(() => import("./CarteLeafletFiche"), {
   ssr: false,
   loading: () => (
@@ -167,6 +169,8 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                 {a.parcelle.adresseApproximative && `, ${a.parcelle.regionNom}`}
                 {" · "}
                 {a.parcelle.surface} ha
+                {" · "}
+                Publié le {formatDate.format(new Date(a.datePublication ?? a.createdAt))}
               </span>
             </div>
           </div>

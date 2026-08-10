@@ -50,6 +50,18 @@ export async function fetchInbox(): Promise<Paginated<Conversation>> {
   return (await res.json()) as Paginated<Conversation>;
 }
 
+// Total des messages non lus, tous fils confondus — dérivé de fetchInbox()
+// (aucun endpoint agrégé côté API, cf. MesStatistiquesAPIView côté backend
+// qui fait un choix similaire). Appelée une seule fois par rendu du layout
+// racine (badge Navbar, app/layout.tsx) : pas de polling ici, le polling
+// reste scopé à /messages (InboxScreen). Même limite que l'inbox
+// elle-même : ne couvre que la première page de fetchInbox() — acceptable
+// pour un badge (compte réel plus précis visible en ouvrant /messages).
+export async function fetchNombreMessagesNonLus(): Promise<number> {
+  const inbox = await fetchInbox();
+  return inbox.results.reduce((total, conversation) => total + conversation.messages_non_lus, 0);
+}
+
 // Résumé d'un fil (annonce, autre participant) — récupéré une seule fois au
 // chargement de la page thread, jamais reinterrogé par le polling : l'annonce
 // et l'identité du participant ne changent pas pendant la vie d'un fil,
