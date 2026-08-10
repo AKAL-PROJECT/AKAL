@@ -41,4 +41,17 @@ USER akaluser
 EXPOSE 8000
 
 # Commande par défaut (peut être surchargée par l'IaC comme render.yaml)
-CMD sh -c "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn akal.wsgi:application --bind 0.0.0.0:8000"
+#
+# --workers : sans ce réglage, gunicorn démarre avec 1 seul worker sync
+# (défaut) — une requête lente (upload photo, envoi d'email synchrone dans
+# PasswordResetRequestView) bloque alors TOUTES les autres requêtes le temps
+# de son exécution. WEB_CONCURRENCY (surchargeable par variable d'env, sans
+# toucher à l'image) avec un repli à 3 — point de départ raisonnable pour un
+# plan Render modeste, à ajuster avec de la vraie donnée de charge (audit
+# go-live du 2026-08-10, cf. formule usuelle (2 x cœurs) + 1).
+# --threads : 2 threads par worker, pour absorber un peu de concurrence
+# I/O (attente DB/S3/Redis) sans multiplier les workers (donc la mémoire).
+# --timeout : 60s (le défaut gunicorn est 30s) — laisse la marge pour un
+# upload multi-photos légitime sur une connexion lente, sans laisser un
+# worker bloqué indéfiniment sur une requête réellement figée.
+CMD sh -c "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn akal.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY:-3} --threads 2 --timeout 60"
