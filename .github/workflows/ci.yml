@@ -75,7 +75,7 @@ jobs:
             curl -sf http://localhost:9000/minio/health/live && break
             sleep 2
           done
-          docker run --rm --network host minio/mc sh -c "
+          docker run --rm --network host --entrypoint sh minio/mc -c "
             mc alias set local http://localhost:9000 $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY &&
             mc mb --ignore-existing local/$AWS_STORAGE_BUCKET_NAME &&
             mc anonymous set download local/$AWS_STORAGE_BUCKET_NAME
@@ -113,6 +113,42 @@ jobs:
     name: Frontend (Next.js)
     runs-on: ubuntu-latest
 
+    # Postgres/Redis minimaux pour le step Build ci-dessous UNIQUEMENT —
+    # app/parcelles/[slug]/page.tsx (generateStaticParams) et la Home
+    # appellent le vrai catalogue au moment du build (`next build`), pas
+    # seulement au runtime. Constaté en pratique sur le premier run CI :
+    # sans backend joignable, le build échoue en ECONNREFUSED — ça ne se
+    # voyait jamais en local car un backend tournait déjà en tâche de fond.
+    # Pas de MinIO ici : base tout juste migrée, aucune annonce, donc
+    # aucune photo à servir — lint/tsc/tests n'en ont pas besoin non plus.
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: akal_user
+          POSTGRES_PASSWORD: akal_password
+          POSTGRES_DB: akal_db
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SECRET_KEY: ci-secret-key-jamais-utilisee-en-production
+      DJANGO_SETTINGS_MODULE: akal.settings.dev
+      DATABASE_URL: postgis://akal_user:akal_password@localhost:5432/akal_db
+      REDIS_URL: redis://localhost:6379/1
+
     steps:
       - uses: actions/checkout@v4
 
@@ -122,7 +158,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Dépendances
+      - name: Dépendances frontend
         working-directory: frontend
         run: npm ci
 
@@ -138,6 +174,33 @@ jobs:
         working-directory: frontend
         run: npm test
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dépendances système (GeoDjango / PostGIS)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils libproj-dev gdal-bin python3-gdal
+
+      - name: Dépendances backend (pour un serveur local minimal)
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Migrer la base et démarrer Django en arrière-plan
+        working-directory: backend
+        run: |
+          python manage.py migrate --noinput
+          python manage.py runserver 0.0.0.0:8000 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/api/annonces/ > /dev/null && break
+            sleep 1
+          done
+
       - name: Build
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000/api
         run: npm run build
