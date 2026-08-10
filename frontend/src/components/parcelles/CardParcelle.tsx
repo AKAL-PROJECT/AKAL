@@ -10,6 +10,8 @@ import { MapPin, Heart, Droplets } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
 import { formatMAD } from "@/lib/format";
 
+const formatDate = new Intl.DateTimeFormat("fr-MA", { day: "numeric", month: "long", year: "numeric" });
+
 type Props = {
   parcelle: Parcelle;
   enComparaison: boolean;
@@ -167,6 +169,10 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
         <h3 style={{ fontSize: "15px", fontWeight: 600, lineHeight: 1.3, color: "var(--color-nuit)", margin: 0 }}>
           {a.titre}
         </h3>
+
+        <span style={{ fontSize: "11px", color: "var(--color-tertiaire)" }}>
+          Publié le {formatDate.format(new Date(a.createdAt))}
+        </span>
 
         {AGRISCORE_ACTIF && <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />}
 
