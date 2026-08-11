@@ -1113,7 +1113,7 @@ import tempfile
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
-from django.core.management import call_command
+from django.core.management import CommandError, call_command
 from django.db import IntegrityError
 from django.test import TestCase, override_settings
 
@@ -1408,6 +1408,37 @@ class ImportPhotosEtPublicationTests(ImportScrapedDataTestBase):
 
         annonce = Annonce.objects.get(source_id='703')
         self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+
+
+class ImportGardeFouProductionTests(ImportScrapedDataTestBase):
+    """Audit du 2026-08-11 : cette commande importe des données de test,
+    jamais destinée à la production — seconde ligne de défense en plus du
+    filtre dataset_actif() (qui rendrait de toute façon ces annonces
+    invisibles publiquement tant que AKAL_DATASET reste 'simulated')."""
+
+    @patch('annonces.management.commands.import_scraped_data.settings')
+    def test_refuse_sous_akal_settings_prod_sans_force(self, mock_settings):
+        mock_settings.SETTINGS_MODULE = 'akal.settings.prod'
+
+        with self.assertRaises(CommandError):
+            self.importer([_entree(id_annonce='801')])
+
+        self.assertFalse(Annonce.objects.filter(source_id='801').exists())
+
+    @patch('annonces.management.commands.import_scraped_data.settings')
+    def test_fonctionne_sous_prod_avec_force(self, mock_settings):
+        mock_settings.SETTINGS_MODULE = 'akal.settings.prod'
+
+        self.importer([_entree(id_annonce='802')], force=True)
+
+        self.assertTrue(Annonce.objects.filter(source_id='802').exists())
+
+    def test_aucune_restriction_sous_settings_dev(self):
+        """Le garde-fou ne concerne que akal.settings.prod — dev/CI ne sont
+        jamais bloqués."""
+        self.importer([_entree(id_annonce='803')])  # pas de --force, doit passer
+
+        self.assertTrue(Annonce.objects.filter(source_id='803').exists())
 
 
 class DatasetActifTests(TestCase):

@@ -16,7 +16,24 @@ l'export original ; le reste (30 Avito + 20 Mubawab) est généré pour
 reproduire la même distribution de qualité de données sans retranscrire
 l'intégralité des 268 entrées à la main. La commande d'import ne fait
 aucune hypothèse sur le nombre d'entrées : remplacer ces fichiers par les
-exports complets originaux ne demande aucun changement de code.
+exports complets originaux ne demande aucun changement de code (vérifié
+avec un fichier de 268 entrées, cf. audit du 2026-08-11).
+
+**Séparation réel/généré au niveau des données** (pas seulement dans ce
+README) : chaque entrée porte un champ `_fixture_origine` —
+`"export_reel"` ou `"generee_pour_tests"`. Ce champ est spécifique à ces
+fixtures de démo, jamais lu par `import_scraped_data.py` (ignoré comme
+toute clé JSON non reconnue) ni par un vrai export Avito/Mubawab — à ne
+pas ajouter en dupliquant ces fichiers pour un usage réel.
+
+**Exception documentée** : 3 entrées (`id_annonce` 51216156, 58419835 côté
+`export_reel`, 58000000 côté `generee_pour_tests`) portent en plus
+`"_images_test_substituees": true` — leur champ `images` d'origine (URLs
+Avito, protégées contre le hotlinking, cf. audit du 2026-08-11) a été
+remplacé par des URLs Mubawab réellement téléchargeables, pour disposer
+d'au moins quelques annonces qui satisfont réellement
+`Annonce.can_publish()` (photo + prix + surface + géolocalisation) lors
+d'une démo locale. Aucune autre donnée de ces 3 entrées n'est modifiée.
 
 ## Format attendu
 
@@ -36,7 +53,8 @@ exports complets originaux ne demande aucun changement de code.
       "categorie": "Agricole",
       "titre_foncier": true,
       "images": ["https://..."],
-      "date_scraping": "..."
+      "date_scraping": "...",
+      "_fixture_origine": "export_reel"
     }
   ]
 }

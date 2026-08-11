@@ -28,7 +28,8 @@
         "https://content.avito.ma/classifieds/images/10128713336?t=images",
         "https://content.avito.ma/classifieds/images/10127884423?t=images"
       ],
-      "date_scraping": "2026-08-10T08:28:25.551172"
+      "date_scraping": "2026-08-10T08:28:25.551172",
+      "_fixture_origine": "export_reel"
     },
     {
       "id_annonce": "57586627",
@@ -42,7 +43,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10145889805?t=images"
       ],
-      "date_scraping": "2026-08-10T08:28:32.787233"
+      "date_scraping": "2026-08-10T08:28:32.787233",
+      "_fixture_origine": "export_reel"
     },
     {
       "id_annonce": "51216156",
@@ -54,10 +56,11 @@
       "categorie": "Agricole",
       "titre_foncier": true,
       "images": [
-        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif",
-        "https://www.mubawab-media.com/ad/8/384/642F/h/1000031997_82982557.avif"
+        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif"
       ],
-      "date_scraping": "2026-08-10T08:28:36.103270"
+      "date_scraping": "2026-08-10T08:28:36.103270",
+      "_fixture_origine": "export_reel",
+      "_images_test_substituees": true
     },
     {
       "id_annonce": "57061779",
@@ -72,7 +75,8 @@
         "https://content.avito.ma/classifieds/images/10140424269?t=images",
         "https://content.avito.ma/classifieds/images/10140424263?t=images"
       ],
-      "date_scraping": "2026-08-10T08:28:39.453312"
+      "date_scraping": "2026-08-10T08:28:39.453312",
+      "_fixture_origine": "export_reel"
     },
     {
       "id_annonce": "58432271",
@@ -86,11 +90,12 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10153354412?t=images"
       ],
-      "date_scraping": "2026-08-10T08:28:42.776996"
+      "date_scraping": "2026-08-10T08:28:42.776996",
+      "_fixture_origine": "export_reel"
     },
     {
       "id_annonce": "58419835",
-      "url": "https://www.avito.ma/fr/sidi_slimane/terrains_et_fermes/Terrain_agricole_Ã _1_heure_de_route_de_KÃ©nitra_58419835.htm",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/Terrain_agricole_Ã _1_heure_de_route_de_KÃ©nitra_58419835.htm",
       "titre": "Terrain agricole Ã  1 heure de route de KÃ©nitra",
       "description": "Terrain agricole titre d'un hectare, region du Gharb.",
       "prix_dh": 350000,
@@ -98,9 +103,11 @@
       "categorie": "Local",
       "titre_foncier": true,
       "images": [
-        "https://content.avito.ma/classifieds/images/10152784890?t=images"
+        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif"
       ],
-      "date_scraping": "2026-08-10T08:28:46.108781"
+      "date_scraping": "2026-08-10T08:28:46.108781",
+      "_fixture_origine": "export_reel",
+      "_images_test_substituees": true
     },
     {
       "id_annonce": "58432054",
@@ -115,7 +122,8 @@
         "https://content.avito.ma/classifieds/images/10153352374?t=images",
         "https://content.avito.ma/classifieds/images/10153352382?t=images"
       ],
-      "date_scraping": "2026-08-10T08:28:49.489859"
+      "date_scraping": "2026-08-10T08:28:49.489859",
+      "_fixture_origine": "export_reel"
     },
     {
       "id_annonce": "58431807",
@@ -130,7 +138,8 @@
         "https://content.avito.ma/classifieds/images/10153351073?t=images",
         "https://content.avito.ma/classifieds/images/10153351074?t=images"
       ],
-      "date_scraping": "2026-08-10T08:28:56.325551"
+      "date_scraping": "2026-08-10T08:28:56.325551",
+      "_fixture_origine": "export_reel"
     },
     {
       "id_annonce": "58431309",
@@ -144,7 +153,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10153347333?t=images"
       ],
-      "date_scraping": "2026-08-10T08:28:59.620297"
+      "date_scraping": "2026-08-10T08:28:59.620297",
+      "_fixture_origine": "export_reel"
     },
     {
       "id_annonce": "58431052",
@@ -159,11 +169,12 @@
         "https://content.avito.ma/classifieds/images/10153345559?t=images",
         "https://content.avito.ma/classifieds/images/10153345558?t=images"
       ],
-      "date_scraping": "2026-08-10T08:29:03.085407"
+      "date_scraping": "2026-08-10T08:29:03.085407",
+      "_fixture_origine": "export_reel"
     },
     {
       "id_annonce": "58000000",
-      "url": "https://www.avito.ma/fr/khemisset/terrains_et_fermes/Terrain_agricole_Ã__vendre_58000000.htm",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/Terrain_agricole_Ã__vendre_58000000.htm",
       "titre": "Terrain agricole Ã  vendre",
       "description": "Terrain agricole situe pres de khemisset, contactez pour plus d'informations.",
       "prix_dh": 320000,
@@ -171,9 +182,11 @@
       "categorie": "Local",
       "titre_foncier": true,
       "images": [
-        "https://content.avito.ma/classifieds/images/10150000000?t=images"
+        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif"
       ],
-      "date_scraping": "2026-08-10T08:40:00.000000"
+      "date_scraping": "2026-08-10T08:40:00.000000",
+      "_fixture_origine": "generee_pour_tests",
+      "_images_test_substituees": true
     },
     {
       "id_annonce": "58000137",
@@ -185,7 +198,8 @@
       "categorie": null,
       "titre_foncier": true,
       "images": [],
-      "date_scraping": "2026-08-10T08:41:07.000000"
+      "date_scraping": "2026-08-10T08:41:07.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58000274",
@@ -197,7 +211,8 @@
       "categorie": "Local",
       "titre_foncier": false,
       "images": [],
-      "date_scraping": "2026-08-10T08:42:14.000000"
+      "date_scraping": "2026-08-10T08:42:14.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58000411",
@@ -209,7 +224,8 @@
       "categorie": "Local",
       "titre_foncier": false,
       "images": [],
-      "date_scraping": "2026-08-10T08:43:21.000000"
+      "date_scraping": "2026-08-10T08:43:21.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58000548",
@@ -224,7 +240,8 @@
         "https://content.avito.ma/classifieds/images/10150000388?t=images",
         "https://content.avito.ma/classifieds/images/10150000389?t=images"
       ],
-      "date_scraping": "2026-08-10T08:44:28.000000"
+      "date_scraping": "2026-08-10T08:44:28.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58000685",
@@ -239,7 +256,8 @@
         "https://content.avito.ma/classifieds/images/10150000485?t=images",
         "https://content.avito.ma/classifieds/images/10150000486?t=images"
       ],
-      "date_scraping": "2026-08-10T08:45:35.000000"
+      "date_scraping": "2026-08-10T08:45:35.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58000822",
@@ -251,7 +269,8 @@
       "categorie": "Villa",
       "titre_foncier": true,
       "images": [],
-      "date_scraping": "2026-08-10T08:46:42.000000"
+      "date_scraping": "2026-08-10T08:46:42.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58000959",
@@ -263,7 +282,8 @@
       "categorie": "Local",
       "titre_foncier": true,
       "images": [],
-      "date_scraping": "2026-08-10T08:47:49.000000"
+      "date_scraping": "2026-08-10T08:47:49.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58001096",
@@ -279,7 +299,8 @@
         "https://content.avito.ma/classifieds/images/10150000777?t=images",
         "https://content.avito.ma/classifieds/images/10150000778?t=images"
       ],
-      "date_scraping": "2026-08-10T08:48:56.000000"
+      "date_scraping": "2026-08-10T08:48:56.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58001233",
@@ -293,7 +314,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150000873?t=images"
       ],
-      "date_scraping": "2026-08-10T08:49:03.000000"
+      "date_scraping": "2026-08-10T08:49:03.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58001370",
@@ -307,7 +329,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150000970?t=images"
       ],
-      "date_scraping": "2026-08-10T08:50:10.000000"
+      "date_scraping": "2026-08-10T08:50:10.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58001507",
@@ -321,7 +344,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150001067?t=images"
       ],
-      "date_scraping": "2026-08-10T08:51:17.000000"
+      "date_scraping": "2026-08-10T08:51:17.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58001644",
@@ -337,7 +361,8 @@
         "https://content.avito.ma/classifieds/images/10150001165?t=images",
         "https://content.avito.ma/classifieds/images/10150001166?t=images"
       ],
-      "date_scraping": "2026-08-10T08:52:24.000000"
+      "date_scraping": "2026-08-10T08:52:24.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58001781",
@@ -351,7 +376,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150001261?t=images"
       ],
-      "date_scraping": "2026-08-10T08:53:31.000000"
+      "date_scraping": "2026-08-10T08:53:31.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58001918",
@@ -365,7 +391,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150001358?t=images"
       ],
-      "date_scraping": "2026-08-10T08:54:38.000000"
+      "date_scraping": "2026-08-10T08:54:38.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58002055",
@@ -379,7 +406,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150001455?t=images"
       ],
-      "date_scraping": "2026-08-10T08:55:45.000000"
+      "date_scraping": "2026-08-10T08:55:45.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58002192",
@@ -393,7 +421,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150001552?t=images"
       ],
-      "date_scraping": "2026-08-10T08:56:52.000000"
+      "date_scraping": "2026-08-10T08:56:52.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58002329",
@@ -408,7 +437,8 @@
         "https://content.avito.ma/classifieds/images/10150001649?t=images",
         "https://content.avito.ma/classifieds/images/10150001650?t=images"
       ],
-      "date_scraping": "2026-08-10T08:57:59.000000"
+      "date_scraping": "2026-08-10T08:57:59.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58002466",
@@ -423,7 +453,8 @@
         "https://content.avito.ma/classifieds/images/10150001746?t=images",
         "https://content.avito.ma/classifieds/images/10150001747?t=images"
       ],
-      "date_scraping": "2026-08-10T08:58:06.000000"
+      "date_scraping": "2026-08-10T08:58:06.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58002603",
@@ -438,7 +469,8 @@
         "https://content.avito.ma/classifieds/images/10150001843?t=images",
         "https://content.avito.ma/classifieds/images/10150001844?t=images"
       ],
-      "date_scraping": "2026-08-10T08:40:13.000000"
+      "date_scraping": "2026-08-10T08:40:13.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58002740",
@@ -452,7 +484,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150001940?t=images"
       ],
-      "date_scraping": "2026-08-10T08:41:20.000000"
+      "date_scraping": "2026-08-10T08:41:20.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58002877",
@@ -464,7 +497,8 @@
       "categorie": "Villa",
       "titre_foncier": false,
       "images": [],
-      "date_scraping": "2026-08-10T08:42:27.000000"
+      "date_scraping": "2026-08-10T08:42:27.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58003014",
@@ -479,7 +513,8 @@
         "https://content.avito.ma/classifieds/images/10150002134?t=images",
         "https://content.avito.ma/classifieds/images/10150002135?t=images"
       ],
-      "date_scraping": "2026-08-10T08:43:34.000000"
+      "date_scraping": "2026-08-10T08:43:34.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58003151",
@@ -495,7 +530,8 @@
         "https://content.avito.ma/classifieds/images/10150002232?t=images",
         "https://content.avito.ma/classifieds/images/10150002233?t=images"
       ],
-      "date_scraping": "2026-08-10T08:44:41.000000"
+      "date_scraping": "2026-08-10T08:44:41.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58003288",
@@ -509,7 +545,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150002328?t=images"
       ],
-      "date_scraping": "2026-08-10T08:45:48.000000"
+      "date_scraping": "2026-08-10T08:45:48.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58003425",
@@ -523,7 +560,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150002425?t=images"
       ],
-      "date_scraping": "2026-08-10T08:46:55.000000"
+      "date_scraping": "2026-08-10T08:46:55.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58003562",
@@ -535,7 +573,8 @@
       "categorie": "Local",
       "titre_foncier": true,
       "images": [],
-      "date_scraping": "2026-08-10T08:47:02.000000"
+      "date_scraping": "2026-08-10T08:47:02.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58003699",
@@ -549,7 +588,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150002619?t=images"
       ],
-      "date_scraping": "2026-08-10T08:48:09.000000"
+      "date_scraping": "2026-08-10T08:48:09.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58003836",
@@ -563,7 +603,8 @@
       "images": [
         "https://content.avito.ma/classifieds/images/10150002716?t=images"
       ],
-      "date_scraping": "2026-08-10T08:49:16.000000"
+      "date_scraping": "2026-08-10T08:49:16.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "58003973",
@@ -578,7 +619,8 @@
         "https://content.avito.ma/classifieds/images/10150002813?t=images",
         "https://content.avito.ma/classifieds/images/10150002814?t=images"
       ],
-      "date_scraping": "2026-08-10T08:50:23.000000"
+      "date_scraping": "2026-08-10T08:50:23.000000",
+      "_fixture_origine": "generee_pour_tests"
     }
   ]
 }

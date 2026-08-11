@@ -39,6 +39,7 @@ from io import BytesIO
 from pathlib import Path
 
 import requests
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -112,8 +113,25 @@ class Command(BaseCommand):
             '--skip-images', action='store_true',
             help="N'essaie jamais de télécharger d'image (import plus rapide, annonces sans photo).",
         )
+        parser.add_argument(
+            '--force', action='store_true',
+            help="Requis pour lancer cette commande sous akal.settings.prod (garde-fou go-live).",
+        )
 
     def handle(self, *args, **options):
+        # Garde-fou production (audit go-live du 2026-08-11) : rien n'empêche
+        # techniquement de lancer cette commande contre la base de prod si on
+        # y a accès, mais ce n'est jamais son usage prévu (données de test
+        # local uniquement). Un import accidentel en prod ne serait de toute
+        # façon jamais visible publiquement tant que AKAL_DATASET reste
+        # 'simulated' (défaut, cf. dataset_actif()) — cette vérification est
+        # une seconde ligne de défense explicite, pas la seule.
+        if settings.SETTINGS_MODULE == 'akal.settings.prod' and not options['force']:
+            raise CommandError(
+                "Cette commande importe des données de test (Avito/Mubawab) — jamais destinée à la "
+                "production. Relancez avec --force si c'est réellement intentionnel."
+            )
+
         source_arg = options['source']
         if options['file'] and source_arg == 'all':
             raise CommandError("--file requiert --source avito ou --source mubawab (pas 'all').")

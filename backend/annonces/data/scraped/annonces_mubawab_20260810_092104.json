@@ -30,7 +30,8 @@
         "https://www.mubawab-media.com/ad/8/400/000F/h/photo_1_83000001.avif",
         "https://www.mubawab-media.com/ad/8/400/000F/h/photo_2_83000002.avif"
       ],
-      "date_scraping": "2026-08-10T09:00:00.000000"
+      "date_scraping": "2026-08-10T09:00:00.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400053",
@@ -43,7 +44,8 @@
       "categorie": null,
       "titre_foncier": false,
       "images": [],
-      "date_scraping": "2026-08-10T09:01:11.000000"
+      "date_scraping": "2026-08-10T09:01:11.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400106",
@@ -60,7 +62,8 @@
         "https://www.mubawab-media.com/ad/8/389/518F/h/41831D18-4520-4C19-85A8-6F04693EEFC1_82936662.avif",
         "https://www.mubawab-media.com/ad/8/384/642F/h/1000031997_82982557.avif"
       ],
-      "date_scraping": "2026-08-10T09:02:22.000000"
+      "date_scraping": "2026-08-10T09:02:22.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400159",
@@ -76,7 +79,8 @@
         "https://www.mubawab-media.com/ad/8/403/159F/h/photo_0_83000123.avif",
         "https://www.mubawab-media.com/ad/8/403/159F/h/photo_1_83000124.avif"
       ],
-      "date_scraping": "2026-08-10T09:03:33.000000"
+      "date_scraping": "2026-08-10T09:03:33.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400212",
@@ -93,7 +97,8 @@
         "https://www.mubawab-media.com/ad/8/404/212F/h/photo_1_83000165.avif",
         "https://www.mubawab-media.com/ad/8/404/212F/h/photo_2_83000166.avif"
       ],
-      "date_scraping": "2026-08-10T09:04:44.000000"
+      "date_scraping": "2026-08-10T09:04:44.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400265",
@@ -110,7 +115,8 @@
         "https://www.mubawab-media.com/ad/8/389/518F/h/41831D18-4520-4C19-85A8-6F04693EEFC1_82936662.avif",
         "https://www.mubawab-media.com/ad/8/384/642F/h/1000031997_82982557.avif"
       ],
-      "date_scraping": "2026-08-10T09:05:55.000000"
+      "date_scraping": "2026-08-10T09:05:55.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400318",
@@ -123,7 +129,8 @@
       "categorie": "Agricole",
       "titre_foncier": true,
       "images": [],
-      "date_scraping": "2026-08-10T09:06:06.000000"
+      "date_scraping": "2026-08-10T09:06:06.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400371",
@@ -140,7 +147,8 @@
         "https://www.mubawab-media.com/ad/8/407/371F/h/photo_1_83000288.avif",
         "https://www.mubawab-media.com/ad/8/407/371F/h/photo_2_83000289.avif"
       ],
-      "date_scraping": "2026-08-10T09:07:17.000000"
+      "date_scraping": "2026-08-10T09:07:17.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400424",
@@ -153,7 +161,8 @@
       "categorie": "Ferme",
       "titre_foncier": false,
       "images": [],
-      "date_scraping": "2026-08-10T09:08:28.000000"
+      "date_scraping": "2026-08-10T09:08:28.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400477",
@@ -170,7 +179,8 @@
         "https://www.mubawab-media.com/ad/8/409/477F/h/photo_1_83000370.avif",
         "https://www.mubawab-media.com/ad/8/409/477F/h/photo_2_83000371.avif"
       ],
-      "date_scraping": "2026-08-10T09:09:39.000000"
+      "date_scraping": "2026-08-10T09:09:39.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400530",
@@ -183,7 +193,8 @@
       "categorie": null,
       "titre_foncier": false,
       "images": [],
-      "date_scraping": "2026-08-10T09:10:50.000000"
+      "date_scraping": "2026-08-10T09:10:50.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400583",
@@ -200,7 +211,8 @@
         "https://www.mubawab-media.com/ad/8/411/583F/h/photo_1_83000452.avif",
         "https://www.mubawab-media.com/ad/8/411/583F/h/photo_2_83000453.avif"
       ],
-      "date_scraping": "2026-08-10T09:11:01.000000"
+      "date_scraping": "2026-08-10T09:11:01.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400636",
@@ -215,7 +227,8 @@
       "images": [
         "https://www.mubawab-media.com/ad/8/412/636F/h/photo_0_83000492.avif"
       ],
-      "date_scraping": "2026-08-10T09:12:12.000000"
+      "date_scraping": "2026-08-10T09:12:12.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400689",
@@ -230,7 +243,8 @@
       "images": [
         "https://www.mubawab-media.com/ad/8/413/689F/h/photo_0_83000533.avif"
       ],
-      "date_scraping": "2026-08-10T09:13:23.000000"
+      "date_scraping": "2026-08-10T09:13:23.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400742",
@@ -246,7 +260,8 @@
         "https://www.mubawab-media.com/ad/8/414/742F/h/photo_0_83000574.avif",
         "https://www.mubawab-media.com/ad/8/414/742F/h/photo_1_83000575.avif"
       ],
-      "date_scraping": "2026-08-10T09:14:34.000000"
+      "date_scraping": "2026-08-10T09:14:34.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400795",
@@ -263,7 +278,8 @@
         "https://www.mubawab-media.com/ad/8/415/795F/h/photo_1_83000616.avif",
         "https://www.mubawab-media.com/ad/8/415/795F/h/photo_2_83000617.avif"
       ],
-      "date_scraping": "2026-08-10T09:15:45.000000"
+      "date_scraping": "2026-08-10T09:15:45.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400848",
@@ -276,7 +292,8 @@
       "categorie": "Ferme",
       "titre_foncier": true,
       "images": [],
-      "date_scraping": "2026-08-10T09:16:56.000000"
+      "date_scraping": "2026-08-10T09:16:56.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400901",
@@ -292,7 +309,8 @@
         "https://www.mubawab-media.com/ad/8/417/901F/h/photo_0_83000697.avif",
         "https://www.mubawab-media.com/ad/8/417/901F/h/photo_1_83000698.avif"
       ],
-      "date_scraping": "2026-08-10T09:17:07.000000"
+      "date_scraping": "2026-08-10T09:17:07.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8400954",
@@ -308,7 +326,8 @@
         "https://www.mubawab-media.com/ad/8/418/954F/h/photo_0_83000738.avif",
         "https://www.mubawab-media.com/ad/8/418/954F/h/photo_1_83000739.avif"
       ],
-      "date_scraping": "2026-08-10T09:18:18.000000"
+      "date_scraping": "2026-08-10T09:18:18.000000",
+      "_fixture_origine": "generee_pour_tests"
     },
     {
       "id_annonce": "8401007",
@@ -321,7 +340,8 @@
       "categorie": null,
       "titre_foncier": false,
       "images": [],
-      "date_scraping": "2026-08-10T09:19:29.000000"
+      "date_scraping": "2026-08-10T09:19:29.000000",
+      "_fixture_origine": "generee_pour_tests"
     }
   ]
 }
