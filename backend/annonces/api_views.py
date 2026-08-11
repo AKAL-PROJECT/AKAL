@@ -241,6 +241,7 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
         return (
             Annonce.objects
             .en_ligne()
+            .dataset_actif()
             .with_relations()
             .prefetch_related('parcelle__scores')
         )
@@ -282,6 +283,7 @@ class AnnonceDetailAPIView(generics.RetrieveAPIView):
         return (
             Annonce.objects
             .en_ligne()
+            .dataset_actif()
             .with_relations()
             .prefetch_related('parcelle__scores')
         )

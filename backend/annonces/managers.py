@@ -3,12 +3,28 @@ Managers & QuerySets custom pour le modèle Annonce.
 
 Fournit des méthodes chainables pour :
 - Filtrer les annonces publiées (en_ligne)
+- Filtrer par jeu de données actif (dataset_actif, cf. settings.AKAL_DATASET)
 - Charger les relations FK sans requêtes N+1 (with_relations)
 - Effectuer une recherche textuelle sur titre/description (search)
 """
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
+
+# Bascule simulated/scraped (2026-08-11, cf. import_scraped_data) — filtre en
+# lecture seule sur Annonce.source, jamais une suppression/modification de
+# données : les deux jeux coexistent toujours en base, seule la valeur par
+# défaut de settings.AKAL_DATASET détermine lequel les vues PUBLIQUES
+# (catalogue + fiche, cf. annonces/api_views.py) exposent. Volontairement
+# non appliqué à mes-annonces/dashboard : un propriétaire retrouve toujours
+# ses propres annonces quel que soit AKAL_DATASET (la séparation par
+# propriétaire — comptes bot dédiés pour les sources scrapées — suffit déjà
+# à ne jamais mélanger les deux dans un contexte "mes annonces").
+SOURCES_PAR_DATASET = {
+    'simulated': ['interne'],
+    'scraped': ['avito', 'mubawab'],
+}
 
 
 class AnnonceQuerySet(models.QuerySet):
@@ -17,6 +33,21 @@ class AnnonceQuerySet(models.QuerySet):
     def en_ligne(self):
         """Filtre uniquement les annonces publiées (statut 'en_ligne')."""
         return self.filter(statut='en_ligne')
+
+    def dataset_actif(self):
+        """
+        Filtre par jeu de données actif (settings.AKAL_DATASET).
+
+        Valeur inconnue/absente => repli silencieux sur 'simulated' (jamais
+        d'exception ici : une faute de frappe dans la variable d'env ne doit
+        pas faire disparaître tout le catalogue public, juste retomber sur
+        le comportement historique).
+        """
+        sources = SOURCES_PAR_DATASET.get(
+            getattr(settings, 'AKAL_DATASET', 'simulated'),
+            SOURCES_PAR_DATASET['simulated'],
+        )
+        return self.filter(source__in=sources)
 
     def with_relations(self):
         """
@@ -79,6 +110,9 @@ class AnnonceManager(models.Manager):
 
     def en_ligne(self):
         return self.get_queryset().en_ligne()
+
+    def dataset_actif(self):
+        return self.get_queryset().dataset_actif()
 
     def with_relations(self):
         return self.get_queryset().with_relations()

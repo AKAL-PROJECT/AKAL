@@ -226,7 +226,7 @@ class AnnonceListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Annonce
         fields = [
-            'id', 'slug', 'titre', 'prix_mad', 'statut',
+            'id', 'slug', 'titre', 'prix_mad', 'statut', 'source',
             'score_courant', 'photo_principale', 'created_at',
             'parcelle',
         ]
@@ -286,7 +286,7 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
         model = Annonce
         fields = [
             'id', 'slug', 'titre', 'description', 'prix_mad',
-            'statut', 'loc_confidentielle',
+            'statut', 'loc_confidentielle', 'source',
             'date_publication', 'created_at', 'updated_at',
             'parcelle', 'photos', 'score_courant', 'proprietaire',
             'photo_principale',

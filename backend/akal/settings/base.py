@@ -312,6 +312,23 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
 
 
 # ──────────────────────────────────────────────
+# DATASET — simulated / scraped (2026-08-11)
+# ──────────────────────────────────────────────
+#
+# Bascule le catalogue PUBLIC (liste + fiche, cf. annonces/api_views.py)
+# entre les données de démo internes (seed_demo/seed_parcelles, Annonce.
+# source='interne') et les données scrapées Avito/Mubawab importées via
+# `manage.py import_scraped_data` (Annonce.source='avito'/'mubawab').
+#
+# Filtre en lecture seule (cf. annonces/managers.py::dataset_actif()) —
+# change cette variable ne supprime ni ne modifie aucune donnée, les deux
+# jeux coexistent toujours en base. 'simulated' par défaut : un déploiement
+# de prod qui ne définit jamais cette variable ne sert donc jamais de
+# données scrapées de test, même si elles ont été importées par erreur.
+AKAL_DATASET = env('AKAL_DATASET', default='simulated')
+
+
+# ──────────────────────────────────────────────
 # EMAIL — notifications transactionnelles (réinitialisation de mot de passe)
 # ──────────────────────────────────────────────
 
