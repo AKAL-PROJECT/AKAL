@@ -1,4 +1,4 @@
-import type { Parcelle } from "@/types/parcelle";
+import type { AccesEau, Parcelle } from "@/types/parcelle";
 import BadgeStatut from "./BadgeStatut";
 import {
   Ruler,
@@ -18,7 +18,7 @@ type ItemCarac =
   | { type: "texte"; icon: React.ReactNode; label: string; valeur: string; couleur?: string }
   | { type: "badge"; icon: React.ReactNode; label: string; parcelle: Parcelle };
 
-const ACCES_EAU_LABEL: Record<Parcelle["parcelle"]["accesEau"], string> = {
+const ACCES_EAU_LABEL: Record<AccesEau, string> = {
   irriguee: "Irriguée (réseau)",
   bour: "Bour (pluviale)",
   mixte: "Mixte",
@@ -50,13 +50,18 @@ function buildGroupes(a: Parcelle): Groupe[] {
       titre: "Agronomie",
       accent: "var(--color-argile)",
       items: [
-        {
-          type: "texte",
-          icon: <Droplets size={13} />,
-          label: "Accès à l'eau",
-          valeur: ACCES_EAU_LABEL[a.parcelle.accesEau],
-          couleur: a.parcelle.accesEau === "bour" ? "var(--color-tertiaire)" : "var(--color-info)",
-        },
+        // Accès à l'eau non renseigné (annonces scrapées) : item omis
+        // plutôt qu'un libellé inventé — même traitement que topographie
+        // juste en dessous, déjà conditionnel pour la même raison.
+        ...(a.parcelle.accesEau
+          ? [{
+              type: "texte" as const,
+              icon: <Droplets size={13} />,
+              label: "Accès à l'eau",
+              valeur: ACCES_EAU_LABEL[a.parcelle.accesEau],
+              couleur: a.parcelle.accesEau === "bour" ? "var(--color-tertiaire)" : "var(--color-info)",
+            }]
+          : []),
         ...(a.parcelle.topographie
           ? [{ type: "texte" as const, icon: <Ruler size={13} />, label: "Topographie", valeur: a.parcelle.topographie }]
           : []),

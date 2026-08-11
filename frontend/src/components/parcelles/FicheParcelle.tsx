@@ -138,7 +138,10 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               <BadgeStatut statut={a.parcelle.statutFoncier} />
-              {a.parcelle.accesEau !== "bour" && (
+              {/* accesEau nullable (annonces scrapées) : comparaison explicite,
+                  jamais "!== bour" seul qui afficherait l'icône eau par défaut
+                  pour une donnée absente. */}
+              {(a.parcelle.accesEau === "irriguee" || a.parcelle.accesEau === "mixte") && (
                 <span
                   style={{
                     display: "flex",

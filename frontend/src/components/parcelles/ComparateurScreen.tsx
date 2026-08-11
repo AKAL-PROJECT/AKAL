@@ -42,7 +42,7 @@ const LIGNES: Ligne[] = [
     : []),
   { label: "Région", valeur: () => null, render: (p) => p.parcelle.regionNom },
   { label: "Statut foncier", valeur: () => null, render: (p) => <BadgeStatut statut={p.parcelle.statutFoncier} /> },
-  { label: "Accès à l'eau", valeur: () => null, render: (p) => ACCES_EAU_LABEL[p.parcelle.accesEau] },
+  { label: "Accès à l'eau", valeur: () => null, render: (p) => (p.parcelle.accesEau ? ACCES_EAU_LABEL[p.parcelle.accesEau] : "—") },
   { label: "Topographie", valeur: () => null, render: (p) => p.parcelle.topographie ?? "—" },
 ];
 

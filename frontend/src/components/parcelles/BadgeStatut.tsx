@@ -39,7 +39,12 @@ export const STATUT_FONCIER_LABEL: Record<
 // Tooltip via l'attribut natif `title` plutôt qu'une bulle custom positionnée
 // en absolu : plusieurs points d'usage (CardParcelle) ont un ancêtre
 // `overflow: hidden` qui écrêterait une bulle personnalisée.
-export default function BadgeStatut({ statut }: { statut: StatutFoncier }) {
+//
+// `statut` nullable (annonces scrapées, cf. types/parcelle.ts) : rien
+// n'est rendu plutôt qu'un badge trompeur — jamais inventer un statut
+// foncier qui n'a pas été renseigné.
+export default function BadgeStatut({ statut }: { statut: StatutFoncier | null }) {
+  if (!statut) return null;
   const { classe, label, description } = STATUT_FONCIER_LABEL[statut];
   return (
     <span className={classe} title={description} style={{ cursor: "help" }}>
