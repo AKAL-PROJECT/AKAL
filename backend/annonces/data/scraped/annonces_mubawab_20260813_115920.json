@@ -1,5 +1,5 @@
 {
-  "date_export": "2026-08-10T09:21:04.224158",
+  "date_export": "2026-08-13T11:59:20.680708",
   "nombre_annonces": 48,
   "colonnes": [
     "id_annonce",
@@ -15,27 +15,6 @@
     "date_scraping"
   ],
   "annonces": [
-    {
-      "id_annonce": "8371242",
-      "url": "https://www.mubawab.ma/fr/a/8371242/vente-de-terrain-%C3%A0-route-de-l-ourika-surface-totale-17000-m%C2%B2",
-      "source": "Mubawab",
-      "titre": "Vente de terrain à Route de l'Ourika.\nSurface totale 17000 m²",
-      "description": "Découvrez un terrain exceptionnel à vendre, situé sur la célèbre Route de l'Ourika à Marrakech, dans la région vibrant de Marrakech-Safi. Ce terrain",
-      "prix_dh": 33400000,
-      "surface_m2": 17000,
-      "categorie": "Agricole",
-      "titre_foncier": true,
-      "images": [
-        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_00_82734485.avif",
-        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_01_82734486.avif",
-        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_02_82734487.avif",
-        "https://www.mubawab-media.com/ad/8/267/854F/m/PHOTO-2025-11-25-07-07-20_81734954.avif",
-        "https://www.mubawab-media.com/ad/8/336/351F/m/WhatsApp%20Image%202026-04-21%20at%2010.23.41_82313340.avif",
-        "https://www.mubawab-media.com/ad/8/266/401F/m/photo_0_81571086.avif",
-        "https://www.mubawab-media.com/ad/8/299/290F/m/photo_0_81925807.avif"
-      ],
-      "date_scraping": "2026-08-10T08:58:01.176757"
-    },
     {
       "id_annonce": "8392565",
       "url": "https://www.mubawab.ma/fr/a/8392565/terrain-%C3%A0-la-vente-%C3%A0-al-bahraoyine-ain-zitouna-superficie-9514-m%C2%B2",
@@ -56,7 +35,40 @@
         "https://www.mubawab-media.com/ad/8/392/565F/h/photo_60_82970618.avif",
         "https://www.mubawab-media.com/ad/8/392/565F/h/photo_61_82970619.avif"
       ],
-      "date_scraping": "2026-08-10T08:58:27.900039"
+      "date_scraping": "2026-08-13T11:38:04.505565"
+    },
+    {
+      "id_annonce": "8391681",
+      "url": "https://www.mubawab.ma/fr/a/8391681/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole a vendre",
+      "description": "Terrain de pratiquement 24 Ha titré dont 2 Ha plantés d'oliviers, situé sur la route reliant Fes à Sidi Harazem km 3, avant le carrefour RN6 et RN8",
+      "prix_dh": null,
+      "surface_m2": 238790,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/391/681F/h/FERME%20SIDI%20HARAZEM%20LOCALISATION_82959844.avif",
+        "https://www.mubawab-media.com/ad/8/391/681F/h/78C3F513-1718-4BA5-9A2B-4EA092B52007_1_201_a_82959846.avif",
+        "https://www.mubawab-media.com/ad/8/391/681F/h/6713C16F-3A38-4F0B-AECC-9DDC39460CB4_1_201_a_82959847.avif"
+      ],
+      "date_scraping": "2026-08-13T11:38:42.928311"
+    },
+    {
+      "id_annonce": "8361197",
+      "url": "https://www.mubawab.ma/fr/a/8361197/ferme-%C3%A0-vendre-marrakech",
+      "source": "Mubawab",
+      "titre": "Ferme à vendre Marrakech",
+      "description": "Domaine Agricole d’Exception de 346 Hectares à Vendre – Route de Fès, Marrakech\n\nPrix : 173 000 000 DH\n\nOrchid Island vous propose à la vente un",
+      "prix_dh": 2173000000,
+      "surface_m2": 339000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/361/197F/h/photo_00_82708345.avif",
+        "https://www.mubawab-media.com/ad/8/361/197F/h/photo_01_82708346.avif"
+      ],
+      "date_scraping": "2026-08-13T11:38:50.640822"
     },
     {
       "id_annonce": "8389518",
@@ -77,28 +89,7 @@
         "https://www.mubawab-media.com/ad/8/389/518F/h/B542F18F-B16A-4D5B-8A7B-71DB3CAB6DCD_82936995.avif",
         "https://www.mubawab-media.com/ad/8/389/518F/h/0977ADBD-4792-40A4-A721-1224FBC210A8_82936996.avif"
       ],
-      "date_scraping": "2026-08-10T09:00:40.826535"
-    },
-    {
-      "id_annonce": "8389154",
-      "url": "https://www.mubawab.ma/fr/a/8389154/opportunit%C3%A9-exceptionnelle-pour-les-investisseurs",
-      "source": "Mubawab",
-      "titre": "Opportunité exceptionnelle pour les investisseurs",
-      "description": "À VENDRE : Ferme agricole d'investissement\nOpportunité exceptionnelle pour les investisseurs :\nSuperficie : 173 hectares (titre foncier complet).",
-      "prix_dh": 786500000,
-      "surface_m2": 600,
-      "categorie": "Ferme",
-      "titre_foncier": true,
-      "images": [
-        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.03_82932877.avif",
-        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.04%207_82932878.avif",
-        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.04%208_82932879.avif",
-        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.05%202_82932880.avif",
-        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.06%2001_82932881.avif",
-        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.06%204_82932882.avif",
-        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.06%208_82932883.avif"
-      ],
-      "date_scraping": "2026-08-10T09:00:56.073434"
+      "date_scraping": "2026-08-13T11:38:58.245841"
     },
     {
       "id_annonce": "8173521",
@@ -133,72 +124,33 @@
         "https://www.mubawab-media.com/ad/8/173/521F/h/fe8dc66d-8067-42cf-8f88-f916ad615e68_80596714.avif",
         "https://www.mubawab-media.com/ad/8/234/135F/m/PAVILLON_81254623.avif"
       ],
-      "date_scraping": "2026-08-10T09:01:15.748031"
+      "date_scraping": "2026-08-13T11:39:25.138600"
     },
     {
-      "id_annonce": "8390610",
-      "url": "https://www.mubawab.ma/fr/a/8390610/ferme-d%E2%80%99exception-de-5-5-hectares-avec-villa-serres-et-%C3%A9quipements-agricoles-%E2%80%93-%C3%A0-vendre",
+      "id_annonce": "8398289",
+      "url": "https://www.mubawab.ma/fr/a/8398289/ferme-agricole-de-1-350-m%C2%B2-%C3%A0-skhirat",
       "source": "Mubawab",
-      "titre": "Ferme d’exception de 5,5 hectares avec villa, serres et équipements agricoles – À vendre",
-      "description": "Découvrez cette magnifique ferme titrée d’une superficie totale de 5,5 hectares (55 000 m²), dont 2 hectares entièrement clôturés par un mur et",
-      "prix_dh": null,
-      "surface_m2": 56000,
-      "categorie": "Ferme",
+      "titre": "Ferme Agricole de 1 350 m² à Skhirat",
+      "description": "À vendre, belle ferme d’une superficie de 1 350 m², située à Skhirat, dans un emplacement calme et facilement accessible, à proximité de",
+      "prix_dh": 124000000,
+      "surface_m2": 1350,
+      "categorie": "Agricole",
       "titre_foncier": true,
       "images": [
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_0_82948380.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_1_82948381.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_2_82948382.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_3_82948383.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_4_82948384.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_5_82948385.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_6_82948386.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_7_82948387.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_8_82948388.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_9_82948389.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_10_82948390.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_11_82948391.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_12_82948392.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_13_82948393.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_14_82948394.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_15_82948395.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_16_82948396.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_17_82948397.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_18_82948398.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_19_82948399.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_20_82948400.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_21_82948401.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_22_82948402.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_23_82948403.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_24_82948404.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_25_82948405.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_26_82948406.avif",
-        "https://www.mubawab-media.com/ad/8/390/610F/h/photo_27_82948407.avif"
+        "https://www.mubawab-media.com/ad/8/398/289F/h/ab4bd1e6-a817-47bb-9669-c667a4707764_83036984.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/6600e15a-cc7b-430e-8190-2543c0a92ca0_83036985.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/1a77ab97-1436-4ad8-bddb-98d60c4b2ff3_83036986.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/5b300549-1fa3-4e2a-b2e7-a5ef361ac6cd_83036987.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/774149a4-96b1-460c-8842-d8549ec6f84e_83036988.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/961596db-51c1-4841-bd8a-20ccb62a2c05_83036989.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/1068e21d-1dc7-484e-a28f-6cf1351cd12d_83036990.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/5519d3a8-62cf-4019-8bb3-6cef12b34f0c_83036991.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/3716279b-bc3a-44e3-b6f6-aa87cf75a45e_83036992.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/404acf07-a79a-4392-8ebf-6a13464f32af_83036993.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/9957967a-f62e-4a55-8526-56b88303e5ee_83036994.avif",
+        "https://www.mubawab-media.com/ad/8/398/289F/h/b97e56f7-07d7-4e36-82c5-8be6cad32993_83036996.avif"
       ],
-      "date_scraping": "2026-08-10T09:01:23.454688"
-    },
-    {
-      "id_annonce": "8056052",
-      "url": "https://www.mubawab.ma/fr/a/8056052/ferme-route-de-fes-6-hectares",
-      "source": "Mubawab",
-      "titre": "Ferme route de fes 6 hectares",
-      "description": "Cette ferme offre un cadre paisible et sécurisé, avec une belle combinaison de terre agricole et d'aménagements adaptés aux chevaux. C'est un lieu",
-      "prix_dh": 88000000,
-      "surface_m2": 300,
-      "categorie": "Ferme",
-      "titre_foncier": false,
-      "images": [
-        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.46%20%281%29_79419128.avif",
-        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.47_79419127.avif",
-        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.48_79419126.avif",
-        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.46_79419129.avif",
-        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.45_79419130.avif",
-        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.44_79419131.avif",
-        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.41_79419132.avif",
-        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.40_79419133.avif",
-        "https://www.mubawab-media.com/ad/8/267/858F/m/PHOTO-2025-11-25-07-07-20%202_81734764.avif"
-      ],
-      "date_scraping": "2026-08-10T09:01:27.286806"
+      "date_scraping": "2026-08-13T11:39:32.780967"
     },
     {
       "id_annonce": "8377827",
@@ -215,7 +167,7 @@
         "https://www.mubawab-media.com/ad/8/377/827F/h/IMG_2945_82808594.avif",
         "https://www.mubawab-media.com/ad/8/377/827F/h/IMG_2942_82808596.avif"
       ],
-      "date_scraping": "2026-08-10T09:01:35.899766"
+      "date_scraping": "2026-08-13T11:39:36.650096"
     },
     {
       "id_annonce": "8125954",
@@ -236,152 +188,161 @@
         "https://www.mubawab-media.com/ad/8/125/954F/h/IMG_5370_82236379.avif",
         "https://www.mubawab-media.com/ad/8/226/094F/m/WhatsApp%20Image%202025-09-29%20at%2011.31.04%20%282%29_cleanup_81135016.avif"
       ],
-      "date_scraping": "2026-08-10T09:01:47.299897"
+      "date_scraping": "2026-08-13T11:39:48.449935"
     },
     {
-      "id_annonce": "8361197",
-      "url": "https://www.mubawab.ma/fr/a/8361197/terrain-agricole-marrakech-ferme-%C3%A0-vendre-marrakech",
+      "id_annonce": "8397321",
+      "url": "https://www.mubawab.ma/fr/a/8397321/jolie-ferme-%C3%A0-vendre-%C3%A0-chtouka-surface-totale-100-m%C2%B2",
       "source": "Mubawab",
-      "titre": "Terrain agricole Marrakech, ferme à vendre Marrakech",
-      "description": "Domaine Agricole d’Exception de 346 Hectares à Vendre – Route de Fès, Marrakech\n\nPrix : 173 000 000 DH\n\nOrchid Island vous propose à la vente un",
-      "prix_dh": 2173000000,
-      "surface_m2": 339000,
-      "categorie": "Agricole",
+      "titre": "Jolie ferme à vendre à Chtouka.\nSurface totale 100 m²",
+      "description": "Découvrez cette charmante propriété agricole située à Tinine Chtouka, au cœur de la région Casablanca-Settat, dans la paisible ville de Chtouka.",
+      "prix_dh": 30750000,
+      "surface_m2": 100,
+      "categorie": "Ferme",
       "titre_foncier": false,
       "images": [
-        "https://www.mubawab-media.com/ad/8/361/197F/h/photo_00_82708345.avif",
-        "https://www.mubawab-media.com/ad/8/361/197F/h/photo_01_82708346.avif"
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_00_83034525.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_00_83034550.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_01_83034526.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_01_83034551.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_02_83034527.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_02_83034552.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_03_83034528.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_03_83034553.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_04_83034529.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_04_83034554.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_05_83034530.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_06_83034531.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_07_83034532.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_08_83034533.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_09_83034534.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_010_83034535.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_011_83034536.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_012_83034537.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_013_83034538.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_014_83034539.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_015_83034540.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_016_83034541.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_017_83034542.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_018_83034543.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_019_83034544.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_020_83034545.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_021_83034546.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_022_83034547.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_023_83034548.avif",
+        "https://www.mubawab-media.com/ad/8/397/321F/h/photo_024_83034549.avif"
       ],
-      "date_scraping": "2026-08-10T09:01:51.103018"
+      "date_scraping": "2026-08-13T11:39:59.873511"
     },
     {
-      "id_annonce": "8325301",
-      "url": "https://www.mubawab.ma/fr/a/8325301/ferme-agricole-40-000-m2-900-oliviers-productifs",
+      "id_annonce": "8398106",
+      "url": "https://www.mubawab.ma/fr/a/8398106/a-vendre-ferme-14-hectares-brachoua",
       "source": "Mubawab",
-      "titre": "Ferme agricole, 40 000 m2,\n900 oliviers productifs",
-      "description": "Ferme agricole de 4 hectares – 900 oliviers productifs exploitation complète à 45 km de Marrakech\nFerme Titrée en règle administrativement.\n\nÀ vendre,",
-      "prix_dh": 303350000,
-      "surface_m2": 40000,
+      "titre": "A vendre ferme 14 Hectares \nbrachoua",
+      "description": "Superficie totale : 14 hectares\nBelle opportunité d’investissement avec un domaine agricole opérationnel de 14 ha, dont 10 ha de vignoble en Pergola",
+      "prix_dh": 2012000000,
+      "surface_m2": 140000,
+      "categorie": "Ferme",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/398/106F/h/17_Jardin_entree_83032087.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/01_Vue_satellite_parcelle_83032088.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/02_Drone_vue_generale_parcelle_83032089.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/03_Drone_batiments_et_plantations_83032090.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/04_Vignoble_vue_generale_83032091.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/05_Vignoble_rangees_83032092.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/06_Vignes_detail_83032093.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/07_Grappes_sur_vigne_83032094.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/08_Recolte_raisin_83032095.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/09_Oliviers_83032096.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/10_Verger_83032097.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/11_Tracteur_traitement_83032098.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/12_Bassin_vue_aerienne_83032099.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/13_Bassin_4_94_millions_litres_83032100.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/14_Station_irrigation_automatisee_83032101.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/15_Equipement_reseau_irrigation_83032102.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/16_Maison_et_jardin_83032103.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/18_Couri_exterieur_83032104.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/19_Couri_vue_aerienne_83032105.avif",
+        "https://www.mubawab-media.com/ad/8/398/106F/h/20_Couri_interieur_83032106.avif",
+        "https://www.mubawab-media.com/ad/8/323/664F/m/WhatsApp-Image-2026-03-30-at-16.26.58-592x444_82177398.avif",
+        "https://www.mubawab-media.com/ad/8/392/984F/m/01-saafka_82974938.avif"
+      ],
+      "date_scraping": "2026-08-13T11:40:07.450037"
+    },
+    {
+      "id_annonce": "8397879",
+      "url": "https://www.mubawab.ma/fr/a/8397879/agr%C3%A9able-ferme-%C3%A0-vendre-%C3%A0-kalaa-alseraghna-surface-totale-55000-m%C2%B2",
+      "source": "Mubawab",
+      "titre": "Agréable ferme à vendre à kalaa alseraghna Surface totale 55000 m²",
+      "description": "À VENDRE – BELLE FERME AGRICOLE DE 5,5 HECTARES ENTIÈREMENT ÉQUIPÉE \n\n Localisation : Douar Al Mars, Blaka Laararcha, Province de Kalaat Sraghna À",
+      "prix_dh": 5750000,
+      "surface_m2": 55000,
+      "categorie": "Ferme",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/397/879F/h/photo_00_83029802.avif",
+        "https://www.mubawab-media.com/ad/8/397/879F/h/photo_01_83029803.avif",
+        "https://www.mubawab-media.com/ad/8/397/879F/h/photo_02_83029804.avif",
+        "https://www.mubawab-media.com/ad/8/397/879F/h/photo_03_83029805.avif",
+        "https://www.mubawab-media.com/ad/8/397/879F/h/photo_04_83029806.avif"
+      ],
+      "date_scraping": "2026-08-13T11:40:15.047844"
+    },
+    {
+      "id_annonce": "8397025",
+      "url": "https://www.mubawab.ma/fr/a/8397025/trouvez-votre-ferme-%C3%A0-acheter-%C3%A0-sala-el-jadida-surface-totale-220575-m%C2%B2",
+      "source": "Mubawab",
+      "titre": "Trouvez votre ferme à acheter à Sala el Jadida.\nSurface totale 220575 m²",
+      "description": "Cette magnifique propriété agricole en vente est située à Sehoul laarjat, dans la région de Rabat-Salé-Zemmour-Zaër, précisément dans la ville de",
+      "prix_dh": 527000000,
+      "surface_m2": 220575,
+      "categorie": "Ferme",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/397/025F/h/photo_00_83019955.avif",
+        "https://www.mubawab-media.com/ad/8/397/025F/h/photo_01_83019956.avif",
+        "https://www.mubawab-media.com/ad/8/397/025F/h/photo_02_83019957.avif",
+        "https://www.mubawab-media.com/ad/8/397/025F/h/photo_03_83019958.avif",
+        "https://www.mubawab-media.com/ad/8/397/025F/h/photo_04_83019959.avif"
+      ],
+      "date_scraping": "2026-08-13T11:40:38.124462"
+    },
+    {
+      "id_annonce": "8374373",
+      "url": "https://www.mubawab.ma/fr/a/8374373/terrain-titr%C3%A9-%C3%A0-vendre-de-253-hectares",
+      "source": "Mubawab",
+      "titre": "Terrain titré à vendre de 253 hectares",
+      "description": "## Opportunité d'investissement agricole exceptionnelle : Terrain titré à vendre\nNous vous proposons une offre exclusive pour acquérir une vaste terre",
+      "prix_dh": null,
+      "surface_m2": 600,
       "categorie": "Ferme",
       "titre_foncier": true,
       "images": [
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.56.06%20%281%29_82198089.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.25.38_82198090.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.50.04_82198091.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.50.02_82198092.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.51.19_82198093.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.51.36_82198094.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.02.08_82198095.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.02.19_82198096.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.51.44_82198097.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.57.31_82198098.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.56.08_82198099.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Imag2026-03-31%20at%2019.16.12_82198100.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.56.07_82198101.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.57.29_82198102.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.57.12_82198103.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.25.14_82198104.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.50.03_82198105.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.56.06_82198106.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.16.17_82198107.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.21.55_82198108.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.25.22_82198109.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.21.54_82198110.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%20226-03-31%20at%2019.16.11_82198111.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.21.55%20%283%29_82198112.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.21.55%20%282%29_82198113.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2019.6.10_82198114.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/Billet%20can%20_82198115.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20a19.16.11_82198116.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/Capture%20d%E2%80%99%C3%A9cran%202026-04-02%20003144_82198117.avif",
-        "https://www.mubawab-media.com/ad/8/325/301F/h/Capture%20d%E2%80%99%C3%A9cran%202026-04-02%20003313_82198118.avif"
+        "https://www.mubawab-media.com/ad/8/374/373F/h/1f633a84-bf96-4a50-a65e-a90f834c56de_82768188.avif"
       ],
-      "date_scraping": "2026-08-10T09:01:54.854665"
+      "date_scraping": "2026-08-13T11:40:45.736709"
     },
     {
-      "id_annonce": "8325269",
-      "url": "https://www.mubawab.ma/fr/a/8325269/jolie-terrain-de-30-000-m2-avec-300-oliviers-productifs",
+      "id_annonce": "8371242",
+      "url": "https://www.mubawab.ma/fr/a/8371242/vente-de-terrain-%C3%A0-route-de-l-ourika-surface-totale-17000-m%C2%B2",
       "source": "Mubawab",
-      "titre": "Jolie terrain de 30 000 m2 avec 300 oliviers productifs",
-      "description": "Opportunité !\n\nÀ vendre, magnifique ferme agricole sur un terrain de 3 hectares, idéalement située en bord de route, offrant un accès facile tout en",
-      "prix_dh": 141250000,
-      "surface_m2": 30000,
-      "categorie": "Ferme",
-      "titre_foncier": false,
+      "titre": "Vente de terrain à Route de l'Ourika.\nSurface totale 17000 m²",
+      "description": "Découvrez un terrain exceptionnel à vendre, situé sur la célèbre Route de l'Ourika à Marrakech, dans la région vibrant de Marrakech-Safi. Ce terrain",
+      "prix_dh": 33400000,
+      "surface_m2": 17000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
       "images": [
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.22.47_82197764.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.22.53_82197765.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.16.35_82197766.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.16.29_82197767.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.17.14_82197768.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.18.17_82197769.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.21.44_82197770.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.36.29_82197771.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.40.16_82197772.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.40.22_82197773.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.16.51_82197774.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.25.22_82197775.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.25.45_82197776.avif",
-        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.26.03_82197777.avif"
+        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_00_82734485.avif",
+        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_01_82734486.avif",
+        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_02_82734487.avif",
+        "https://www.mubawab-media.com/ad/8/267/854F/m/PHOTO-2025-11-25-07-07-20_81734954.avif",
+        "https://www.mubawab-media.com/ad/8/274/255F/m/expansive-landscape-showcasing-the-dry-agafay-dese-2025-03-13-01-46-15-utc_81653635.avif",
+        "https://www.mubawab-media.com/ad/8/336/351F/m/WhatsApp%20Image%202026-04-21%20at%2010.23.41_82313340.avif",
+        "https://www.mubawab-media.com/ad/8/266/401F/m/photo_0_81571086.avif"
       ],
-      "date_scraping": "2026-08-10T09:01:58.708557"
-    },
-    {
-      "id_annonce": "8396218",
-      "url": "https://www.mubawab.ma/fr/a/8396218/propri%C3%A9t%C3%A9-agricole-a-vendre-benslimane",
-      "source": "Mubawab",
-      "titre": "Propriété agricole a vendre Benslimane",
-      "description": "Propriété agricole à Benslimane d'une superficie de 1 hectare  1 000 m². Elle comprend une maison d'habitation, une maison de gardien, une piscine, un",
-      "prix_dh": 73500000,
-      "surface_m2": 11000,
-      "categorie": "Ferme",
-      "titre_foncier": false,
-      "images": [
-        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.40_83011959.avif",
-        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.41%20%284%29_83011960.avif",
-        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.41%20%283%29_83011961.avif",
-        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.41%20%282%29_83011962.avif",
-        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.41%20%281%29_83011963.avif",
-        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.41_83011964.avif",
-        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.40%20%281%29_83011965.avif",
-        "https://www.mubawab-media.com/ad/7/797/055F/m/IMG-20231017-WA0050_58620173.avif",
-        "https://www.mubawab-media.com/ad/7/835/303F/m/3c3a5779-fe03-4dd5-be3b-2b14c24ee271-835x467_63505396.avif",
-        "https://www.mubawab-media.com/ad/8/385/296F/m/5242ed86-fe37-4bf6-8c1a-1dd3250659ef_82890875.avif",
-        "https://www.mubawab-media.com/ad/8/371/148F/m/IMG_3502_82733590.avif"
-      ],
-      "date_scraping": "2026-08-10T09:02:10.120326"
-    },
-    {
-      "id_annonce": "8395683",
-      "url": "https://www.mubawab.ma/fr/a/8395683/domaine-historique-berceau-de-la-clementine",
-      "source": "Mubawab",
-      "titre": "Domaine historique berceau de la clementine",
-      "description": "Opportunité rare pour investisseurs agricoles. À vendre, un magnifique domaine agricole de 16 hectares idéalement situé à seulement 2 kilomètres de",
-      "prix_dh": 1817600000,
-      "surface_m2": 160000,
-      "categorie": "Ferme",
-      "titre_foncier": false,
-      "images": [
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_00_83006123.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_01_83006124.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_02_83006125.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_03_83006126.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_04_83006127.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_05_83006128.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_06_83006129.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_07_83006130.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_08_83006131.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_09_83006132.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_010_83006133.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_011_83006134.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_012_83006135.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_013_83006136.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_014_83006137.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_015_83006138.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_016_83006139.avif",
-        "https://www.mubawab-media.com/ad/8/395/683F/h/photo_017_83006140.avif"
-      ],
-      "date_scraping": "2026-08-10T09:02:25.350717"
+      "date_scraping": "2026-08-13T11:42:45.690554"
     },
     {
       "id_annonce": "8394176",
@@ -404,7 +365,7 @@
         "https://www.mubawab-media.com/ad/8/393/263F/m/images_82977766.avif",
         "https://www.mubawab-media.com/ad/8/327/975F/m/Screenshot_20260407_003235_Maps_82226604.avif"
       ],
-      "date_scraping": "2026-08-10T09:05:58.699413"
+      "date_scraping": "2026-08-13T11:43:09.316053"
     },
     {
       "id_annonce": "8384642",
@@ -419,33 +380,12 @@
       "images": [
         "https://www.mubawab-media.com/ad/8/384/642F/h/1000031997_82982557.avif",
         "https://www.mubawab-media.com/ad/8/384/642F/h/IMG-20251112-WA0000_82883590.avif",
-        "https://www.mubawab-media.com/ad/8/234/135F/m/PAVILLON_81254623.avif",
+        "https://www.mubawab-media.com/ad/8/140/936F/m/009A5057-HDR_80258736.avif",
         "https://www.mubawab-media.com/ad/8/166/907F/m/photo_0_80528796.avif",
         "https://www.mubawab-media.com/ad/8/369/673F/m/782cfc001216d704761d_82717112.avif",
         "https://www.mubawab-media.com/ad/8/274/263F/m/amg_7116_82667592.avif"
       ],
-      "date_scraping": "2026-08-10T09:06:29.192593"
-    },
-    {
-      "id_annonce": "8273156",
-      "url": "https://www.mubawab.ma/fr/a/8273156/proximit%C3%A9-akenza-golf-resort-lots-titr%C3%A9s-de-1ha",
-      "source": "Mubawab",
-      "titre": "Proximité Akenza Golf Resort Lots titrés de 1ha",
-      "description": "Ensemble limité de 6 lots premium titrés de 1 hectare chacun (10 000 m²), idéalement situés sur la Route de Tahanaout – Km 13 (Zaraba), commune de",
-      "prix_dh": null,
-      "surface_m2": 10000,
-      "categorie": "Agricole",
-      "titre_foncier": true,
-      "images": [
-        "https://www.mubawab-media.com/ad/8/273/156F/h/output_82465079.avif",
-        "https://www.mubawab-media.com/ad/8/273/156F/h/a501b4b4-6581-47d6-b213-e0de0e3f5be7_81835823.avif",
-        "https://www.mubawab-media.com/ad/8/273/156F/h/3d010239-06cd-4681-8a39-640a0f7dd537_81835829.avif",
-        "https://www.mubawab-media.com/ad/8/273/156F/h/output3_82465081.avif",
-        "https://www.mubawab-media.com/ad/8/273/156F/h/output2_82465082.avif",
-        "https://www.mubawab-media.com/ad/8/273/156F/h/IMG_7930_82534599.avif",
-        "https://www.mubawab-media.com/ad/8/273/156F/h/output1_82465080.avif"
-      ],
-      "date_scraping": "2026-08-10T09:06:40.709498"
+      "date_scraping": "2026-08-13T11:43:29.168534"
     },
     {
       "id_annonce": "8100905",
@@ -464,26 +404,37 @@
         "https://www.mubawab-media.com/ad/8/100/905F/h/photo_3_79854501.avif",
         "https://www.mubawab-media.com/ad/8/100/905F/h/photo_4_79854503.avif"
       ],
-      "date_scraping": "2026-08-10T09:08:00.753238"
+      "date_scraping": "2026-08-13T11:44:34.500815"
     },
     {
-      "id_annonce": "8396811",
-      "url": "https://www.mubawab.ma/fr/a/8396811/terrain-%C3%A0-vendre-60-400-m%C2%B2-autre-skhirate-t%C3%A9mara",
+      "id_annonce": "8270844",
+      "url": "https://www.mubawab.ma/fr/a/8270844/terrain-de-183ha-pas-loin-du-p%C3%A9rim%C3%A8tre-urbain",
       "source": "Mubawab",
-      "titre": "Terrain à vendre 60 400 m² \nAutre Skhirate \nTémara",
-      "description": "À vendre, ferme agricole de 60 400 m² située à Bni Abid, Sidi Yahya Zaër, à quelques minutes de Rabat. Cette propriété bénéficie d'un environnement",
-      "prix_dh": 214000000,
-      "surface_m2": 60400,
-      "categorie": "Local",
-      "titre_foncier": false,
+      "titre": "Terrain de 183ha pas loin du périmètre urbain",
+      "description": "On met en vente à la commune de Boukhalef Gzénaya, Madchar Al-Madyar, préfecture de Tanger un terrain titré à vocation agricole d'une superficie de",
+      "prix_dh": 16366000000,
+      "surface_m2": 183000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
       "images": [
-        "https://www.mubawab-media.com/ad/8/396/811F/h/annonce-agenz-20260806T100437318Z-1785960254949_83017894.avif",
-        "https://www.mubawab-media.com/ad/8/396/811F/h/annonce-agenz-20260806T100553885Z-Screenshot20260805205809Maps_83017895.avif",
-        "https://www.mubawab-media.com/ad/8/327/950F/m/photo_0_82226325.avif",
-        "https://www.mubawab-media.com/ad/8/254/279F/m/IMG_2516_81429417.avif",
-        "https://www.mubawab-media.com/ad/8/202/415F/m/photo_0_80885826.avif"
+        "https://www.mubawab-media.com/ad/8/270/844F/h/24_82515418.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/25_82515417.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/22_81617736.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/18_81617738.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/15_81617741.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/16_82515410.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/31_82515411.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/30_82515412.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/29_82515413.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/28_82515414.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/27_82515415.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/26_82515416.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/23_82515419.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/21_82515420.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/20_82515421.avif",
+        "https://www.mubawab-media.com/ad/8/270/844F/h/19_82515422.avif"
       ],
-      "date_scraping": "2026-08-10T09:08:53.991658"
+      "date_scraping": "2026-08-13T11:44:42.139535"
     },
     {
       "id_annonce": "8339781",
@@ -504,7 +455,7 @@
         "https://www.mubawab-media.com/ad/8/307/376F/m/download_82007431.avif",
         "https://www.mubawab-media.com/ad/8/389/755F/m/20260216_103340_82939305.avif"
       ],
-      "date_scraping": "2026-08-10T09:10:56.994904"
+      "date_scraping": "2026-08-13T11:47:55.419680"
     },
     {
       "id_annonce": "8384535",
@@ -526,7 +477,7 @@
         "https://www.mubawab-media.com/ad/8/384/535F/h/photo_06_82882221.avif",
         "https://www.mubawab-media.com/ad/8/321/895F/m/IMG_20260326_222721_82159565.avif"
       ],
-      "date_scraping": "2026-08-10T09:14:26.894265"
+      "date_scraping": "2026-08-13T11:52:41.858517"
     },
     {
       "id_annonce": "8359525",
@@ -549,7 +500,7 @@
         "https://www.mubawab-media.com/ad/8/359/525F/h/1000126257_82567909.avif",
         "https://www.mubawab-media.com/ad/8/033/171F/m/IMG-20241107-WA0047_79189809.avif"
       ],
-      "date_scraping": "2026-08-10T09:15:12.934692"
+      "date_scraping": "2026-08-13T11:53:27.839937"
     },
     {
       "id_annonce": "8357687",
@@ -564,7 +515,7 @@
       "images": [
         "https://www.mubawab-media.com/ad/8/357/687F/h/photo_0_82548125.avif"
       ],
-      "date_scraping": "2026-08-10T09:15:20.510480"
+      "date_scraping": "2026-08-13T11:53:35.449283"
     },
     {
       "id_annonce": "8354697",
@@ -580,7 +531,7 @@
         "https://www.mubawab-media.com/ad/8/354/697F/h/photo_10_82514261.avif",
         "https://www.mubawab-media.com/ad/8/354/697F/h/photo_11_82514262.avif"
       ],
-      "date_scraping": "2026-08-10T09:15:28.149093"
+      "date_scraping": "2026-08-13T11:53:43.137833"
     },
     {
       "id_annonce": "8347428",
@@ -596,7 +547,27 @@
         "https://www.mubawab-media.com/ad/8/347/428F/h/WhatsApp%20Image%202026-05-10%20at%2018.55.47%20%281%29_82433734.avif",
         "https://www.mubawab-media.com/ad/8/377/075F/m/photo_0_82800835.avif"
       ],
-      "date_scraping": "2026-08-10T09:15:47.170087"
+      "date_scraping": "2026-08-13T11:54:02.267679"
+    },
+    {
+      "id_annonce": "8398091",
+      "url": "https://www.mubawab.ma/fr/a/8398091/terrain-%C3%A0-acheter-%C3%A0-cgi-surface-de-25560-m%C2%B2",
+      "source": "Mubawab",
+      "titre": "Terrain à acheter à CGI.\nSurface de 25560 m²",
+      "description": "Ce terrain exceptionnel de 25 560 m², situé à Izlaguen dans la région de Rabat-Salé-Zemmour-Zaër, à Khémisset, offre un espace vaste et varié, idéal",
+      "prix_dh": null,
+      "surface_m2": 25560,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/398/091F/h/photo_00_83031868.avif",
+        "https://www.mubawab-media.com/ad/8/398/091F/h/photo_01_83031869.avif",
+        "https://www.mubawab-media.com/ad/8/398/091F/h/photo_02_83031870.avif",
+        "https://www.mubawab-media.com/ad/8/398/091F/h/photo_03_83031871.avif",
+        "https://www.mubawab-media.com/ad/8/398/091F/h/photo_04_83031872.avif",
+        "https://www.mubawab-media.com/ad/8/392/845F/m/WhatsApp%20Image%202026-07-27%20at%2013.04.11_82973577.avif"
+      ],
+      "date_scraping": "2026-08-13T11:54:13.717936"
     },
     {
       "id_annonce": "8392845",
@@ -611,9 +582,10 @@
       "images": [
         "https://www.mubawab-media.com/ad/8/392/845F/h/WhatsApp%20Image%202026-07-27%20at%2013.04.11_82973577.avif",
         "https://www.mubawab-media.com/ad/8/392/845F/h/WhatsApp%20Image%202026-07-27%20at%2013.04.11%20%281%29_82973575.avif",
-        "https://www.mubawab-media.com/ad/8/392/845F/h/WhatsApp%20Image%202026-07-27%20at%2013.04.11%20%282%29_82973576.avif"
+        "https://www.mubawab-media.com/ad/8/392/845F/h/WhatsApp%20Image%202026-07-27%20at%2013.04.11%20%282%29_82973576.avif",
+        "https://www.mubawab-media.com/ad/8/398/091F/m/photo_00_83031868.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:06.165750"
+      "date_scraping": "2026-08-13T11:54:17.538133"
     },
     {
       "id_annonce": "8357139",
@@ -632,7 +604,7 @@
         "https://www.mubawab-media.com/ad/8/357/139F/h/IMG_3369_82540506.avif",
         "https://www.mubawab-media.com/ad/8/323/471F/m/1000020593_82175428.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:21.347149"
+      "date_scraping": "2026-08-13T11:54:32.770386"
     },
     {
       "id_annonce": "8348875",
@@ -648,7 +620,7 @@
         "https://www.mubawab-media.com/ad/8/348/875F/h/WhatsApp%20Image%202026-05-08%20at%2016.43.12%20%281%29_82452405.avif",
         "https://www.mubawab-media.com/ad/8/348/875F/h/WhatsApp%20Image%202026-05-08%20at%2016.43.12_82452406.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:28.966868"
+      "date_scraping": "2026-08-13T11:54:40.392225"
     },
     {
       "id_annonce": "8337349",
@@ -672,7 +644,7 @@
         "https://www.mubawab-media.com/ad/8/335/607F/m/photo_00_82305760.avif",
         "https://www.mubawab-media.com/ad/8/268/206F/m/WhatsApp%20Image%202025-12-08%20at%2013.43.05_81589782.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:32.751727"
+      "date_scraping": "2026-08-13T11:54:44.141114"
     },
     {
       "id_annonce": "8335607",
@@ -692,7 +664,7 @@
         "https://www.mubawab-media.com/ad/8/337/349F/m/WhatsApp%20Image%202026-04-22%20at%2014.36.33%20%283%29_82324134.avif",
         "https://www.mubawab-media.com/ad/8/268/206F/m/WhatsApp%20Image%202025-12-08%20at%2013.43.05_81589782.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:36.564146"
+      "date_scraping": "2026-08-13T11:54:47.932593"
     },
     {
       "id_annonce": "8323471",
@@ -707,7 +679,7 @@
       "images": [
         "https://www.mubawab-media.com/ad/8/323/471F/h/1000020593_82175428.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:40.377384"
+      "date_scraping": "2026-08-13T11:54:51.741528"
     },
     {
       "id_annonce": "8312420",
@@ -725,7 +697,7 @@
         "https://www.mubawab-media.com/ad/8/367/407F/m/1000414124_82693763.avif",
         "https://www.mubawab-media.com/ad/8/255/043F/m/IMG_20251118_213903_81437095.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:44.179243"
+      "date_scraping": "2026-08-13T11:54:55.519666"
     },
     {
       "id_annonce": "8291559",
@@ -742,7 +714,7 @@
         "https://www.mubawab-media.com/ad/8/291/559F/h/IMG-20260103-WA0010_81838841.avif",
         "https://www.mubawab-media.com/ad/8/291/559F/h/IMG-20260103-WA0009_81838842.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:48.026989"
+      "date_scraping": "2026-08-13T11:54:59.328930"
     },
     {
       "id_annonce": "8274131",
@@ -761,7 +733,7 @@
         "https://www.mubawab-media.com/ad/8/274/131F/h/photo_03_81652353.avif",
         "https://www.mubawab-media.com/ad/8/211/352F/m/IMG_9572_80978509.avif"
       ],
-      "date_scraping": "2026-08-10T09:16:51.820653"
+      "date_scraping": "2026-08-13T11:55:03.172402"
     },
     {
       "id_annonce": "8211352",
@@ -783,7 +755,7 @@
         "https://www.mubawab-media.com/ad/8/211/352F/h/IMG_4074_82656576.avif",
         "https://www.mubawab-media.com/ad/8/274/131F/m/photo_00_81652350.avif"
       ],
-      "date_scraping": "2026-08-10T09:17:03.202049"
+      "date_scraping": "2026-08-13T11:55:14.630731"
     },
     {
       "id_annonce": "8202742",
@@ -799,7 +771,7 @@
         "https://www.mubawab-media.com/ad/8/202/742F/h/IMG20250210121526_80889037.avif",
         "https://www.mubawab-media.com/ad/8/202/742F/h/IMG20250210121547_01_80889038.avif"
       ],
-      "date_scraping": "2026-08-10T09:17:06.990922"
+      "date_scraping": "2026-08-13T11:55:18.392367"
     },
     {
       "id_annonce": "8352161",
@@ -816,7 +788,7 @@
         "https://www.mubawab-media.com/ad/8/352/161F/h/1000198834_82487254.avif",
         "https://www.mubawab-media.com/ad/8/360/743F/m/7d756114-43ed-48ad-b9e7-28789f23b9dc_82580944.avif"
       ],
-      "date_scraping": "2026-08-10T09:17:22.174183"
+      "date_scraping": "2026-08-13T11:55:33.623826"
     },
     {
       "id_annonce": "8226018",
@@ -835,7 +807,7 @@
         "https://www.mubawab-media.com/ad/8/391/741F/m/IMG_20190713_113651_82960490.avif",
         "https://www.mubawab-media.com/ad/8/271/176F/m/Screenshot_20251213-174120_cropped_81621023.avif"
       ],
-      "date_scraping": "2026-08-10T09:17:56.341171"
+      "date_scraping": "2026-08-13T11:56:07.920430"
     },
     {
       "id_annonce": "8329032",
@@ -854,7 +826,7 @@
         "https://www.mubawab-media.com/ad/8/329/032F/h/1000358265_82238233.avif",
         "https://www.mubawab-media.com/ad/8/205/071F/m/WhatsApp%20Image%202025-08-18%20at%2017.56.55_80911803.avif"
       ],
-      "date_scraping": "2026-08-10T09:18:30.612039"
+      "date_scraping": "2026-08-13T11:56:46.346765"
     },
     {
       "id_annonce": "8181345",
@@ -876,7 +848,7 @@
         "https://www.mubawab-media.com/ad/7/983/607F/m/IMG-20240824-WA0023_78692862.avif",
         "https://www.mubawab-media.com/ad/8/194/613F/m/9565537f-053b-40a4-bb20-0f71e7f37554_80810576.avif"
       ],
-      "date_scraping": "2026-08-10T09:18:57.318652"
+      "date_scraping": "2026-08-13T11:57:13.834010"
     },
     {
       "id_annonce": "8105366",
@@ -891,7 +863,7 @@
       "images": [
         "https://www.mubawab-media.com/ad/8/105/366F/h/20160403_074402_79898685.avif"
       ],
-      "date_scraping": "2026-08-10T09:19:01.148443"
+      "date_scraping": "2026-08-13T11:57:17.689690"
     },
     {
       "id_annonce": "8362828",
@@ -910,7 +882,7 @@
         "https://www.mubawab-media.com/ad/8/363/111F/m/photo_0_82610582.avif",
         "https://www.mubawab-media.com/ad/8/363/148F/m/photo_0_82611912.avif"
       ],
-      "date_scraping": "2026-08-10T09:19:27.824575"
+      "date_scraping": "2026-08-13T11:57:44.680223"
     },
     {
       "id_annonce": "8363098",
@@ -929,7 +901,7 @@
         "https://www.mubawab-media.com/ad/8/363/111F/m/photo_0_82610582.avif",
         "https://www.mubawab-media.com/ad/8/363/148F/m/photo_0_82611912.avif"
       ],
-      "date_scraping": "2026-08-10T09:19:31.757876"
+      "date_scraping": "2026-08-13T11:57:48.484402"
     },
     {
       "id_annonce": "8363250",
@@ -948,7 +920,7 @@
         "https://www.mubawab-media.com/ad/8/363/098F/m/photo_0_82610304.avif",
         "https://www.mubawab-media.com/ad/8/363/111F/m/photo_0_82610582.avif"
       ],
-      "date_scraping": "2026-08-10T09:19:43.218533"
+      "date_scraping": "2026-08-13T11:58:00.029885"
     },
     {
       "id_annonce": "8363216",
@@ -966,7 +938,7 @@
         "https://www.mubawab-media.com/ad/8/373/713F/m/photo_0_82760858.avif",
         "https://www.mubawab-media.com/ad/8/224/573F/m/photo_00_81119731.avif"
       ],
-      "date_scraping": "2026-08-10T09:19:51.007970"
+      "date_scraping": "2026-08-13T11:58:07.750945"
     },
     {
       "id_annonce": "8363211",
@@ -985,7 +957,7 @@
         "https://www.mubawab-media.com/ad/8/363/098F/m/photo_0_82610304.avif",
         "https://www.mubawab-media.com/ad/8/363/111F/m/photo_0_82610582.avif"
       ],
-      "date_scraping": "2026-08-10T09:19:54.801937"
+      "date_scraping": "2026-08-13T11:58:11.536593"
     },
     {
       "id_annonce": "8363192",
@@ -1004,7 +976,7 @@
         "https://www.mubawab-media.com/ad/8/245/944F/m/photo_00_81344804.avif",
         "https://www.mubawab-media.com/ad/8/224/573F/m/photo_00_81119731.avif"
       ],
-      "date_scraping": "2026-08-10T09:19:58.951027"
+      "date_scraping": "2026-08-13T11:58:15.366347"
     },
     {
       "id_annonce": "8363162",
@@ -1023,7 +995,7 @@
         "https://www.mubawab-media.com/ad/8/363/098F/m/photo_0_82610304.avif",
         "https://www.mubawab-media.com/ad/8/363/111F/m/photo_0_82610582.avif"
       ],
-      "date_scraping": "2026-08-10T09:20:06.522382"
+      "date_scraping": "2026-08-13T11:58:23.046554"
     }
   ]
 }

@@ -1,0 +1,1768 @@
+{
+  "source": "avito",
+  "date_export": "2026-08-13T12:08:15.080084",
+  "nombre_annonces": 119,
+  "colonnes": [
+    "id_annonce",
+    "url",
+    "titre",
+    "description",
+    "prix_dh",
+    "surface_m2",
+    "categorie",
+    "titre_foncier",
+    "images",
+    "date_scraping"
+  ],
+  "annonces": [
+    {
+      "id_annonce": "57860821",
+      "url": "https://www.avito.ma/fr/route_de_fès/terrains_et_fermes/Terrain_agricole_à_vendre___1_hectare___57860821.htm",
+      "titre": "Terrain agricole à vendre – 1 hectare –",
+      "description": "À vendre, magnifique terrain agricole d’une superficie de 1 hectare (10 000 m²), situé sur la Route de Fès, à seulement 22 km de Marrakech.\n\nCe terrain bénéficie d’un emplacement stratégique, idéal pour un projet agricole, une villa de campagne ou un investissement à fort potentiel.\n\n✅ Superficie : 1 hectare (10 000 m²)\n✅ Emplacement : Route de Fès – 22 km de Marrakech\n✅ Idéal pour un projet agricole ou résidentiel",
+      "prix_dh": 530000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148437676?t=images",
+        "https://content.avito.ma/classifieds/images/10148437677?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:37:29.152391"
+    },
+    {
+      "id_annonce": "58111141",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Ferme_d_avocatiers_2_hectares_barrage_Ben_Maachou_58111141.htm",
+      "titre": "Ferme d'avocatiers 2 hectares barrage Ben Maachou",
+      "description": "À vendre — Ferme modèle et rentable de 2 hectares, entièrement équipée et clôturée.\n📍 Emplacement stratégique : Ben Maachou — Adjacente à la route régionale R303 (entièrement goudronnée) | À moins de 50 mètres de l'Oued Oum Er-Rbia et très proche du barrage.\nCette ferme représente une opportunité d'investissement exceptionnelle, combinant haute productivité, autonomie totale en eau et en énergie, et une infrastructure moderne prête pour une exploitation immédiate.\n🌳 Arbres fruitiers et production actuelle\n 355 arbres d'avocatiers en pleine production (âgés de 5 à 7 ans).\n 85 oliviers (production annuelle d'environ 300 litres d'huile d'olive).\n 36 citronniers (quatre saisons), ainsi que quelques pommiers et figuiers.\n 35 ruches pour la pollinisation et la production de miel.\n💧 Système d'irrigation et d'énergie (autonomie totale)\n Abondance d'eau toute l'année : puits de 145 mètres de profondeur + pompe submersible installée directement sur l'Oued Oum Er-Rbia près du barrage.\n Immense réservoir d'eau (bassin) : capacité de 1000 m³ alimenté par deux pompes submersibles.\n Réseau d'irrigation avancé : système goutte-à-goutte + système de brumisation sur les plantations.\n Local technique (30 m²) : équipé de panneaux solaires, filtres à sable, 4 cuves d'eau pour la fertilisation, et deux réservoirs pour l'approvisionnement en eau potable des écuries.\n Électricité : raccordée au réseau de l'Office National de l'Électricité (ONE - 4 fils / Triphasé).\ncow_emoji Étable d'engraissement (610 m²)\n Capacité : environ 60 bovins ou 300 ovins.\n Surface couverte : 320 m² couverts et bétonnés avec une barrière de contention réglable selon le type de bétail (bovins ou ovins).\n Équipements : système d'eau propre pour les abreuvoirs + brumisateurs pour lutter contre la chaleur.\n Annexes : hangar de 54 m² + infirmerie (salle d'isolement pour animaux malades) de 54 m².\nmushroom_emoji Bâtiment d'hydroponie et de production spécialisée (320 m²)\n Divisé en deux espaces indépendants (120 m² chacun) pour la production de fourrage hydroponique ou de champignons à haute rentabilité (Champignons de Paris, Shiitake...). \n Chambre froide dédiée de 13 m².\nhouse_emoji Habitations et installations\n Maison moderne (R+1) : d'une superficie de 120 m².\n Logement pour gardien : d'une superficie de 60 m².\n🎯 Le projet est idéal pour :\n✅ Un projet agricole rentable et moderne\n✅ L'élevage et l'engraissement de bovins et d'ovins\n✅ L'hydroponie et la production de champignons\n✅ Un investissement agricole sûr et durable\n💰 Prix : 4.650.000 DH\n📞 Pour plus d'informations et visites : veuillez contacter M. Khalid au : [REDACTED]",
+      "prix_dh": 195,
+      "surface_m2": 120,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152687018?t=images",
+        "https://content.avito.ma/classifieds/images/10152701518?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:37:39.706950"
+    },
+    {
+      "id_annonce": "57875485",
+      "url": "https://www.avito.ma/fr/sidi_bibi/terrains_et_fermes/___Terrain_14_000_m²_à_vendre___Fort_potentiel_57875485.htm",
+      "titre": "🏡 Terrain 14 000 m² à vendre – Fort potentiel",
+      "description": "🏡 Terrain 14 000 m² à vendre – Bengamoude – Fort potentiel\n\nÀ vendre, beau terrain d’environ 14 000 m² situé à Bengamoude, dans un environnement calme et naturel, à seulement 50 mètres de la route goudronnée.\n\n🔹 Caractéristiques :\n\nSuperficie : ≈ 14 000 m²\nTerrain plat et facilement exploitable\nDélimitation en pierres (≈ 80 cm de hauteur)\nAccès facile (à proximité immédiate du goudron)\nÉlectricité à proximité\nAccès à l’eau (réseau plus eau dessalinisée)\n\n🔹 Points forts :\n\nCadre paisible, idéal pour projet nature\nBonne accessibilité tout en gardant du calme\nAdapté pour :\nprojet agricole 🌿\nmaison de campagne 🏡\ninvestissement long terme 💰\nprojet touristique léger\n\n🔹 Informations complémentaires :\n\nTerrain exploité depuis plusieurs années\nSituation claire",
+      "prix_dh": 170,
+      "surface_m2": 14000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148765514?t=images",
+        "https://content.avito.ma/classifieds/images/10148568537?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:37:46.355003"
+    },
+    {
+      "id_annonce": "57691722",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/1ha___Écurie_240_m²__Accès_Goudronné_8_km_de_Benslimane_57691722.htm",
+      "titre": "1ha – Écurie 240 m²– Accès Goudronné–8 km de Benslimane",
+      "description": "NFAS IMMO est fière de vous présenter une opportunité rare sur le marché : un magnifique terrain agricole de 10 000 m² (1 hectare), idéalement situé à seulement 8 km du centre-ville de Benslimane. \nVéritable perle rare par sa situation et ses équipements, ce terrain parfaitement plat, carré et entièrement clôturé bénéficie d'un accès direct sur une route goudronnée, garantissant une accessibilité optimale en toute saison. \nCe bien se distingue par la présence d'une écurie spacieuse de 240 m², offrant une base solide et immédiate pour vos projets d'élevage, de haras ou d'aménagement professionnels.\n\nSituée dans une zone habitée et sécurisée au sein d'un voisinage de qualité, cette propriété garantit un confort d'installation rapide et paisible. \nLe bien est totalement en règle sur le plan administratif et juridique, exempt de toute nuisance environnementale (ni carrières, ni ligne haute tension), vous offrant une tranquillité totale pour vos investissements. \nEn choisissant NFAS IMMO, spécialiste du service - Clé en main -, vous bénéficiez d'un accompagnement à 100 % pour transformer ce potentiel en réalité : de la gestion des formalités administratives jusqu'à la construction complète de votre futur projet, qu'il s'agisse d'une exploitation agricole d'envergure ou d'une villa de prestige avec piscine. \nLes visites sont organisées exclusivement sur rendez-vous.\nNous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue.",
+      "prix_dh": 1600000,
+      "surface_m2": 240,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10146973579?t=images",
+        "https://content.avito.ma/classifieds/images/10146973580?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:37:57.264345"
+    },
+    {
+      "id_annonce": "57957575",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Fermette_Titrée_de_2500_m²_avec_Villa__Gros__uvre__57957575.htm",
+      "titre": "Fermette Titrée de 2500 m² avec Villa (Gros Œuvre)",
+      "description": "L'agence NFAS IMMO met en vente une magnifique fermette titrée d'une superficie de 2 500 m², idéalement située dans un cadre naturel et paisible à seulement 18 km du centre-ville de Benslimane et à 100 mètres de la route goudronnée, offrant un accès particulièrement facile. \nCe bien rare comprend une villa de plain-pied de 140 m² en phase de gros œuvre, vous permettant de réaliser les finitions entièrement à votre goût. \nLe projet est parfaitement en règle et dispose d'une autorisation de construire ainsi que d'une autorisation de puits. \nCôté commodités, la propriété est déjà raccordée et opérationnelle avec son propre compteur d'électricité et son compteur d'eau potable. \nC'est l'opportunité idéale pour les amoureux de la nature, les projets de retraite ou l'achat d'une résidence secondaire sans les tracas administratifs liés au démarrage d'un chantier. \nPour plus d'informations ou pour planifier une visite, contactez l'agence NFAS IMMO.",
+      "prix_dh": 1250000,
+      "surface_m2": 2500,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149394462?t=images",
+        "https://content.avito.ma/classifieds/images/10149394472?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:38:27.761474"
+    },
+    {
+      "id_annonce": "58170857",
+      "url": "https://www.avito.ma/fr/tiznit/terrains_et_fermes/Vente_Terrain_nu_à_Tiznit_58170857.htm",
+      "titre": "Vente Terrain nu à Tiznit",
+      "description": "!!!!!!!!!!!!!!!! EXCLUSIVITE MILKIYA !!!!!!!!!!!!!!!!!!!!!\n\nOpportunité d'Investissement : Grand Terrain Nu de 3 922 m² Tiznit\n\nÀ vendre, un excellent terrain nu d’une superficie généreuse de 3 922 m², stratégiquement situé dans la province de Tiznit.\n\nBénéficiant d'un emplacement à fort potentiel, ce terrain offre une belle surface plane, idéale pour la concrétisation de divers projets : résidentiels, agricoles, commerciaux ou industriel.\n\nCaractéristiques principales :\n\nSuperficie totale : 3 922 m²\nNature du bien : Terrain nu, bien configuré et facile d’accès.\nStatut : Titré\nAccessibilité : Proche des grands axes routiers.\n\nLes points forts :\n\nSuperficie rare et recherchée dans la région.\nIdéal pour un investissement à forte valeur ajoutée ou pour un projet personnel de grande envergure.\n\nGaelle BARBE",
+      "prix_dh": 800000,
+      "surface_m2": 3922,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10151179346?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:38:31.057586"
+    },
+    {
+      "id_annonce": "57704377",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/1_Ha___Lotissement__Façade_Goudronnée___Benslimane_57704377.htm",
+      "titre": "1 Ha – Lotissement– Façade Goudronnée – Benslimane",
+      "description": "L'agence immobilière NFAS IMMO est fière de vous présenter une opportunité rare : un magnifique terrain agricole bénéficiant d'un titre foncier définitif, d'une superficie de 10 000 m² (1 hectare) titre foncier.\nCe lot fait partie d'un domaine exclusif de 30 hectares, intelligemment découpé en parcelles d'un hectare chacune, garantissant ainsi un voisinage homogène et de qualité.\nIdéalement situé à seulement 8 km du centre-ville de Benslimane, ce terrain bénéficie d'un accès direct par la route goudronnée, alliant parfaitement accessibilité et prestige.\nDe forme carrée et parfaitement plat, ce terrain est déjà raccordé aux réseaux d'électricité et d'eau potable, facilitant immédiatement tous vos projets de développement.\nLe bien est totalement en règle sur le plan administratif et juridique, exempt de toute nuisance environnementale (ni carrière, ni ligne haute tension, ni écurie), vous offrant une tranquillité totale pour vos investissements.\nEn choisissant NFAS IMMO, spécialiste de la vente, de l'achat et de la construction, vous bénéficiez d'un accompagnement à 100 % pour transformer ce potentiel en réalité : de la gestion des formalités administratives jusqu'à la construction complète de votre futur projet, qu'il s'agisse d'une exploitation agricole moderne ou d'une villa de prestige avec piscine.\nLes visites sont organisées exclusivement sur rendez-vous \nNous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue.",
+      "prix_dh": 1200000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10147080230?t=images",
+        "https://content.avito.ma/classifieds/images/10147080234?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:38:41.499984"
+    },
+    {
+      "id_annonce": "57676921",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/1_2_ha_à_5_min_du_centre_ville_57676921.htm",
+      "titre": "1.2 ha à 5 min du centre ville",
+      "description": "L’agence NFAS IMMO vous présente une opportunité exceptionnelle d’acquérir un terrain agricole de 12 000 m² (1.2 hectare), idéalement situé à seulement 5 km à l’est du centre-ville de Benslimane. Ce terrain plat, de forme carrée et entièrement clôturé, offre un cadre de vie privilégié, sécurisé par un excellent voisinage et la proximité immédiate de la forêt pour une immersion totale en pleine nature. Facilement accessible et non isolé, le site permet un raccordement rapide aux réseaux d’eau potable et d’électricité, facilitant ainsi vos projets de résidence secondaire ou de ferme de loisir. Sur le plan administratif, le bien dispose d'un titre de propriété en indivision, avec une procédure d'éclatement actuellement en cours, garantissant ainsi une transition structurée pour votre investissement.\n\nFidèle à son engagement de service complet, NFAS IMMO vous propose une solution clé en main pour concrétiser votre projet : nous prenons en charge l'intégralité des démarches administratives, le forage de puits, les travaux de construction (gros œuvre et finitions), ainsi que l'aménagement paysager. Que vous rêviez d'une villa avec piscine ou d'un domaine agricole privé, notre équipe vous accompagne de la conception à la réalisation finale. Les visites sont organisées exclusivement sur rendez-vous nous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue et découvrir le potentiel de ce site en pleine expansion.",
+      "prix_dh": 1500000,
+      "surface_m2": 12000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10146850276?t=images",
+        "https://content.avito.ma/classifieds/images/10146881027?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:38:49.365946"
+    },
+    {
+      "id_annonce": "57856943",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Ferme_avec_villa_1ha_titré_57856943.htm",
+      "titre": "Ferme avec villa 1ha titré | Terrains et fermes à Benslimane | Avito.ma",
+      "description": "J'ai le plaisir de vous présenter une villa meublée et bien équipée avec un terrain agricole titré d'une superficie totale de 10 000 m² (soit 1 hectare).\nIdéalement situé à seulement 10 minutes du centre-ville de Benslimane (10 km), depuis Casablanca 60 km et Rabat 70 km.\nDisposant de deux puits, d'un raccordement en cours à l'eau potable, des arbres, vous y trouverez également une écurie, un logement pour gardien, un garage, ainsi qu'un espace barbecue.",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148400354?t=images",
+        "https://content.avito.ma/classifieds/images/10148400357?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:38:56.047033"
+    },
+    {
+      "id_annonce": "57962262",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/TERRAIN_SITUE_A_RIBAA_A_VENDRE_57962262.htm",
+      "titre": "TERRAIN SITUE A RIBAA A VENDRE | Terrains et fermes à Temara | Avito.ma",
+      "description": "Terrain titré de 4 hectares à Ribaa – Sidi Yahya, Témara\n\nÀ vendre, magnifique terrain titré d’une superficie de 4 hectares, soit 40 000 m², situé à Ribaa, Sidi Yahya – Témara.\n\nLa propriété comprend :\n\n* Une maison existante\n* Un bassin\n* Une grande superficie adaptée à un projet agricole, une ferme, une résidence privée ou un investissement\n\nTerrain offrant un excellent potentiel dans un environnement calme et naturel.\n\n**Prix : à discuter**\nPour plus d’informations ou pour organiser une visite, merci de me contacter par téléphone.",
+      "prix_dh": null,
+      "surface_m2": 40000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149446255?t=images",
+        "https://content.avito.ma/classifieds/images/10149446253?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:39:09.852875"
+    },
+    {
+      "id_annonce": "58213832",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Ferme_2_6_hectares_avec_maison_et_clôture_murale_de_2m_58213832.htm",
+      "titre": "Ferme 2,6 hectares avec maison et clôture murale de 2m",
+      "description": "À 7 min de la sortie d'autoroute Tnin Chtouka. Je mets en vente un terrain agricole titré à Chtouka.\nContient une maison, écurie et garage.\nClôture murale de 2 m de hauteur.\n- Puits disponible\n- Eau RADEJ disponible\n- Électricité ONE disponible\n- Superficie 2,6 hectares\n- Zoning : Agricole\n- Titré : oui\n- Loti : non\nPour toute information complémentaire, n'hésitez pas à me contacter.",
+      "prix_dh": 1650000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10151575075?t=images",
+        "https://content.avito.ma/classifieds/images/10151575073?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:39:24.298175"
+    },
+    {
+      "id_annonce": "58454155",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Ferme_à_Benslimane_58454155.htm",
+      "titre": "Ferme à Benslimane",
+      "description": "Ferme de 4 hectares à 10 km de Benslimane route sidi bettach .\nTitré \néquipée 3 puits, maison, 4 etables château d'eau \n6 chalet.piscine, terrain de foot/tennis\nSans intermédiaire",
+      "prix_dh": 4150000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153533093?t=images",
+        "https://content.avito.ma/classifieds/images/10153533090?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:39:28.004010"
+    },
+    {
+      "id_annonce": "56169210",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Ferme_4Ha___500_Figuiers__1600_Oliviers_56169210.htm",
+      "titre": "Ferme 4Ha – 500 Figuiers, 1600 Oliviers",
+      "description": "Une pépite agricole comme on en trouve rarement sur le marché !\nÀ seulement 18 km de Meknès, accessible par route goudronnée (zéro piste, zéro tracas), cette ferme de 4 hectares (40 000 m²) vous offre TOUT ce qu’il faut pour démarrer ou développer votre projet dès aujourd’hui.\n🏡 PRÊTE À VIVRE :\n✔️ Maisons d’habitation entièrement équipées\n✔️ Maison de gardien pour la sécurité et la gestion du domaine\n🌳 UN VERGER D’EXCEPTION DÉJÀ EN PRODUCTION :\n✔️ 500 figuiers\n✔️ 1 600 oliviers\n✔️ Orangers, citronniers, pêchers, abricotiers et plus encore !\nQue vous cherchiez un investissement rentable, une résidence secondaire au vert, ou un projet agri touristique, cette ferme coche toutes les cases : production immédiate, cadre paisible, et proximité de la ville.\n🔥 À SAISIR RAPIDEMENT — 3 500 000 DH",
+      "prix_dh": 3500000,
+      "surface_m2": 40000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10132133019?t=images",
+        "https://content.avito.ma/classifieds/images/10152545569?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:39:31.488522"
+    },
+    {
+      "id_annonce": "58187473",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Ferme_3100_m²_avec_maison_et_piscine_58187473.htm",
+      "titre": "Ferme 3100 m² avec maison et piscine",
+      "description": "Je vends une ferme de 3100 m² à Bir Jdid, route Jamaat Foko, comprenant une maison et une piscine.\n- Superficie : 3100 m²\n- Zoning : Agricole\n- Puits : disponible \n- Eau RADRJ : disponible \nÉlectricité ONE : disponible \nPour plus d'informations, contactez-moi si vous êtes intéressé.",
+      "prix_dh": 700000,
+      "surface_m2": 3100,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10151307863?t=images",
+        "https://content.avito.ma/classifieds/images/10151307864?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:39:41.683840"
+    },
+    {
+      "id_annonce": "57253373",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/1_ha_agricole_titrée_sur_la_route_à_Benslimane_57253373.htm",
+      "titre": "1 ha agricole titrée sur la route à Benslimane",
+      "description": "La société NFAS IMMO a le plaisir de vous présenter un terrain agricole titré d'une superficie totale de 10 800 m² (soit 1 hectare, 08 ares).\nIdéalement situé à seulement 10 minutes du centre-ville de Benslimane (9 km), et bien desservi depuis Casablanca 60 km, ce bien bénéficie d'une localisation privilégiée.\nEn effet, il est longé par la route goudronnée reliant Benslimane à Zyayda Palace.\nDe forme rectangulaire avec deux façades, ce terrain dispose d'un potentiel remarquable, car il est idéal pour un éventuel partage en deux parcelles grâce, non seulement à sa forme, mais aussi à ses deux accès.\nPar ailleurs, cet espace est le garanti véritablement paisible : il est exempt de toute nuisance telle qu'une carrière, un élevage de poules, des marécages, ou des poteaux d'électricité de haute tension.\nPour planifier une visite sur site, nous vous prions de bien vouloir nous contacter par téléphone.",
+      "prix_dh": 1400000,
+      "surface_m2": 10800,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10143609562?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:40:22.887413"
+    },
+    {
+      "id_annonce": "58385309",
+      "url": "https://www.avito.ma/fr/sidi_abderrazak/terrains_et_fermes/Vente_de_ferme_58385309.htm",
+      "titre": "Vente de ferme | Terrains et fermes à Sidi Abderrazak | Avito.ma",
+      "description": "Vente de ferme composée\nMaison d'une superficie de 170 m2\n1000 arbres principalement des citronniers et d'autres variétés\nDeux puits équipés\nAccès donnant sur la route goudronnée\nSitué à 2 km du centre du village Sidi Abderzak.",
+      "prix_dh": null,
+      "surface_m2": 170,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153345432?t=images",
+        "https://content.avito.ma/classifieds/images/10153345433?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:40:33.482904"
+    },
+    {
+      "id_annonce": "57691601",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_1_Ha_titré___Forme_Carrée___Vue_Forêt___57691601.htm",
+      "titre": "Terrain 1 Ha titré – Forme Carrée & Vue Forêt –",
+      "description": "L'agence NFAS IMMO est fière de vous présenter ce magnifique terrain agricole titré d'une superficie de 10 000 m² (1 hectare), idéalement situé à seulement 13 km du centre-ville de Benslimane. Véritable perle rare, ce terrain parfaitement plat, carré et déjà clôturé offre un cadre idyllique avec une vue imprenable sur les collines environnantes et la forêt. Ce bien dispose d'un atout précieux : un puits traditionnel, garantissant une ressource en eau immédiate pour vos projets de culture ou d'aménagement. Son emplacement est particulièrement privilégié, à seulement 300 mètres de la route goudronnée, ce qui assure une accessibilité optimale en toute saison tout en préservant le calme absolu et la sérénité de la campagne.\n\nLa zone, à la fois habitée et sécurisée au sein d'un voisinage de qualité, garantit un confort d'installation rapide. Totalement, en règle sur le plan administratif et juridique, ce terrain est exempt de toute nuisance (ni carrières, ni lignes haute tension, ni écuries), vous offrant une tranquillité totale. En choisissant NFAS IMMO, spécialiste du service - Clé en main -, vous bénéficiez d'un accompagnement à 100 % pour transformer ce potentiel en réalité : de l'acquisition aux formalités administratives, jusqu'à la construction complète de votre futur projet, telle qu'une villa avec piscine. Que vous rêviez d'une résidence principale ou d'une ferme de vacances, notre équipe est là pour concrétiser votre vision. Les visites sont organisées exclusivement sur rendez-vous , merci de nous contacter au moins 24 heures à l'avance pour planifier votre venue.",
+      "prix_dh": 1200000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10146972665?t=images",
+        "https://content.avito.ma/classifieds/images/10146972660?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:40:44.295818"
+    },
+    {
+      "id_annonce": "58454019",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Je_vends_des_terrains_agricoles_Région_Rabat_Salé_58454019.htm",
+      "titre": "Je vends des terrains agricoles Région Rabat Salé",
+      "description": "Je vends des terrains agricoles titrés dans la région de Rabat Salé, idéalement situés à Tifelt.\n- Titré\n- Zoning Agricole\nContactez-moi pour plus d'informations.",
+      "prix_dh": 420000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-13T11:41:09.171788"
+    },
+    {
+      "id_annonce": "57704321",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/3_ha_titre_foncier_à_10_min_du_centre_ville_57704321.htm",
+      "titre": "3 ha titre foncier à 10 min du centre ville",
+      "description": "L'agence immobilière NFAS IMMO est fière de vous présenter une opportunité foncière de premier choix : un magnifique terrain agricole bénéficiant d'un titre foncier définitif, d'une superficie totale de 3 hectares et 8 ares. Idéalement situé à seulement 7 km du centre-ville de Benslimane, ce domaine offre un équilibre parfait entre accessibilité et sérénité grâce à une piste carrossable de 800 mètres. De forme rectangulaire, le terrain bénéficie déjà d'un raccordement au réseau électrique.\nCe site se distingue par un cadre naturel spectaculaire offrant une vue imprenable sur des formations rocheuses, apportant un cachet authentique et sauvage idéal pour vos projets de résidence de luxe ou d'exploitation agricole.\n\nSituée dans un environnement calme et sécurisé, cette propriété garantit un confort d'installation immédiat. Le bien est totalement en règle sur le plan administratif et juridique, exempt de toute nuisance environnementale (ni carrière, ni ligne haute tension, ni écurie), vous offrant une tranquillité totale pour vos investissements. En choisissant NFAS IMMO, spécialiste de la vente, de l'achat et de la construction, vous bénéficiez d'un accompagnement à 100 % pour transformer ce vaste potentiel en réalité : de la gestion des formalités administratives jusqu'à la construction complète de votre futur projet, qu'il s'agisse d'une exploitation agricole d'envergure ou d'une villa de prestige avec piscine. Les visites sont organisées exclusivement sur rendez-vous, nous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue.",
+      "prix_dh": 2700000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10147080013?t=images",
+        "https://content.avito.ma/classifieds/images/10147080009?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:41:19.492728"
+    },
+    {
+      "id_annonce": "56084676",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/1_92_ha_titré_à_Benslimane_Ain_Laksab_56084676.htm",
+      "titre": "1.92 ha titré à Benslimane Ain Laksab",
+      "description": "À travers la Société Immobilière NFAS IMMO\nNous sommes ravis de vous présenter un terrain agricole titré, présentant une superficie de 1 hectare, 92 ares et 60 centiares soit 19 260 mètres carrés.\nCe bien se distingue par l'absence de complications administratives ou juridiques, et bénéficie d'une situation privilégiée à proximité de la forêt.\nD'une configuration en L, ce terrain dispose des raccordements nécessaires aux réseaux d'électricité et d'eau potable.\nIl est idéalement situé à seulement 12 km du centre-ville de Benslimane, en direction de Sidi Bettach.\nNous vous invitons à convenir d'un rendez-vous téléphonique la veille afin d'organiser votre visite.\n\nLa société NFAS IMMO vous souhaite la bienvenue.\nSpécialisée dans l'acquisition et la vente de terrains, de fermes et de villas à Benslimane et dans ses environs, nous sommes ravis de vous présenter dès à présent une sélection de biens d'exception.\nPar ailleurs, nous prenons en charge toutes les démarches administratives nécessaires, le forage de puits ainsi que les travaux de construction, qu'il s'agisse de la structure principale ou des finitions, sans oublier la clôture et l'aménagement paysager.\nVous bénéficierez ainsi d'un accompagnement complet, de la conception à la réalisation de votre projet.\nPour vous permettre d'apprécier la rigueur de notre entreprise et la qualité de nos services, nous vous invitons à découvrir certains des projets que nous avons déjà menés à bien.\nVous avez un projet en tête, et nous sommes ici pour le concrétiser.",
+      "prix_dh": 1700000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10131289903?t=images",
+        "https://content.avito.ma/classifieds/images/10131289877?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:41:30.171790"
+    },
+    {
+      "id_annonce": "57372209",
+      "url": "https://www.avito.ma/fr/taroudant/terrains_et_fermes/Terrain_agricole_constructible_57372209.htm",
+      "titre": "Terrain agricole constructible",
+      "description": "Je mets en vente un terrain à 26 km de Taroudant (vers Agadir) possibilité de construire une villa\nchemin goudronné\neau électricité",
+      "prix_dh": 500000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-13T11:41:43.802850"
+    },
+    {
+      "id_annonce": "58283978",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Jolie_ferme_sur_la_route_de_Tiflet_58283978.htm",
+      "titre": "Jolie ferme sur la route de Tiflet",
+      "description": "Belle opportunité pour investissement ou exploitation agricole.\n\nJe mets en vente un joli terrain agricole titré d’une superficie de 6 000 m², situé à proximité de Tiflet et facilement accessible par la route.\n\nCaractéristiques du terrain :\n\n✅ Superficie totale : 6 000 m²\n✅ Terrain titré\n✅ Forme rectangulaire : 30 m × 200 m\n✅ Zone agricole\n✅ Environ 250 avocatiers\n✅ Environ 150 citronniers\n✅ Système d’irrigation goutte-à-goutte installé\n✅ Terrain déjà planté et exploitable\n✅ Aucun bâtiment actuellement construit\n\nLe terrain ne dispose pas actuellement de puits.\n\nTerrain idéal pour un projet agricole, une ferme, une plantation fruitière ou un investissement à moyen et long terme.\n\nMerci de me contacter uniquement si vous êtes réellement intéressé.\nVisite possible sur rendez-vous.",
+      "prix_dh": 690000,
+      "surface_m2": 6000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152112790?t=images",
+        "https://content.avito.ma/classifieds/images/10152112825?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:41:57.700252"
+    },
+    {
+      "id_annonce": "53441671",
+      "url": "https://www.avito.ma/fr/tata/terrains_et_fermes/Terrain_titré_2400H_sur_la_région_de_Tata_53441671.htm",
+      "titre": "Terrain titré 2400H sur la région de Tata | Terrains et fermes à Tata | Avito.ma",
+      "description": "Terrain agricole à vendre titré d'une superficie de 2400 hectares dans la région de Tata pour plus d'informations veuillez nous contacter merci (offre aux sérieux) ,",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10103234076?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:42:21.581023"
+    },
+    {
+      "id_annonce": "56925515",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_agricole_de_1_5_ha_titré_à_Benslimane_56925515.htm",
+      "titre": "Terrain agricole de 1,5 ha titré à Benslimane",
+      "description": "L'agence immobilière NFAS IMMO est fière de vous présenter ce magnifique terrain agricole de 1,5 hectare (15 000 m²) situé à seulement 12 km du centre-ville de Benslimane.\nUn Cadre Idéal pour vos projets\nCe terrain plat, de forme rectangulaire, est une véritable perle rare.\nIl est équipé d'un puits, ce qui le rend parfait pour l'agriculture ou pour un projet de construction.\nLes atouts majeurs de cette propriété :\nEmplacement privilégié : situé à seulement 60 mètres de la route principale goudronnée, il est facilement accessible tout en bénéficiant du calme de la campagne.\nConnexions : la zone est déjà raccordée à l'électricité et à l'eau potable, vous simplifiant grandement les démarches d'installation.\nProjet de construction : le terrain est parfaitement adapté à la construction d'une villa avec piscine, que ce soit pour une résidence principale ou une maison de vacances.\nEnvironnement : vous profiterez d'un voisinage de qualité, assurant un cadre de vie agréable et sécurisé.\nCe terrain est une opportunité exceptionnelle pour ceux qui souhaitent investir dans un lieu paisible, tout en restant à proximité des commodités urbaines.\nPour organiser une visite de ce bien, veuillez nous contacter afin de confirmer la veille.",
+      "prix_dh": 1500000,
+      "surface_m2": 15000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10139152806?t=images",
+        "https://content.avito.ma/classifieds/images/10139152817?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:42:32.511113"
+    },
+    {
+      "id_annonce": "58453932",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Vendre_terrain_de_plus_de_2_hectares_et_2_maisons_58453932.htm",
+      "titre": "Vendre terrain de plus de 2 hectares et 2 maisons | Terrains et fermes à Ifrane | Avito.ma",
+      "description": "Je vends un terrain de 2 hectares et quart situé dans la forêt de Jaaba sur la route nationale à mi-chemin entre Ifrane et El Hajeb\n- Surface totale : 22500 m²\n- Terrain titré (2 titres)\n- comprenant 2 maisons, une finie et l'autre gros oeuvre\n- Zoning : Agricole\n- Planté en cerisiers et pruniers\n- irrigation gouttes à gouttes, energie solaire\nPour plus d'informations, contactez moi si vous êtes intéressé.",
+      "prix_dh": null,
+      "surface_m2": 22500,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153531352?t=images",
+        "https://content.avito.ma/classifieds/images/10153531370?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:42:39.254314"
+    },
+    {
+      "id_annonce": "56164798",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/3_72_ha_titré_sur_la_route_à_Benslimane_56164798.htm",
+      "titre": "3,72 ha titré sur la route à Benslimane",
+      "description": "L'agence immobilière NFAS IMMO vous offre à la vente un terrain agricole titré, disposant d'un titre foncier, d'une superficie totale de 3 hectares, 72 ares et 72 centiares, soit 37 272 m². Ce bien bénéficie d'une large façade sur une route goudronnée, avec une vue sur les collines de la forêt, situé à Had Frid dans la commune de Zyayda, à seulement 20 km du centre-ville de Benslimane. Aucun problème administratif ou juridique n'est à signaler. Les visites se font sur rendez-vous, et nous vous prions de bien vouloir nous contacter la veille afin de confirmer votre présence. À noter qu'une ligne de haute tension traverse le terrain.",
+      "prix_dh": 2400000,
+      "surface_m2": 37272,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10132083662?t=images",
+        "https://content.avito.ma/classifieds/images/10132083663?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:42:46.399490"
+    },
+    {
+      "id_annonce": "57404845",
+      "url": "https://www.avito.ma/fr/tameslohte/terrains_et_fermes/Vente_Terrain_nu_à_Tameslohte_57404845.htm",
+      "titre": "Vente Terrain nu à Tameslohte",
+      "description": "Je mets en vente un terrain nu d’une superficie de 24 520m², situé à Tameslouht, dans une zone en plein développement, proche de Marrakech.\n\nCe terrain offre de nombreuses possibilités d’exploitation (projet agricole, résidentiel ou touristique), grâce à sa localisation stratégique et son environnement calme.\n\nPour plus d’informations ou pour planifier une visite, n’hésitez pas à me contacter.\n\nRida HANANE",
+      "prix_dh": 1200000,
+      "surface_m2": 24520,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10151177444?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:42:56.798844"
+    },
+    {
+      "id_annonce": "57600621",
+      "url": "https://www.avito.ma/fr/el_hajeb/terrains_et_fermes/Terrain_agricole_57600621.htm",
+      "titre": "Terrain agricole",
+      "description": "Je mets en vente un terrain agricole de 700 000 m2 situé à la commune Ait ouihelfen, route sebt jahjouh à 38 kms de Meknès au bord de la route goudronnée. Tous les papiers nécessaires disponibles :\n- Exploitation agricole de 70 hectares, bour favorable.\n- Zone Saïs, Possibilité d'avoir de l'eau.\n- Nature du sol : Argilo-limoneux.\n- Sol caractérisé par sa fertilité, sa structure, sa capacité de drainage et son rendement élevé.\n- Prix à l'hectare : 460 000 dhs/hectare.",
+      "prix_dh": 32200000,
+      "surface_m2": 700000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10146033818?t=images",
+        "https://content.avito.ma/classifieds/images/10146033819?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:43:00.236377"
+    },
+    {
+      "id_annonce": "58222291",
+      "url": "https://www.avito.ma/fr/sahel_chamali/terrains_et_fermes/Terrain_de_8ha_titré_avec_vue_sur_la_mer_58222291.htm",
+      "titre": "Terrain de 8ha titré avec vue sur la mer | Terrains et fermes à Sahel Chamali | Avito.ma",
+      "description": "Je propose à la vente un terrain agricole de 8 hectares titré à Sahel Chamali, avec une vue imprenable sur la mer.\n- Titré\n- Zoning Agricole\nPour plus d'informations, contactez-moi si vous êtes intéressé.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10151596995?t=images",
+        "https://content.avito.ma/classifieds/images/10151596994?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:43:33.086041"
+    },
+    {
+      "id_annonce": "57885399",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/74_HECTARES_A_VENDRE_57885399.htm",
+      "titre": "74 HECTARES A VENDRE | Terrains et fermes à Mohammedia | Avito.ma",
+      "description": "74 hectares. Nous vous proposons une opportunité d'investissement : une ferme entièrement équipée, idéalement située. Pour plus d'informations, veuillez nous contacter.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148675868?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:43:50.043308"
+    },
+    {
+      "id_annonce": "56097047",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/TERRAIN_27_HECTARES_À_VENDRE_56097047.htm",
+      "titre": "TERRAIN 27 HECTARES À VENDRE | Terrains et fermes à Mohammedia | Avito.ma",
+      "description": "Terrain agricole de 27 hectares avec une grande façade sur la route, proche de la ville, et a un avenir important avec un prix raisonnable pour toute informations contactez nous ,",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10131408173?t=images",
+        "https://content.avito.ma/classifieds/images/10131408171?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:43:53.419664"
+    },
+    {
+      "id_annonce": "56908903",
+      "url": "https://www.avito.ma/fr/hay_riad/terrains_et_fermes/Projet_d_élevage_de_vaches_et_d_engraissement_de_veaux_56908903.htm",
+      "titre": "Projet d'élevage de vaches et d'engraissement de veaux",
+      "description": "Ferme à vendre équipée pour l'élevage de vaches, engraissement de veaux. Elle se compose d'étables pour l'élevage de 400 vaches laitières et 1400 pour l'engraissement de veaux,",
+      "prix_dh": 24000000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10138839643?t=images",
+        "https://content.avito.ma/classifieds/images/10138839644?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:11.618013"
+    },
+    {
+      "id_annonce": "57452522",
+      "url": "https://www.avito.ma/fr/khemisset_chaouia/terrains_et_fermes/5_4_ha_titré_à_khemisset_57452522.htm",
+      "titre": "5.4 ha titré à khemisset",
+      "description": "Situé dans un environnement paisible à seulement 29 km du centre-ville de Khémisset, ce terrain de 5,4 hectares (54 000 m²) représente une opportunité rare sur le marché. Bénéficiant d'un emplacement de premier choix en bordure immédiate d'une route goudronnée, il offre une accessibilité parfaite, plaçant la ville de Tiflet à 41 km et la capitale, Rabat, à environ 116 km.\nCe bien se distingue par son relief accidenté, offrant des perspectives uniques pour un projet agricole (comme l'arboriculture) ou la création d'un domaine privé avec une vue dégagée. La propriété est entièrement clôturée et dispose d'un titre foncier définitif, garantissant une transaction transparente et une sécurité juridique totale.\nL’atout majeur de cet investissement réside dans sa rentabilité immédiate : le terrain accueille un pylône de Maroc Telecom, générant un revenu locatif fixe de 1 600,00 DH par mois. Ce complément de revenu garanti constitue un avantage financier non négligeable pour couvrir les frais d'entretien ou rentabiliser votre achat dès le premier jour.\nQue vous soyez un investisseur à la recherche d'un placement sûr ou un agriculteur souhaitant développer un nouveau projet, ce terrain combine parfaitement utilité foncière et rendement locatif.",
+      "prix_dh": 700000,
+      "surface_m2": 54000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10144454163?t=images",
+        "https://content.avito.ma/classifieds/images/10144454164?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:25.231172"
+    },
+    {
+      "id_annonce": "57697444",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/3_ha_titré_à_Benslimane_commune_zyayda_57697444.htm",
+      "titre": "3 ha titré à Benslimane commune zyayda",
+      "description": "L’agence NFAS IMMO à Benslimane vous propose à la vente une propriété agricole de 2,6226 hectares (soit plus de 26 200 m²), bénéficiant d'un titre foncier définitif. \nIdéalement situé à seulement 12 km du centre-ville de Benslimane, ce terrain offre une accessibilité optimale grâce à une piste cadastrée de 2,5 km. \nVéritable havre de paix, ce domaine est déjà raccordé aux réseaux d’électricité et d’eau potable, garantissant un confort immédiat pour tout projet de développement. \nSa configuration rectangulaire, offre un cadre naturel d’une rare beauté, parfait pour concrétiser vos ambitions agricoles ou résidentielles dans un environnement serein et privilégié.\n\nFidèle à son engagement de service complet, NFAS IMMO vous accompagne avec une solution - clé en main - pour transformer ce vaste domaine selon vos envies : nous prenons en charge l'intégralité des démarches administratives, le forage de puits, les travaux de construction (gros œuvre et finitions), ainsi que l'aménagement paysager. \nQue votre projet porte sur une exploitation agricole d'envergure, une villa de prestige avec piscine ou un domaine privé, notre équipe d'experts vous épaule de la conception à la réalisation finale. \nLes visites sont organisées exclusivement sur rendez-vous nous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue et découvrir tout le potentiel de ce site en pleine expansion.",
+      "prix_dh": 1800000,
+      "surface_m2": 26200,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10146969289?t=images",
+        "https://content.avito.ma/classifieds/images/10146969293?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:28.787676"
+    },
+    {
+      "id_annonce": "58440287",
+      "url": "https://www.avito.ma/fr/asilah/terrains_et_fermes/Terrain_Exceptionnel_1_ha_1716_m2_à_vendre_58440287.htm",
+      "titre": "Terrain Exceptionnel 1 ha 1716 m2 à vendre",
+      "description": "🏡 TERRAIN TITRÉ DE 11 716 M² À VENDRE – RMILAT TOURFIS, RÉGION D’ASILAH 🇲🇦\n🌿 UNE OPPORTUNITÉ FONCIÈRE À FORT POTENTIEL AVEC VUE PANORAMIQUE\nImmoAsilah vous propose à la vente un vaste terrain titré de 11 716 m², idéalement situé à Rmilat Tourfis, dans la commune rurale de Sahel Chamali, région de Tanger-Asilah.\n💰 Prix : 3 000 000 DH\nLe terrain bénéficie d’une magnifique vue panoramique, d’un environnement naturel préservé et d’un emplacement particulièrement stratégique.\n💧 Il dispose d’une sonde riche en eau et bénéficie également du branchement au réseau d’eau potable ainsi que du raccordement au réseau électrique.\n📍 À seulement 4,5 km de l’échangeur autoroutier✈️ À environ 49 km de l’aéroport international Ibn Battouta de Tanger🏖️ À proximité de la plage Sidi Mghait⛳ À proximité de La Palmeraie Golf Polo Hermès🌊 À proximité de la plage Redda\n🏗️ DONNÉES URBANISTIQUES – ZONE HR1\n📐 Superficie : 11 716 m²📑 Propriété titrée🏘️ Zone : HR1 – Habitat rural🏠 Rez-de-chaussée + 1 étage📊 COS maximal : 0,60📊 Taux de construction maximal : 35 %📐 Superficie minimale réglementaire : 300 m²📏 Hauteur maximale : 8,50 m↔️ Recul minimal par rapport à la voie publique : 4 m↔️ Recul minimal par rapport aux limites latérales et arrière : 4 m\n📌 Possibilité de développement résidentiel sous réserve du respect de la réglementation urbanistique en vigueur et de l’obtention des autorisations nécessaires.\n💼 Une opportunité idéale pour un projet résidentiel, des résidences secondaires, un domaine privé avec espaces verts ou un investissement immobilier à moyen ou long terme.",
+      "prix_dh": 3000000,
+      "surface_m2": 11716,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153419880?t=images",
+        "https://content.avito.ma/classifieds/images/10153473686?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:32.112278"
+    },
+    {
+      "id_annonce": "57697424",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/1_08_ha_titré_sur_la_route_goudronnée_57697424.htm",
+      "titre": "1.08 ha titré sur la route goudronnée",
+      "description": "La société immobilière NFAS IMMO, votre partenaire de confiance dans la région de Benslimane, vous propose à la vente ce magnifique terrain agricole titré d'une superficie totale de 1 hectare, 8 ares et 55 centiares. \nIdéalement situé à seulement 9 km du centre-ville (10 minutes de route), ce bien non isolé offre une terre d'une beauté exceptionnelle, déjà entièrement clôturée et équipée d'un puits fonctionnel. \nSon atout majeur réside dans son double accès : une façade sur route goudronnée et une seconde sur piste, offrant une flexibilité totale pour un accès logistique optimal ou une division aisée. \nLe raccordement à l'électricité et à l'eau potable est immédiat, et le terrain est garanti sans aucune nuisance (ni carrières, ni ligne haute tension, ni écuries), avec une situation administrative irréprochable.\n\nEn choisissant NFAS IMMO, vous bénéficiez d'un accompagnement complet - clé en main - pour concrétiser votre vision de A à Z. \nDe la conception à la réalisation, notre équipe prend en charge l'intégralité des démarches administratives, le forage de puits, les travaux de construction (grosse œuvre et finitions de qualité), ainsi que la clôture et l'aménagement paysager. \nQue vous soyez un investisseur ou un particulier cherchant un havre de paix, nous sommes ici pour transformer votre projet en réalité. \nLes visites sont organisées exclusivement sur rendez-vous, nous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue et découvrir tout le potentiel de ce site stratégique.",
+      "prix_dh": 1300000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10146970279?t=images",
+        "https://content.avito.ma/classifieds/images/10146970275?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:35.457354"
+    },
+    {
+      "id_annonce": "58447002",
+      "url": "https://www.avito.ma/fr/route_d_ourika/terrains_et_fermes/Terrain_agricole_d_exception_à_vendre_58447002.htm",
+      "titre": "Terrain agricole d’exception à vendre",
+      "description": "Belle opportunité d’acquérir un terrain agricole titré d’une superficie de 10 000 m², comprenant une maison de 400 m², un puits, l’eau, l’électricité, ainsi qu’un terrain entièrement clôturé.\n\n📍 Emplacement : Route de l’Ourika, à 25 km de Marrakech.\nUn emplacement idéal pour un projet agricole, un investissement ou une résidence privée.",
+      "prix_dh": 3200000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153474607?t=images",
+        "https://content.avito.ma/classifieds/images/10153474608?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:42.188022"
+    },
+    {
+      "id_annonce": "58282421",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/1_15_ha_milkiya_à_mallila_Benslimane_58282421.htm",
+      "titre": "1.15 ha milkiya à mallila Benslimane",
+      "description": "L'agence immobilière NFAS IMMO est fière de vous présenter une excellente opportunité foncière : un magnifique terrain agricole sous le régime de la Milkiya Mohaddada, d'une superficie totale de 11 537 m² (1 hectare, 15 ares et 37 centiares).\nParfaitement plat et carré, ce terrain se distingue par un atout rare et hautement stratégique : une grande façade de 160 mètres, offrant une visibilité parfaite, un accès logistique optimal et une grande facilité d'aménagement.\nIdéalement situé au carrefour de grandes agglomérations, le domaine se trouve à seulement 45 km de Tit Mellil (Casablanca), dont seulement 1,8 km de piste cadastrée, 40 km de Mohammedia et 25 km de Benslimane. La zone, habitée et sécurisée, garantit un voisinage homogène et de grande qualité.\nLe terrain est déjà raccordé aux réseaux d'électricité et d'eau potable, permettant un confort d'installation immédiat. Totalement en règle sur le plan administratif et juridique, ce bien est garanti exempt de toute nuisance environnementale (ni carrière, ni ligne haute tension, ni écurie), vous offrant une tranquillité absolue pour votre investissement.\nEn choisissant NFAS IMMO, spécialiste de la vente, de l'achat et de la construction, vous bénéficiez d'un accompagnement à 100 % : de la gestion des formalités jusqu'à la construction complète de votre projet (exploitation agricole moderne ou villa de prestige avec piscine).\nLes visites sont organisées exclusivement sur rendez-vous.\nNous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue.",
+      "prix_dh": 700000,
+      "surface_m2": 11537,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152092932?t=images",
+        "https://content.avito.ma/classifieds/images/10152092993?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:45.664861"
+    },
+    {
+      "id_annonce": "56853363",
+      "url": "https://www.avito.ma/fr/agdal/terrains_et_fermes/PROJET_TOURISTIQUE_POUR_INVESTISSEMENT_56853363.htm",
+      "titre": "PROJET TOURISTIQUE POUR INVESTISSEMENT",
+      "description": "Je vends un projet touristique sur un terrain d'exception, pour un investissement d'avenir, à ASNI, dans le HAOUZ, région de Marrakech.\nLe PROJET SUR CE TERRAIN, se trouve sur la route Nationale N.7, qui mène vers Ouirgane, et Taroudant.\nIl se trouve sur un magnifique site touristique, à couper le souffle.\nUn projet touristique de taille peut rapporter gros et très vite.\nC'est une belle opportunité à ne pas rater.\nLes grandes surfaces manquent dans cette région, et nous vous donnons l'occasion d'être parmis les premiers.\nTerrain Titré, et expertises du terrain prêtes.",
+      "prix_dh": 10000000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10138295331?t=images",
+        "https://content.avito.ma/classifieds/images/10138295332?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:49.081179"
+    },
+    {
+      "id_annonce": "52483123",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/3_3682_ha_agricole_à_Benslimane_52483123.htm",
+      "titre": "3.3682 ha agricole à Benslimane",
+      "description": "Terrain agricole titrée, d’une superficie de 33 682 mètres carrés, 3 ha 36 ares 82 ça, à 8 km du centre ville de Benslimane, 800 mètres de piste cadastrée.\n\nPour une visite à l’endroit désigné s’il vous plaît prendre un rendez-vous par téléphone.",
+      "prix_dh": 3500000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10091736245?t=images",
+        "https://content.avito.ma/classifieds/images/10091736244?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:44:59.130225"
+    },
+    {
+      "id_annonce": "58453847",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/Terrains_agricoles_et_villas_bâties_titrés___environs_d_Azemmour_58453847.htm",
+      "titre": "Terrains agricoles et villas bâties titrés — envi... | Terrains et fermes à Azemmour | Avito.ma",
+      "description": "À vendre, terrains titrés et villas construites dans un emplacement stratégique privilégié, à 62 km de Casablanca sur l'axe côtier reliant à Azemmour, hors périmètre urbain dans un environnement naturel calme, entouré par la forêt et la façade atlantique. Les parcelles disposent de toutes les infrastructures nécessaires : eau potable, électricité et routes bitumées, garantissant des conditions de construction optimales.\nLes superficies des terrains constructibles commencent à partir de 5 000 m², accompagnées de permis de construire valides. Des lots à vocation agricole et résidentielle sont également disponibles.\nCertaines parcelles bénéficient d'une vue mer exceptionnelle et d'une proximité immédiate de l'autoroute, ce qui augmente leur valeur d'investissement et assure un accès facile à tout moment.\nCes terrains représentent une opportunité d'investissement, que ce soit pour réaliser des projets de résidence principale ou secondaire, construire des villas, ou développer des projets immobiliers et agricoles rentables dans une région en plein essor.\n⭐ Offre : Domaine agricole titré de 19 hectares, à un prix compétitif de 500 000 MAD par hectare.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153530573?t=images",
+        "https://content.avito.ma/classifieds/images/10153530574?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:45:12.772860"
+    },
+    {
+      "id_annonce": "58453842",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Terrains_titrés_à_vendre_à_Bir_Jdid_pour_l_agriculture_et_l_investissement_58453842.htm",
+      "titre": "Terrains titrés à vendre à Bir Jdid pour l'agricu... | Terrains et fermes à Bir Jdid | Avito.ma",
+      "description": "Nous mettons à votre disposition des opportunités exceptionnelles pour acquérir des fermes et des terrains agricoles titrés de différentes superficies, adaptés à l'habitation ou à l'investissement agricole et immobilier.\nCes terrains conviennent pour la construction d'une résidence principale ou secondaire ou d'une villa hors zone urbaine, dans un cadre naturel calme et sain.\nToutes les commodités essentielles sont disponibles, eau potable, électricité et routes pavées, garantissant un confort et une stabilité durables.\nCes propriétés sont situées à seulement 42 kilomètres de la ville de Casablanca, sur la route reliant Casablanca à Azemmour.\nElles bénéficient d'emplacements stratégiques à proximité de la ville de Bir Jdid, avec des vues sur la forêt ou à proximité de l'autoroute et de la route côtière donnant sur la mer.\nLes superficies disponibles commencent à partir de 5000 m² avec des permis de construire légaux.\nNous proposons également des terrains agricoles titrés adaptés à l'habitation, à l'exploitation agricole et à l'investissement à long terme.\nMeilleure offre : 6 hectares titrés au prix de 500 000 MAD par hectare.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153530534?t=images",
+        "https://content.avito.ma/classifieds/images/10153530535?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:45:19.634100"
+    },
+    {
+      "id_annonce": "57697442",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/2_62_ha_titrés_à_Benslimane_zyayda_57697442.htm",
+      "titre": "2.62 ha titrés à Benslimane zyayda",
+      "description": "L’agence NFAS IMMO vous propose à la vente une propriété agricole d'exception de 2,6226 hectares (soit plus de 26 200 m²), bénéficiant d'un titre foncier définitif. Idéalement situé à seulement 12 km du centre-ville de Benslimane, ce terrain offre une accessibilité optimale grâce à une piste cadastrée de 2,5 km. Véritable havre de paix, ce domaine est déjà raccordé aux réseaux d’électricité et d’eau potable, garantissant un confort immédiat pour tout projet de développement. Sa configuration rectangulaire, offre un cadre naturel d’une rare beauté, parfait pour concrétiser vos ambitions agricoles ou résidentielles dans un environnement serein et privilégié.\n\nFidèle à son engagement de service complet, NFAS IMMO vous accompagne avec une solution -clé en main- pour transformer ce vaste domaine selon vos envies : nous prenons en charge l'intégralité des démarches administratives, le forage de puits, les travaux de construction (gros œuvre et finitions), ainsi que l'aménagement paysager. Que votre projet porte sur une exploitation agricole d'envergure, une villa de prestige avec piscine ou un domaine privé, notre équipe d'experts vous épaule de la conception à la réalisation finale. Les visites sont organisées exclusivement sur rendez-vous , nous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue et découvrir tout le potentiel de ce site en pleine expansion.",
+      "prix_dh": 1900000,
+      "surface_m2": 26200,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10146969043?t=images",
+        "https://content.avito.ma/classifieds/images/10146969044?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:45:23.029811"
+    },
+    {
+      "id_annonce": "56270664",
+      "url": "https://www.avito.ma/fr/saies/terrains_et_fermes/Ferme_à_vendre__potentielle_maison_d_hôtes_56270664.htm",
+      "titre": "Ferme à vendre, potentielle maison d’hôtes | Terrains et fermes à Fès | Avito.ma",
+      "description": "Maison de campagne, Potentielle maison d’hôtes\n\nPropriété rurale idéale pour celles et ceux en quête d’une nouvelle vie à la campagne.\nEntièrement prête à fonctionner comme maison d’hôtes.\n\nProximité des centres urbains\n\t•\tÀ 25 minutes de l’aéroport de Fès\n\t•\tÀ 25 minutes du complexe sportif de Fès\n\t•\tÀ 35 minutes du centre-ville de Fès\n\t•\tÀ seulement 1 km de la charmante ville de Bhalil\n\nCette propriété bénéficie d’un accès facile à tous les services nécessaires pour un séjour confortable. La tranquillité, la beauté du paysage et les nuits étoilées en font un lieu propice à des expériences inoubliables.\n\nSécurité et voisinage\n\nSituée en zone rurale, la propriété est entourée d’une dizaine de maisons de campagne traditionnelles, distantes en moyenne de 100 à 500 mètres.\nDes projets de maison de campagnes se développent à côté, ceci apportera davantage de charme et de convivialité à ce voisinage préservé.\n\n⸻\n\nDescription de la propriété\n\nNotre maison de campagne, parfaitement intégrée à son environnement naturel, allie style épuré et confort moderne.\nElle est idéale pour un séjour ressourçant, dans un cadre d’une beauté rare.\nDotée d’une vue panoramique exceptionnelle et d’une géographie diversifiée, elle constitue un point de départ rêvé pour des randonnées mémorables.\n\t•\tSurface du terrain : 14 406 m²\n\t•\tSurface bâtie : 530 m² couverts et 100 m² de terrasse\n\t•\tHangar : 220 m²\n\nRez-de-chaussée (300 m²) :\n\t•\tVaste espace réception / salle à manger\n\t•\tGrande cuisine moderne et fonctionnelle\n\t•\tDeux chambres, chacune avec salle de bain et dressing\n\nÀ l’étage :\n\t•\tSéjour lumineux avec vue imprenable sur le Moyen Atlas\n\t•\tQuatre chambres spacieuses avec salle de bain et dressing\n\t•\tHammam traditionnel de 24 m²\n\nAtout supplémentaire :\n\t•\tBureau en terrasse, baigné de lumière, avec vue panoramique : un espace privilégié pour les amateurs de lecture et d’écriture.\n\nQualité de construction :\nMatériaux nobles et harmonieux avec l’environnement naturel, isolation thermique de haut niveau.\n\n⸻\n\nExtérieurs\n\n\t•\tPiscine de 15 x 5 mètres\n\t•\tJardin entretenu de 1 500 m² avec pelouse\n\t•\tVergers variés (~100 arbres : figuiers, caroubiers, noyers, cerisiers, pommiers, grenadiers…)\n\t•\tClôture végétale composée d’environ 700 oliviers\n\t•\tPotager productif sur 8 000 m²\n\n⸻\n\nGestion de l’eau\n\nEn pleine crise hydrique que le Maroc a connue ces six dernières années, nous n’avons jamais manqué d’eau – hamdoullah \n\n\t•\tForage de 100 mètres de profondeur, situé sur une faille riche en eau\n\t•\tBassin de stockage de 1 600 m³, garantissant une gestion optimisée et autonome des ressources hydriques\n\n⸻\n\nStatut et conditions\n\n\t•\tPropriété titrée – clé en main\n\t•\tDe très haute qualité, elle ne nécessite aucun aménagement. Les futurs propriétaires n’auront qu’à poser leurs valises\n\t•\tPrix 630k€, cohérent avec le coût de revient, capital, temps et énergie investis\n\n⸻\n\nUn investissement au cœur d’un projet régional ambitieux\n\nNotre région, au potentiel touristique immense, est en pleine expansion.\nDepuis plusieurs années, nous œuvrons à son développement, en préservant son authenticité tout en y apportant une véritable valeur ajoutée.\n\nNous disposons des moyens techniques et humains nécessaires pour garantir un entretien parfait des propriétés et les maintenir en excellent état. Dans cette logique, nous proposons à l’acquéreur une garantie d’un an incluant tout entretien nécessaire.\nCe service peut être prolongé au-delà d’un an moyennant une cotisation mensuelle modeste.\n\nCette offre augmente la valeur du bien et renforce la confiance de l’acheteur, en lui assurant sérénité et sécurité.",
+      "prix_dh": null,
+      "surface_m2": 530,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150770985?t=images",
+        "https://content.avito.ma/classifieds/images/10142332407?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:45:26.386387"
+    },
+    {
+      "id_annonce": "58453830",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/Terrains_titrés_à_vendre_à_Bir_Jdid_pour_l_agriculture_et_l_investissement_58453830.htm",
+      "titre": "Terrains titrés à vendre à Bir Jdid pour l'agricu... | Terrains et fermes à Sidi Rahal | Avito.ma",
+      "description": "Nous mettons à votre disposition des opportunités exceptionnelles pour acquérir des fermes et des terrains agricoles titrés de différentes superficies, adaptés à l'habitation ou à l'investissement agricole et immobilier.\nCes terrains conviennent pour la construction d'une résidence principale ou secondaire ou d'une villa hors zone urbaine, dans un cadre naturel calme et sain.\nToutes les commodités essentielles sont disponibles, eau potable, électricité et routes pavées, garantissant un confort et une stabilité durables.\nCes propriétés sont situées à seulement 42 kilomètres de la ville de Casablanca, sur la route reliant Casablanca à Azemmour.\nElles bénéficient d'emplacements stratégiques à proximité de la ville de Bir Jdid, avec des vues sur la forêt ou à proximité de l'autoroute et de la route côtière donnant sur la mer.\nLes superficies disponibles commencent à partir de 5000 m² avec des permis de construire légaux.\nNous proposons également des terrains agricoles titrés adaptés à l'habitation, à l'exploitation agricole et à l'investissement à long terme.\nMeilleure offre : 6 hectares titrés au prix de 500 000 MAD par hectare.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153530368?t=images",
+        "https://content.avito.ma/classifieds/images/10153530369?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:45:33.158152"
+    },
+    {
+      "id_annonce": "58282332",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/2_56_ha_titré_sur_la_route_à_toualaa_Benslimane_58282332.htm",
+      "titre": "2.56 ha titré sur la route à toualaa Benslimane",
+      "description": "L'agence immobilière NFAS IMMO est fière de vous présenter une opportunité foncière de premier choix : un magnifique terrain agricole bénéficiant d'un titre foncier définitif, d'une superficie totale de 25 624 m² (2 hectares, 56 ares et 24 centiares).\nCe domaine bénéficie d'un emplacement hautement stratégique et central, idéalement situé à seulement 40 km de Tit Mellil (Casablanca), 40 km de Mohammedia et 25 km de Benslimane. \nProfitant d'un accès direct par une route goudronnée, il garantit une accessibilité optimale et prestigieuse en toute saison.\n\nCe terrain se trouve au cœur d'une zone privilégiée, garantissant un voisinage homogène et de grande qualité. \nIl est déjà raccordé aux réseaux d'électricité et d'eau potable, offrant un confort d'installation immédiat pour tous vos projets. \nLe bien est totalement en règle sur le plan administratif et juridique, et garanti exempt de toute nuisance environnementale (ni carrière, ni ligne haute tension, ni écurie), vous assurant une tranquillité totale pour votre investissement.\n\nEn choisissant NFAS IMMO, spécialiste de la vente, de l'achat et de la construction, vous bénéficiez d'un accompagnement à 100 % : de la gestion des formalités administratives jusqu'à la construction complète de votre futur projet, qu'il s'agisse d'une exploitation agricole moderne ou d'une villa de prestige avec piscine. Les visites sont organisées exclusivement sur rendez-vous.\nNous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue.",
+      "prix_dh": 2300000,
+      "surface_m2": 25624,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152090221?t=images",
+        "https://content.avito.ma/classifieds/images/10152090284?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:46:03.436060"
+    },
+    {
+      "id_annonce": "57588792",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/Terrain_rural_agricole_titré_de_5771_m²_57588792.htm",
+      "titre": "Terrain rural agricole titré de 5771 m²",
+      "description": "## Terrain agricole de 5 771 m² à vendre à Ouled Rahmoune - Azemmour - El Jadida\nÀ vendre terrain rural agricole titré d'une superficie de **5 771 m²**, situé au **Douar Dakhla, commune rurale Ouled Rahmoune**, cercle d'Azemmour, province d'El Jadida, dans un environnement calme et naturel.\nLe terrain est entièrement clôturé par grillage avec un grand portail d'accès et dispose d'un **puits équipé d'une pompe solaire**, idéal pour une exploitation agricole ou un projet rural.\nSitué à seulement **10 minutes à pied de l'Oued Oum Errabii**, il bénéficie d'un cadre verdoyant et d'un fort potentiel agricole.\n### Localisation :\n* 10 minutes d'Azemmour\n* 25 minutes d'El Jadida\n* 1h15 de Casablanca\n* Proche des plages et des principaux axes routiers\nPoints forts :\n* Terrain exploitable immédiatement\n* Présence d'eau grâce au puits équipé\n* Environnement agricole paisible\n* Accès facile toute l'année\nSuperficie : 5 771 m²\nCoordonnées GPS : 33.24658438, -8.30968936\nOpportunité idéale pour investissement agricole, ferme familiale ou maison de campagne (selon réglementation en vigueur).\nContactez **Agence Melky** pour plus d'informations ou pour organiser une visite.",
+      "prix_dh": 550000,
+      "surface_m2": 5771,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10145915575?t=images",
+        "https://content.avito.ma/classifieds/images/10145915577?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:46:10.236757"
+    },
+    {
+      "id_annonce": "57691406",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/1_556_ha_titré_avec_puits_à_Benslimane_57691406.htm",
+      "titre": "1.556 ha titré avec puits à Benslimane",
+      "description": "NFAS IMMO est fière de vous présenter ce magnifique terrain agricole de 1,556 hectares (15 560 m²), idéalement situé à seulement 12 km du centre-ville de Benslimane. \nVéritable perle rare, ce terrain plat de forme rectangulaire constitue un cadre idéal pour vos projets agricoles ou résidentiels. \nSon emplacement est particulièrement privilégié : situé à seulement 60 mètres de la route principale goudronnée, il offre une accessibilité optimale tout en préservant le calme absolu de la campagne. \nDéjà équipé d'un puits, ce bien facilite grandement vos projets de culture ou de construction. \nLa zone, habitée et non isolée, bénéficie d'un raccordement immédiat aux réseaux d’électricité et d’eau potable, garantissant un confort d'installation rapide et sécurisé au sein d'un voisinage de qualité.\n\nTotalement, en règle sur le plan administratif et juridique, ce terrain est exempt de toute nuisance (ni carrières, ni lignes hautes tension, ni écuries), vous assurant une sérénité totale. En choisissant NFAS IMMO, spécialiste du service Clé en main, vous profitez d'un accompagnement à 100 % pour concrétiser votre vision : de l'acquisition aux formalités administratives, jusqu'à la construction complète de votre projet (villa avec piscine, grosse œuvre et finitions). Que vous rêviez d'une résidence principale ou d'une maison de vacances, nous transformons ce potentiel en réalité. \nLes visites sont organisées exclusivement sur rendez-vous, merci de nous contacter au moins 24 heures à l'avance pour planifier votre venue.",
+      "prix_dh": 1500000,
+      "surface_m2": 15560,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10146970997?t=images",
+        "https://content.avito.ma/classifieds/images/10146971007?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:46:23.904886"
+    },
+    {
+      "id_annonce": "57586627",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/Terrain_agricole_à_vendre___Berrechid_57586627.htm",
+      "titre": "Terrain agricole à vendre – Berrechid",
+      "description": "Nous mettons en vente un terrain agricole d’une superficie de 5 hectares, situé à quelques mètres seulement de la zone industrielle de Berrechid.\nCe terrain bénéficie d’un excellent emplacement, idéal aussi bien pour un projet agricole que pour un investissement à moyen terme dans une zone en plein développement.\n🔹 Superficie : 5 hectares\n🔹 Emplacement : Proximité immédiate de la zone industrielle de Berrechid\n🔹 Prix : 200 DH / m² NÉGOCIAABLE\n🔹 Accès facile depuis la route principale\n\nPour plus d’informations ou pour planifier une visite, veuillez nous contacter.\n\nALPHA REALESTATE PARTNERS\nADIL KHALDI",
+      "prix_dh": 10000000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10145889805?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:46:48.843628"
+    },
+    {
+      "id_annonce": "58453582",
+      "url": "https://www.avito.ma/fr/guigou/terrains_et_fermes/Terrain_agricole_titré_à_vendre_à_Guigou_58453582.htm",
+      "titre": "Terrain agricole titré à vendre à Guigou | Terrains et fermes à Guigou | Avito.ma",
+      "description": "À vendre, un terrain agricole titré situé à Guigou.\n- Titré\n- Zonage : Agricole, très proche du centre de Guigou (environ 1.5 km).\nPour plus d'informations, veuillez me contacter si vous êtes intéressé.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153528895?t=images",
+        "https://content.avito.ma/classifieds/images/10153528897?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:50:23.902622"
+    },
+    {
+      "id_annonce": "58390865",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_de_20_000_m²_à_vendre___Sidi_Moussa_Majdoub_58390865.htm",
+      "titre": "Terrain de 20 000 m² à vendre – Sidi Moussa Majdoub",
+      "description": "À vendre, terrain titré d’environ 20 000 m², soit 2 hectares, situé à Sidi Moussa Majdoub, dans un secteur calme et facilement accessible.\n\nLe terrain est globalement plat, dispose d’un accès direct par la route et comprend une petite construction ancienne.\n\nIl convient pour un projet agricole, un investissement foncier ou tout autre projet autorisé, conformément aux règles d’urbanisme applicables.\n\n📍 Coordonnées GPS : 33°37'42.7\"N, 7°22'10.3\"W\n📄 Terrain titré – documents disponibles\n💰 Prix négociable dans la limite du raisonnable\n📞 Visite sur rendez-vous. Contact par téléphone ou WhatsApp.",
+      "prix_dh": 4950000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153011364?t=images",
+        "https://content.avito.ma/classifieds/images/10153011369?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:50:31.514519"
+    },
+    {
+      "id_annonce": "58393297",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Ferme_1_5_hectare_à_vendre_58393297.htm",
+      "titre": "Ferme 1,5 hectare à vendre",
+      "description": "Je vends une ferme de 1,5 hectare à Tifelt.\n- Terrain titré\n- Zoning agricole\nPour plus d'informations, contactez-moi si vous êtes intéressé.",
+      "prix_dh": 4500000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153030550?t=images",
+        "https://content.avito.ma/classifieds/images/10153030552?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:51:20.208160"
+    },
+    {
+      "id_annonce": "51216156",
+      "url": "https://www.avito.ma/fr/sahel_oulad_h_riz/terrains_et_fermes/Terrain_agricole_à_vendre_à_Had_Soualem_51216156.htm",
+      "titre": "Terrain agricole à vendre à Had Soualem",
+      "description": "Je vends un terrain agricole titré à Had Soualem, Sahel Oulad H'riz, possible de faire reprise ou échange \n- Surface : 2000 m²\n- Zoning : Agricole\nL'adresse exacte n'est pas affichée. Contactez-moi si vous êtes intéressé.",
+      "prix_dh": 400000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10141472514?t=images",
+        "https://content.avito.ma/classifieds/images/10141472515?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:51:23.560038"
+    },
+    {
+      "id_annonce": "58283027",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/Terrain_titré_à_vendre_près_de_la_mer_58283027.htm",
+      "titre": "Terrain titré à vendre près de la mer",
+      "description": "Terrain de 1 hectare et 1600 m², titré, avec un puits. Il est situé à seulement 8 km de la mer, 20 km de Sidi Rahal, 4 km de Ait Tittouka et 8 km de El Biage.\n\nPrix : 55 millions par hectare.",
+      "prix_dh": 638000,
+      "surface_m2": 1600,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152112198?t=images",
+        "https://content.avito.ma/classifieds/images/10152112200?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:51:40.328719"
+    },
+    {
+      "id_annonce": "58035115",
+      "url": "https://www.avito.ma/fr/route_de_ouarzazate/terrains_et_fermes/Terrain_titré_2_5_Ha__250_Oliviers__Rte_Ouarzazate_58035115.htm",
+      "titre": "Terrain titré 2,5 Ha  250 Oliviers  Rte Ouarzazate",
+      "description": "Magnifique terrain de 2,5 hectares – Route de Ouarzazate.\nPropriété agricole avec oliviers productifs.\n\nTERRAIN AGRICOLE TITRÉ DE 2,5 HECTARES À VENDRE – ROUTE DE OUARZAZATE – 30 MIN DE MARRAKECH\n\nÀ seulement 24 km de Marrakech (environ 30 minutes du centre-ville), sur la très prisée Route de Ouarzazate, découvrez cette magnifique propriété agricole de 2,5 hectares bénéficiant d’un excellent emplacement en bord de route goudronnée.\n\nCette propriété parfaitement entretenue est prête à être exploitée immédiatement. Elle constitue une opportunité idéale pour un investissement agricole, un projet de villa de campagne, une maison d’hôtes ou un projet touristique à proximité de Marrakech.\n\nLa propriété comprend environ 250 oliviers productifs âgés de près de 60 ans, offrant une production régulière et un fort potentiel de valorisation.\n\nLes atouts du bien :\n\nTerrain agricole titré de 2,5 hectares\nEnviron 250 oliviers matures et productifs\nSecteur reconnu pour l’abondance et la qualité de ses ressources en eau\nPuits équipé d’une pompe\nSystème d’irrigation goutte-à-goutte installé\nPanneaux solaires en fonctionnement\nÉlectricité raccordée\nMaison de gardien\nGardien présent en permanence sur la propriété\nTerrain entièrement clôturé par un mur d’enceinte de qualité\nAccès direct depuis une route goudronnée\nPropriété soignée et parfaitement entretenue\nDossier administratif complet et documents en règle\n\nSituée dans un environnement calme et recherché, cette propriété offre un cadre naturel agréable tout en restant à proximité immédiate de Marrakech et de toutes les commodités.\n\nRoute de Ouarzazate – Marrakech\nTitre foncier disponible\nPropriété prête à l’exploitation\n\nPour plus d’informations ou pour organiser une visite, merci de nous contacter.",
+      "prix_dh": 2900000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150054309?t=images",
+        "https://content.avito.ma/classifieds/images/10150054312?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:51:57.044943"
+    },
+    {
+      "id_annonce": "58052364",
+      "url": "https://www.avito.ma/fr/route_de_fès/terrains_et_fermes/Terrain_2_Hectares_Titré___Route_de_Fès_Km_27_58052364.htm",
+      "titre": "Terrain 2 Hectares Titré – Route de Fès Km 27",
+      "description": "Terrain titré de 2 hectares (20 000 m²) à vendre, situé à 27 km de Marrakech sur la Route de Fès, dans un secteur en plein développement et très recherché.\n\nLe terrain bénéficie d’une forme régulière, d’une surface totalement plate et d’un environnement agréable, offrant de nombreuses possibilités pour un projet résidentiel, touristique, agricole ou d’investissement.\n\nTerrain titré\n20 000 m² (2 hectares)\nTerrain plat et facile à aménager\nTrès belle configuration du terrain\nAccès pratique depuis la Route de Fès\nSecteur à fort potentiel de valorisation\n\nPrix exceptionnel : 900 000 DH pour les 2 hectares\n\nUne véritable opportunité à saisir pour investisseurs et particuliers à la recherche d’un grand terrain aux portes de Marrakech.\n\nContactez-nous pour plus d’informations ou pour organiser une visite.",
+      "prix_dh": 1150000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150212110?t=images",
+        "https://content.avito.ma/classifieds/images/10150212104?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:52:47.311305"
+    },
+    {
+      "id_annonce": "58034186",
+      "url": "https://www.avito.ma/fr/route_de_fès/terrains_et_fermes/Joli_terrain_de_30_000_m2_avec_300_oliviers_58034186.htm",
+      "titre": "Joli terrain de 30 000 m2 avec 300 oliviers",
+      "description": "Opportunité .\n\nÀ vendre, magnifique ferme agricole sur un terrain de 3 hectares, idéalement située en bord de route, offrant un accès facile tout en bénéficiant d’un environnement calme et naturel.\n\nLe terrain est entièrement clôturé et comprend 300 oliviers adultes (environ 40 ans), en pleine production, garantissant un excellent rendement annuel.\n\nCaractéristiques \n• 300 oliviers matures à fort rendement\n• Terrain clôturé et sécurisé\n• Accès direct route (très recherché)\n• Système d’irrigation goutte-à-goutte installé\n• Puits fonctionnel\n• Petite maison agricole sur place\n• Raccordement à l’eau\n\nAtouts majeurs \n• Exploitation immédiatement opérationnelle\n• Projet clé en main : structure déjà en place\n• Revenus agricoles existants (production d’olives / huile)\n• Très faible investissement à prévoir\n• Potentiel d’optimisation (huile, extension, diversification)\n\nIdéal pour \n• Ferme pédagogique , villa etc..\n• Investisseur souhaitant un placement agricole rentable\n• Exploitant cherchant une activité prête à démarrer\n• Projet secondaire (nature revenu complémentaire)\n\nAccompagnement possible pour la concrétisation de votre projet.\n\n\nEmplacement \n\nEnvironnement calme, accès facile, à proximité de Marrakech\n\nUne vraie opportunité \n\nDes oliviers déjà matures revenus dès la première année, sans attendre des années de croissance.\n\n\nMerci de prendre contact directement pour plus d'informations.\n\nVous avez un projet touristique ou souhaitez construire une villa, mais ce terrain ne correspond pas exactement à vos critères ? SaharaView Immo peut rechercher un terrain sur mesure et vous accompagner jusqu’à l’autorisation de votre projet.\n\nContactez-nous pour en savoir plus.",
+      "prix_dh": 1350000,
+      "surface_m2": 30000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150047431?t=images",
+        "https://content.avito.ma/classifieds/images/10150047418?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:52:50.796462"
+    },
+    {
+      "id_annonce": "58453068",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Vente_de_fermes_et_terrains_agricoles_58453068.htm",
+      "titre": "Vente de fermes et terrains agricoles",
+      "description": "Mise en vente de fermes et terrains agricoles avec titre foncier. Région Rabat/Salé...",
+      "prix_dh": 600000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153499747?t=images",
+        "https://content.avito.ma/classifieds/images/10153499748?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:53:00.789434"
+    },
+    {
+      "id_annonce": "58453058",
+      "url": "https://www.avito.ma/fr/oued_fès/terrains_et_fermes/Terrain_archia_à_vendre_1800m²_près_de_l_aéroport_de_Fès_58453058.htm",
+      "titre": "Terrain archia à vendre 1800m² près de l'aéroport de Fès",
+      "description": "Terrain archia à vendre d'une superficie de 1800 m²\nSitué dans un emplacement privilégié près de l'aéroport de Fès Saïss – Route Mozar.\n✔️ Emplacement stratégique près du café villa panorama fes\n✔️ Facile d'accès\n✔️ Convient pour investissement, projet agricole ou entrepôt\n✔️ La zone est en développement continu\n💰 Prix : 450 dirhams le mètre – négociable",
+      "prix_dh": 450,
+      "surface_m2": 1800,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153488105?t=images",
+        "https://content.avito.ma/classifieds/images/10153489814?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:53:04.125258"
+    },
+    {
+      "id_annonce": "57061779",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/Terrain_agricole_à_vendre___Excellent_emplacement_57061779.htm",
+      "titre": "Terrain agricole à vendre – Excellent emplacement",
+      "description": "Emplacement : Sahel 1, 2ème tranche.\nDourra Zwarma, Commune Saïs, Cercle Sidi Ismail, El Jadida.\nÀ 14 km de la station de péage Sidi Ismail (12 minutes)\nSuperficie : 2 hectares 27 ares 62 centiares.\n•\tTerre fertile propice à l'agriculture ou à la construction, à l'instar des autres projets réussis dans la région\n•\tRoute goudronnée menant directement au terrain\nDocuments :\nTerrain titré\nPrix demandé : 469 mille dirhams, négociable\naprès visite.\nVeuillez visualiser l'emplacement sur Google Maps.\nPour plus d'informations ou pour visiter le terrain : contactez-nous via WhatsApp.",
+      "prix_dh": 469000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10140424269?t=images",
+        "https://content.avito.ma/classifieds/images/10140424263?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:53:21.013017"
+    },
+    {
+      "id_annonce": "58452837",
+      "url": "https://www.avito.ma/fr/ouled_teïma/terrains_et_fermes/ار_ض_فلاحية_همزة__58452837.htm",
+      "titre": "ار ض فلاحية همزة",
+      "description": "​المساحة الإجمالية: 860 متر مربع.\n​ثمن المتر: 80 درهم.\n​الثمن الإجمالي: 68,800 درهم (تقريباً 6 مليون و 880 أالف سنتيم وقابلة للتفاوض بالمعقول).\n​نص الإعلان المقترح:\n​فرصة زوينة: أرض فلاحية مجهزة وبأوراقها كاملة للبيع في نواحي سبت الكردان\n​معروضة للبيع أرض فلاحية مسطحة ومقادة، المساحة ديالها 860 متر مربع، تواجدة فواحد الدوار هادئ ومزيان بزاف للي كيبغي الهدوء والطبيعة بعيد على الصداع والصخب.\n​مميزات الأرض:\n​الوثائق القانونية: الأرض متوفرة على جميع الأوراق القانونية باش يكون كلشي واضح ومقاد قانونياً.\n​التجهيز: الأرض مجهزة بالماء والكهرباء، يعني متهني من الصداع ديال الربط وواجدة للاستغلال أو الغرس ديريكت.\n​الطبيعة ديالها: أرض تربتها مزيانة وخصبة، نقية من الأعشاب العشوائية، ومقادة باش تستغلها كيفما بغيتي.\n​الموقع: كتميز بجو هادئ وطبيعة دايرة بيها زوينة كتعطي الراحة والخصوصية.\n​الثمن المطلوب: 80 درهم للمتر المربع، المجموع هو 68,800 درهم (حوالي 6.9 مليون سنتيم).\n​اللي مهتم أو بغى يجي يشوف الأرض بعينيه، مرحبا بيه يتواصل معنا عبر الهاتف.",
+      "prix_dh": 80,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153516025?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:53:51.942019"
+    },
+    {
+      "id_annonce": "58452808",
+      "url": "https://www.avito.ma/fr/sidi_bibi/terrains_et_fermes/Terrain_de_120_m²_avec_deux_façades_58452808.htm",
+      "titre": "Terrain de 120 m² avec deux façades",
+      "description": "Terrain de 120 m² avec deux façades.\nSitué à l'endroit appelé : Bouarène, relevant du douar Hassi El Baqr, commune de Sidi Bibi.",
+      "prix_dh": 60000,
+      "surface_m2": 120,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153520594?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:53:55.524847"
+    },
+    {
+      "id_annonce": "58452782",
+      "url": "https://www.avito.ma/fr/ksar_el_kebir/terrains_et_fermes/Allo_Youssef_58452782.htm",
+      "titre": "Allo Youssef | Terrains et fermes à Ksar el-Kebir | Avito.ma",
+      "description": "Terrain agricole à vendre dans la zone appelée Dar dans la ville de Ksar El Kebir.\n- Superficie : non spécifiée\n- Enregistré : non\n- Lotissement : non\nPour les personnes intéressées, veuillez contacter par téléphone .",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-13T11:53:58.849768"
+    },
+    {
+      "id_annonce": "57489738",
+      "url": "https://www.avito.ma/fr/harhoura/terrains_et_fermes/Terrain_titré_4700_m2_Benslimane_57489738.htm",
+      "titre": "Terrain titré 4700 m2 Benslimane",
+      "description": "Terrain titré 4700 m2 clôturé avec magasin oulad Youssef FDALATE Benslimane",
+      "prix_dh": 530000,
+      "surface_m2": 4700,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10144875208?t=images",
+        "https://content.avito.ma/classifieds/images/10144875241?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:54:25.817043"
+    },
+    {
+      "id_annonce": "58452595",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/Terrains___Agriculture___Résidence___Tnine_Chtouka_58452595.htm",
+      "titre": "Terrains – Agriculture & Résidence – Tnine Chtouka | Terrains et fermes à Chtouka | Avito.ma",
+      "description": "À seulement 55 km de Casablanca, nous vous proposons des opportunités exceptionnelles d'acquérir des terrains titrés (Titre Foncier), idéaux pour la construction d'une villa de prestige ou d'une résidence secondaire dans un cadre naturel et sain.\nCe qui distingue nos biens à Chtouka :\n• Emplacement stratégique : aux abords de Chtouka, sur la route côtière Casablanca – Azemmour, avec accès direct à l'autoroute\n• Viabilisation complète : électricité, eau potable et voies d'accès goudronnées\n• Diversité des options : parcelles à partir de 5 000 m² avec permis de construire disponibles, ainsi que des terrains agricoles fertiles\n• Environnement d'exception : sérénité de la forêt et vue sur le front maritime\nOffre exclusive de la saison : parcelle titrée de 5,5 hectares à un prix imbattable de 300 000 DH/hectare.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153520388?t=images",
+        "https://content.avito.ma/classifieds/images/10153520390?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:54:32.477074"
+    },
+    {
+      "id_annonce": "58261482",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/Hectare_titré_vue_sur_mer_à_vendre_58261482.htm",
+      "titre": "Hectare titré vue sur mer à vendre",
+      "description": "Un hectare titré à vendre \nSitué dans les environs de sidi rahal plage \nExactement la commune mharza sahel\nAutorisé pour construire une villa ou une ferme \n\nUn emplacement magnifique avec une vue sur mer\n\nAvec la disponibilité de l’eau potable et électricité \n\nPour plus d’informations contactez nous sur",
+      "prix_dh": 800000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10151915647?t=images",
+        "https://content.avito.ma/classifieds/images/10151915651?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:55:09.449937"
+    },
+    {
+      "id_annonce": "58261534",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Hectare_titré_emplacement_extraordinaire_à_vendre_58261534.htm",
+      "titre": "Hectare titré emplacement extraordinaire à vendre",
+      "description": "Un hectare titré à vendre \nSitué dans les environs de sidi rahal plage \nExactement la commune mharza sahel\n\nAutorisé pour construire une villa ou une ferme \n\nUn emplacement magnifique avec une vue sur mer\n\nAvec la disponibilité de l’eau potable et électricité \n\nPour plus d’informations contactez nous",
+      "prix_dh": 800000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10151916077?t=images",
+        "https://content.avito.ma/classifieds/images/10151916078?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:55:13.160852"
+    },
+    {
+      "id_annonce": "58419835",
+      "url": "https://www.avito.ma/fr/sidi_slimane/terrains_et_fermes/Terrain_agricole_à_1_heure_de_route_de_Kénitra_58419835.htm",
+      "titre": "Terrain agricole à 1 heure de route de Kénitra",
+      "description": "À vendre un magnifique terrain agricole titré d'une superficie de 1 hectare (10 000 m²), idéalement situé dans la région du Gharb, à seulement 30 minutes de la commune de Sidi Yahya El Gharb.\n\nCaractéristiques du terrain :\n\n Terre fertile, idéale pour diverses cultures (maraîchage, arboriculture, élevage) ou projet de ferme. Accessible par piste depuis la route principale. \n Zone agricole calme, dynamique et en plein développement. \n Prix : 350 000 DH (négociable).\n\nPour plus d'informations ou pour organiser une visite sur place, veuillez me contacter directement par téléphone ou via WhatsApp au :",
+      "prix_dh": 350000,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152784890?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:55:17.016145"
+    },
+    {
+      "id_annonce": "57893481",
+      "url": "https://www.avito.ma/fr/khemisset/terrains_et_fermes/___Excellente_opportunité___terrain_agricole_titré_à_vendre____57893481.htm",
+      "titre": "🔥 Excellente opportunité : terrain agricole titr... | Terrains et fermes à Khemisset | Avito.ma",
+      "description": "🔥 Excellente opportunité : terrain agricole titré à  vendre 🔥\n\n📍 Localisation : à environ 2 km de la route principale  \n📐 Superficie : 4 hectares et 200 mètres environ (42 000 m²)  \n📜 Statut juridique : Terrain titré   \n- Chemin de terre goudronné passe directement devant le terrain 🚜  \n- Convient pour un projet agricole (culture / investissement) 🌱  \n- Endroit calme et loin du bruit 🌿  \n- Accès facile  \n📞 Pour les personnes intéressées, veuillez contacter par WhatsApp ou téléphone",
+      "prix_dh": null,
+      "surface_m2": 42000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148749547?t=images",
+        "https://content.avito.ma/classifieds/images/10148749549?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:55:20.366319"
+    },
+    {
+      "id_annonce": "58452488",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Terrains__villas_et_fermes_enregistrés___Bir_Jdid_58452488.htm",
+      "titre": "Terrains, villas et fermes enregistrés · Bir Jdid | Terrains et fermes à Bir Jdid | Avito.ma",
+      "description": "Terrains enregistrés de différentes superficies, entre vue sur forêt et proximité de l'autoroute et de la route côtière avec vue sur mer. Les parcelles sont entièrement équipées : eau potable, électricité et routes pavées. Terrains constructibles et enregistrés à partir de 5.000 m², avec permis de construire nécessaires. Des terres agricoles enregistrées avec potentiel d'investissement sont également disponibles, idéales pour un projet agro-résidentiel. Des villas avec piscines et maisons prêtes à l'emploi sont aussi disponibles. Une offre pour tous les goûts : résidence principale ou secondaire, villa.\nOffre : 6 hectares enregistrés · 500.000 MAD par hectare",
+      "prix_dh": null,
+      "surface_m2": 0,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153519522?t=images",
+        "https://content.avito.ma/classifieds/images/10153519524?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:55:23.670650"
+    },
+    {
+      "id_annonce": "56698863",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Terrain_de_18_5_hectares_à_azzemour_56698863.htm",
+      "titre": "Terrain de 18.5 hectares à azzemour",
+      "description": "Un terrain de 18,5 hectares titrefoncier une villa et une écurie adaptées au bétail eau et électricité et trois puits entourés d'arbres adaptés à l'agriculture\nقطعة أرضية مساحتها 18.5 هكتار مسجلة و محفظة villa et une écurie صالح للمواشي و الماء و الكهرباء و تلاتة آبار محاطة بالأشجار صالحة للفلاحة,",
+      "prix_dh": 72000000,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10137020695?t=images",
+        "https://content.avito.ma/classifieds/images/10137020668?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:55:47.508213"
+    },
+    {
+      "id_annonce": "58452208",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_agricole_à_vendre_58452208.htm",
+      "titre": "Terrain agricole à vendre",
+      "description": "Terrain agricole TITRÉ de 5 500 m² à vendre – Safi (Ain Derrak)\nStatut juridique : Terrain titré (Conservation foncière).\nLocalisation : Zone Nord de Safi, région d'Ain Derrak.\nSuperficie : 5 500 m² traversés par la route (2 parcelles indépendantes : 2 300 m² et 3 200 m²).\nSol : Terre sableuse, idéale pour le maraîchage, les légumes et l'arboriculture.\nAtouts : Accès direct par la route pour les engins, vendu libre de toute occupation.\nPrix : 155 000 DH",
+      "prix_dh": 155000,
+      "surface_m2": 5500,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153517294?t=images",
+        "https://content.avito.ma/classifieds/images/10153517284?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:55:54.439281"
+    },
+    {
+      "id_annonce": "57416264",
+      "url": "https://www.avito.ma/fr/harhoura/terrains_et_fermes/Terrain_1_ha_3196_m2_Fdalat_Benslimane_57416264.htm",
+      "titre": "Terrain 1 ha 3196 m2 Fdalat Benslimane",
+      "description": "Je vends un terrain agricole titré superficie 1 hectare et 3196 m² situé avec accès au goudron 3,5 m de largeur sur 200 m de longueur, clôturé sis commune oulad yahya Kiadat Fdalat Benslimane",
+      "prix_dh": 830000,
+      "surface_m2": 3196,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10144097193?t=images",
+        "https://content.avito.ma/classifieds/images/10144097254?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:55:57.743011"
+    },
+    {
+      "id_annonce": "43464640",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Tnine_Chtouka_beau_terrain_à_vendre_10000m²_43464640.htm",
+      "titre": "Tnine Chtouka beau terrain à vendre 10000m²",
+      "description": "Tnine Chtouka (à 50 km de Casa, et à 30 km d’El Jadida) à 30 min de casa via l’autoroute, beau terrain à vendre titré, 10.000 m² pour ferme ou maison secondaire (possibilité de construire 200 m² au sol voir plan de masse en pièce jointe), à 500 m du péage autoroute sortie Tnine Chtouka, \nPoints forts : proximité du village 1.5 km environ, accessibilité à 150 m de la voie goudronnée, l’eau d’un éventuel puit est proche, forme rectangulaire bien orienté, pas de haute tension sur la surface du terrain, branchement eau et électricité disponible dans la zone.",
+      "prix_dh": 950000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10032903297?t=images",
+        "https://content.avito.ma/classifieds/images/10032903318?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:56:04.530491"
+    },
+    {
+      "id_annonce": "57854427",
+      "url": "https://www.avito.ma/fr/harhoura/terrains_et_fermes/Terrain_titré_6500_m2_Benslimane_57854427.htm",
+      "titre": "Terrain titré 6500 m2 Benslimane",
+      "description": "Terrain titré 6500 m2 clôturé grande façade sur piste publique sise oulad Youssef FDALATE Benslimane",
+      "prix_dh": 620000,
+      "surface_m2": 6500,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-13T11:56:08.866811"
+    },
+    {
+      "id_annonce": "55651859",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/___Terrain_à_vendre_près_de_Sidi_Rahal_Chatai____55651859.htm",
+      "titre": "🌟 Terrain à vendre près de Sidi Rahal Chatai 🌟",
+      "description": "🌟 Terrain à vendre, opportunité en or près de Sidi Rahal Chatai 🌟\n🏝️ Superficie 10000 mètres\n📜 Titre foncier\n✨ Terrain avec un emplacement stratégique et proche de la mer, une opportunité d'investissement ou de construction du projet de vos rêves.\n💰 Prix très convenable : seulement 90 millions",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10145791594?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:56:15.590173"
+    },
+    {
+      "id_annonce": "58452166",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/Taza_Route_Kaladman_58452166.htm",
+      "titre": "Taza Route Kaladman | Terrains et fermes à Taza | Avito.ma",
+      "description": "Terrain à vendre de 3000m², constructible et également agricole. Dispose d'eau et d'électricité, proche de la route principale Taza-Kaladman.",
+      "prix_dh": null,
+      "surface_m2": 3000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153517156?t=images",
+        "https://content.avito.ma/classifieds/images/10153517131?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:56:22.448165"
+    },
+    {
+      "id_annonce": "58452141",
+      "url": "https://www.avito.ma/fr/zitoune/terrains_et_fermes/123555855565_58452141.htm",
+      "titre": "123555855565",
+      "description": "Il y a deux terrains à vendre à Meknès à un prix raisonnable. Une construction (boîte) a été faite sur l'un d'eux. Pour toute personne intéressée, veuillez contacter.",
+      "prix_dh": 250000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-13T11:56:25.833415"
+    },
+    {
+      "id_annonce": "58452124",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/Terrains_enregistrés_à_vendre_pour_l_agriculture_et_l_investissement_à_Chéouka_58452124.htm",
+      "titre": "Terrains enregistrés à vendre pour l'agriculture ... | Terrains et fermes à Chtouka | Avito.ma",
+      "description": "Nous vous proposons des offres pour l'achat de fermes et de terrains agricoles enregistrés de différentes superficies pour la construction d'une résidence principale, secondaire, d'une villa, ou pour l'investissement immobilier en dehors de la zone urbaine. Ces terrains se caractérisent par un emplacement exceptionnel dans un environnement calme et sain, où ils disposent de toutes les commodités essentielles telles que l'eau potable, l'électricité et des routes pavées. Ces terrains sont situés à seulement 55 kilomètres de la ville de Casablanca, sur la route reliant Casablanca à Azemmour, dans des zones proches de Chéouka, avec vue sur la forêt ou à proximité de l'autoroute et de la route côtière qui donne sur la mer.\nNous avons des terrains enregistrés dont les superficies commencent à partir de 5000 mètres carrés, équipés de permis de construire, en plus de terrains agricoles adaptés à l'habitation et à l'investissement agricole et immobilier,\nMeilleure offre 5 hectares et demi enregistrés 300 000 par hectare",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153516941?t=images",
+        "https://content.avito.ma/classifieds/images/10153516943?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:56:29.247760"
+    },
+    {
+      "id_annonce": "58452049",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/Terrains_enregistrés_pour_habitation_et_investissement_Sidi_Rahal_près_de_la_mer_58452049.htm",
+      "titre": "Terrains enregistrés pour habitation et investiss... | Terrains et fermes à Sidi Rahal | Avito.ma",
+      "description": "Nous proposons à la vente des terrains enregistrés et des domaines agricoles de superficies variées, situés sur la route côtière Casablanca-Azemmour, à 42 km de Casablanca, dans les environs de Sidi Rahal Plage, près de la plage. Ces parcelles se caractérisent par un environnement sain et calme, loin du bruit urbain, avec la disponibilité de toutes les commodités essentielles : eau potable, électricité et routes pavées. Elles conviennent à la construction résidentielle, qu'elle soit principale, secondaire ou pour des villas, et représentent également une excellente opportunité d'investissement immobilier en dehors de la zone urbaine. Les superficies commencent à partir de 5 000 m² avec permis de construire, en plus de la disponibilité de parcelles contenant des maisons ou des villas avec piscines prêtes à l'emploi. Offre phare : 10 hectares enregistrés au prix de 700 000 MAD par hectare.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153516199?t=images",
+        "https://content.avito.ma/classifieds/images/10153516200?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:56:46.379810"
+    },
+    {
+      "id_annonce": "57912859",
+      "url": "https://www.avito.ma/fr/ben_ahmed/terrains_et_fermes/Terrain_agricole_titré_à_vendre_à_Ben_Ahmed_57912859.htm",
+      "titre": "Terrain agricole titré à vendre à Ben Ahmed | Terrains et fermes à Ben Ahmed | Avito.ma",
+      "description": "Terrain agricole à vendre à Ben Ahmed, superficie 13 hectares, situé directement sur la route RN12. Terrain avec 3 titres fonciers, accès facile, emplacement stratégique proche rond-point et route principale. Idéal pour agriculture, investissement, ferme ou projet agricole.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148930182?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:57:30.087522"
+    },
+    {
+      "id_annonce": "58451903",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/Terrains_titrés_à_Azemmour_pour_l_agriculture_et_l_habitation_58451903.htm",
+      "titre": "Terrains titrés à Azemmour pour l'agriculture et ... | Terrains et fermes à Azemmour | Avito.ma",
+      "description": "Nous vous proposons une sélection de terrains titrés (Titre Foncier) hors lotissement, alliant la qualité des sols pour l'agriculture et la beauté du site pour l'investissement ou la résidence privée (villas, résidence secondaire).\nPourquoi choisir nos biens à Azemmour ?\n• Emplacement : À seulement 62 km de Casablanca, stratégiquement situé entre l'autoroute et la route côtière.\n• Environnement : Ambiance saine et paisible, à proximité de la forêt avec des vues charmantes sur le front de mer.\n• Équipements : Terrains entièrement équipés en eau potable, électricité, et accès facile par routes bitumées.\n• Diversité : Parcelles à partir de 5000 m² avec permis de construire prêts, ainsi que de grandes fermes agricoles.\n• Offre phare : Un terrain titré de 19 hectares à un prix attractif : 500 000 MAD par hectare.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153515024?t=images",
+        "https://content.avito.ma/classifieds/images/10153515022?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:57:37.009872"
+    },
+    {
+      "id_annonce": "58451877",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Terrains_titrés_à_vendre_à_Bir_Jdid_pour_l_agriculture_et_l_investissement_58451877.htm",
+      "titre": "Terrains titrés à vendre à Bir Jdid pour l'agricu... | Terrains et fermes à Bir Jdid | Avito.ma",
+      "description": "Nous mettons à votre disposition des opportunités exceptionnelles pour acquérir des fermes et des terrains agricoles titrés de différentes superficies, adaptés à l'habitation ou à l'investissement agricole et immobilier.\nCes terrains conviennent pour la construction d'une résidence principale ou secondaire ou d'une villa hors zone urbaine, dans un cadre naturel calme et sain.\nToutes les commodités essentielles sont disponibles, eau potable, électricité et routes pavées, garantissant un confort et une stabilité durables.\nCes propriétés sont situées à seulement 42 kilomètres de la ville de Casablanca, sur la route reliant Casablanca à Azemmour.\nElles bénéficient d'emplacements stratégiques à proximité de la ville de Bir Jdid, avec des vues sur la forêt ou à proximité de l'autoroute et de la route côtière donnant sur la mer.\nLes superficies disponibles commencent à partir de 5000 m² avec des permis de construire légaux.\nNous proposons également des terrains agricoles titrés adaptés à l'habitation, à l'exploitation agricole et à l'investissement à long terme.\nMeilleure offre : 6 hectares titrés au prix de 500 000 MAD par hectare.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153514840?t=images",
+        "https://content.avito.ma/classifieds/images/10153514838?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:58:17.724412"
+    },
+    {
+      "id_annonce": "58438041",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_à_vendre_8000_m²_sur_la_route_de_Dar_El_Kaid__El_Barrage__58438041.htm",
+      "titre": "Terrain à vendre 8000 m² sur la route de Dar El K... | Terrains et fermes à Safi | Avito.ma",
+      "description": "Je mets en vente un terrain agricole de 8000 m² situé sur la route de Dar El Kaid (El Barrage) à Safi.\n- Surface totale : 8000 m²\n\nPour plus d'informations, contactez-moi si vous êtes intéressé.",
+      "prix_dh": null,
+      "surface_m2": 8000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153399525?t=images",
+        "https://content.avito.ma/classifieds/images/10153399527?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:58:21.073742"
+    },
+    {
+      "id_annonce": "57771390",
+      "url": "https://www.avito.ma/fr/ouled_frej/terrains_et_fermes/Terrain_titré_de_8600m²_à_vendre_57771390.htm",
+      "titre": "Terrain titré de 8600m² à vendre",
+      "description": "Terrain titré à vendre de 8600m² accès direct à la route (Route Bayada) avec un puits, entouré de villas et fermes.",
+      "prix_dh": 260000,
+      "surface_m2": 8600,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152155289?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:59:01.542726"
+    },
+    {
+      "id_annonce": "56384146",
+      "url": "https://www.avito.ma/fr/route_de_tahanaoute/terrains_et_fermes/Terrain_titré_vue_montagne_à_TAHANAOUT_56384146.htm",
+      "titre": "Terrain titré vue montagne à TAHANAOUT | Terrains et fermes à Marrakech | Avito.ma",
+      "description": "A vendre magnifique domaine de 44224 m2 titré au cœur du haut Atlas.\n\nA seulement 30 km de Marrakech et 7 km de TAHANAOUT .\n\nle terrain est niché sur le haut d’une colline offrant une vue panoramique exceptionnelle sur les montagnes et la forêt mitoyenne.\n\nIl se trouve sur le circuit touristique et à proximité du projet Terre D’Amanar et l’hôtel Ksar Angour.\n\nle terrain est équipé d’un Puits avec système de pompage solaire .\n\nParfait pour Projet touristique.\n\ncontact direct propriétaire prix 35 dh le mètre carré.",
+      "prix_dh": null,
+      "surface_m2": 44224,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10134210380?t=images",
+        "https://content.avito.ma/classifieds/images/10134210388?t=images"
+      ],
+      "date_scraping": "2026-08-13T11:59:11.521617"
+    },
+    {
+      "id_annonce": "57780199",
+      "url": "https://www.avito.ma/fr/marjane_2/terrains_et_fermes/Ferme_de_luxe_avec_3_villas_près_de_Meknès_à_7_km_57780199.htm",
+      "titre": "Ferme de luxe avec 3 villas près de Meknès à 7 km",
+      "description": "Bonjour \nJe mets en vente une belle ferme de 12500 mètre avec 3 villas et près de Meknès à 7 km\nContient \n3 villas \nCour\nSonde et puits\nParking voiture \nPlusieurs arbres entre oliviers, orangers etc...",
+      "prix_dh": 3600000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10147707376?t=images",
+        "https://content.avito.ma/classifieds/images/10147707832?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:00:09.719284"
+    },
+    {
+      "id_annonce": "58451479",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Sidi_Boukhalkhal_Tifelt_58451479.htm",
+      "titre": "Sidi Boukhalkhal Tifelt",
+      "description": "Ferme à vendre 15 hectares titrés avec une maison d'habitation, un entrepôt, deux puits et des oliviers.",
+      "prix_dh": 900000000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153511650?t=images",
+        "https://content.avito.ma/classifieds/images/10153511651?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:00:47.471936"
+    },
+    {
+      "id_annonce": "57718000",
+      "url": "https://www.avito.ma/fr/route_d_amezmiz/terrains_et_fermes/Terrain_titré_km_24_route_d_Amizmiz_57718000.htm",
+      "titre": "Terrain titré km 24 route d'Amizmiz",
+      "description": "Particulier vend terrain titré de 2,5 Ha à 30 mn de Marrakech \n1200 m de piste sur terrain vallonné avec magnifiques vues dégagées de tous les côtés\nConvient pour maison de campagne ou projet touristique",
+      "prix_dh": 1600000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149539771?t=images",
+        "https://content.avito.ma/classifieds/images/10149539772?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:01:21.574061"
+    },
+    {
+      "id_annonce": "58451375",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Terrains_et_fermes_titrés_la_région_de_Bir_Jdid_58451375.htm",
+      "titre": "Terrains et fermes titrés la région de Bir Jdid | Terrains et fermes à Bir Jdid | Avito.ma",
+      "description": "Nous proposons à la vente des terrains et fermes titrés aux superficies variées, adaptés à tous vos projets\nIdéals pour une résidence principale ou secondaire, des villas de standing ou un investissement immobilier et agricole\nSitués dans un environnement calme, sain et sécurisé, offrant une qualité de vie optimale\nBénéficiant de toutes les commodités essentielles : eau potable, électricité et accès par routes goudronnées\nEmplacement stratégique à seulement 42 km de Casablanca, sur l’axe Casablanca–Azemmour\nParcelles avec vue sur forêt ou à proximité de l’autoroute et de la route côtière avec vue mer\nSuperficies à partir de 5 000 m² avec autorisation de construction – Offre spéciale : 6 ha à 500 000 DH/ha",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153511099?t=images",
+        "https://content.avito.ma/classifieds/images/10153511101?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:01:28.351439"
+    },
+    {
+      "id_annonce": "58451338",
+      "url": "https://www.avito.ma/fr/sidi_kacem/terrains_et_fermes/Ferme_à_vendre_à_Sidi_Kacem_58451338.htm",
+      "titre": "Ferme à vendre à Sidi Kacem",
+      "description": "Ferme à vendre à Sidi Kacem\n- Superficie 3 hectares équipée de :\n4 étables pour bétail _ écurie pour chevaux - maison en bas et en haut _ puits et piscine _ arbres ...\n- Prix : 152 millions\nBienvenue",
+      "prix_dh": 1520000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153510581?t=images",
+        "https://content.avito.ma/classifieds/images/10153510580?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:01:39.007809"
+    },
+    {
+      "id_annonce": "58299748",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/3000m²_terrain_agricole_58299748.htm",
+      "titre": "3000m² terrain agricole | Terrains et fermes à Bir Jdid | Avito.ma",
+      "description": "Je mets en vente un terrain de 3000m². Terrain agricole. Situé à El Ghadira, en bon état, avec un puits et de l'eau. Le réseau est potable. Entouré d'une clôture et d'un nouveau puits.\nPour plus de détails ou pour visiter le lieu, contactez-moi si vous êtes intéressé.",
+      "prix_dh": null,
+      "surface_m2": 3000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152249758?t=images",
+        "https://content.avito.ma/classifieds/images/10152249759?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:01:45.610939"
+    },
+    {
+      "id_annonce": "56682640",
+      "url": "https://www.avito.ma/fr/salé/terrains_et_fermes/Ferme_2ha_titre_kamouni_56682640.htm",
+      "titre": "Ferme 2ha titre kamouni",
+      "description": "Je mets en vente une ferme titre panoramique sup 2ha situé á kamouni sidi allal bahraoui Ait malek route goudronne sis 4klm de la route national equippé d'une villa de supperficie 150m2 écuries,2puits,eau d'onep,électricité ,chateau d'eau et des arbres fruitiers,",
+      "prix_dh": 2500000,
+      "surface_m2": 150,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10145557607?t=images",
+        "https://content.avito.ma/classifieds/images/10136873070?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:02:23.161246"
+    },
+    {
+      "id_annonce": "58069158",
+      "url": "https://www.avito.ma/fr/centre_ville/terrains_et_fermes/Terrain_51_000_m2_Route_de_Casablanca_Marrakech_58069158.htm",
+      "titre": "Terrain 51 000 m2 Route de Casablanca Marrakech",
+      "description": "Terrain stratégique de 51 000 m2 situé sur la Route de Casablanca à Marrakech, derrière les showrooms automobiles et à proximité du Grand Stade de Marrakech.\nAccès direct autoroute Marrakech Casablanca. Secteur en plein développement économique et logistique.\nSituation foncière : terrain actuellement classé agricole. Possibilité d'étudier les démarches de changement de vocation auprès des autorités compétentes selon la réglementation marocaine.\nPotentiel : plateformes logistiques, entrepôts, hangars, centres de distribution, activités industrielles légères, stockage.\nAtouts : emplacement stratégique, forte demande logistique et e-commerce, potentiel de valorisation important, diversification patrimoniale.\nContact : Immobilier Maroc VIP. Visite sur place possible sur demande.\nInvestissement foncier stratégique pour promoteurs, logisticiens et investisseurs visionnaires.",
+      "prix_dh": 18500000,
+      "surface_m2": 51000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150356563?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:02:57.006686"
+    },
+    {
+      "id_annonce": "52836575",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Ferme_à_vendre_2_hectares_à_tifelt_52836575.htm",
+      "titre": "Ferme à vendre 2 hectares à tifelt",
+      "description": "Ferme à vendre à tifelt 2 hectares bien équipé.\nPlanté d'avocatiers, bassin, deux puits, maison, écurie, ...",
+      "prix_dh": 1800000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10140169475?t=images",
+        "https://content.avito.ma/classifieds/images/10140169477?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:03:10.466372"
+    },
+    {
+      "id_annonce": "58293130",
+      "url": "https://www.avito.ma/fr/tata/terrains_et_fermes/Terrain_agricole_TITRÉ_Tata_Maroc_2300_hectares_58293130.htm",
+      "titre": "Terrain agricole TITRÉ Tata Maroc 2300 hectares",
+      "description": "Je vends un terrain agricole titré à Tata, Maroc.\n- Superficie : 2300 hectares avec titre foncier\n- Zone : Agricole\n- Constitution : Terrains plats, certaines dunes, palmiers, puits\n- Prix de vente : 6000 euros par hectare\nContactez-moi pour plus d'informations.",
+      "prix_dh": 60000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152196915?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:03:17.211207"
+    },
+    {
+      "id_annonce": "55714808",
+      "url": "https://www.avito.ma/fr/tamesna/terrains_et_fermes/Ferme_équipée_à_vendre_avec_titre_foncier_55714808.htm",
+      "titre": "Ferme équipée à vendre avec titre foncier | Terrains et fermes à Tamesna | Avito.ma",
+      "description": "Ferme à vendre à Sidi Yahya Zaïr près de Tamesna, d'une superficie de 2500 mètres, équipée d'une petite villa et de nombreux arbres et fruits. Tous les documents sont légaux, le terrain est titré ainsi que les bâtiments. Pour plus d'informations, contactez l'agent immobilier M. Aziz, merci.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10128713336?t=images",
+        "https://content.avito.ma/classifieds/images/10127884423?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:03:24.047800"
+    },
+    {
+      "id_annonce": "58451080",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Terrain_à_vendre_58451080.htm",
+      "titre": "Terrain à vendre",
+      "description": "Le local dispose d'un puits et d'électricité et d'une maison couverte de tôle à environ 18 kilomètres de Tiflet",
+      "prix_dh": 560000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153508312?t=images",
+        "https://content.avito.ma/classifieds/images/10153508311?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:03:40.759002"
+    },
+    {
+      "id_annonce": "58451073",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/Terrains_agricoles_enregistrés_à_vendre_près_d_Azemmour_58451073.htm",
+      "titre": "Terrains agricoles enregistrés à vendre près d'Az... | Terrains et fermes à Azemmour | Avito.ma",
+      "description": "À vendre, terrains agricoles enregistrés de différentes superficies, dans un environnement naturel calme près de la ville d'Azemmour, en dehors de la zone urbaine. Situés à 62 km de Casablanca sur la route menant à Azemmour, avec vue sur la forêt et la route côtière surplombant la mer. Ils disposent de toutes les commodités essentielles : eau potable, électricité, et routes pavées, à proximité de l'autoroute. Superficies à partir de 5 000 m² avec permis de construire prêts, et terrains agricoles enregistrés propices à l'habitation et à l'investissement immobilier. Options flexibles adaptées à tous les projets : résidence principale ou secondaire, villa de luxe, ou investissement agricole et immobilier rentable. ⭐ Offre exceptionnelle : 19 hectares enregistrés à un prix compétitif de 500 000 dirhams par hectare.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153508551?t=images",
+        "https://content.avito.ma/classifieds/images/10153508554?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:03:47.976950"
+    },
+    {
+      "id_annonce": "57404846",
+      "url": "https://www.avito.ma/fr/route_de_tahanaoute/terrains_et_fermes/Vente_Terrain_agricole_à_Marrakech_57404846.htm",
+      "titre": "Vente Terrain agricole à Marrakech",
+      "description": "Je mets en vente un superbe terrain titré de 5 hectares, situé à seulement 3 km du centre d’Ourika, en bordure de la route principale menant à Tahnaout, il bénéficie d’un accès direct et facile.\n\nCe terrain offre une vue imprenable sur les montagnes de l'Atlas et dispose déjà d'un puits. Grâce à sa localisation stratégique, proche de Marrakech, et son cadre naturel exceptionnel, il se prête à de nombreux projets .\n\nN’hésitez plus ! Contactez-moi pour organiser une visite ou obtenir plus d’informations.\n\n\n\n\n\nRida HANANE",
+      "prix_dh": 13500000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10151177446?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:04:18.819075"
+    },
+    {
+      "id_annonce": "58451029",
+      "url": "https://www.avito.ma/fr/laäyoune_ain_tizgha/terrains_et_fermes/Ain_Tizgha_Ben_Slimane_58451029.htm",
+      "titre": "Ain Tizgha Ben Slimane | Terrains et fermes à Laäyoune Ain Tizgha | Avito.ma",
+      "description": "Terrain agricole enregistré à vendre à Ain Tizgha Ben Slimane.\n- Zone agricole\n- Lotissement : Non\n- Enregistré : Oui\nContactez-moi pour plus d'informations.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153508410?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:04:22.115550"
+    },
+    {
+      "id_annonce": "54644066",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_agricole_à_vendre_54644066.htm",
+      "titre": "Terrain agricole à vendre",
+      "description": "TEMARA REBAA TERRAIN À VENDRE SUP 26836 M2",
+      "prix_dh": 4500000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10115960811?t=images",
+        "https://content.avito.ma/classifieds/images/10115960812?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:04:35.761282"
+    },
+    {
+      "id_annonce": "58450850",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/Terrain_à_vendre_avec_eau_et_électricité_et_aussi_58450850.htm",
+      "titre": "Terrain à vendre avec eau et électricité et aussi",
+      "description": "Je propose un terrain à vendre dans une zone agricole dans la ville de Taza.\n- Eau et électricité disponibles\n- Contient 25 oliviers\n- Le terrain est enregistré\nContactez-moi pour plus d'informations.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153506755?t=images",
+        "https://content.avito.ma/classifieds/images/10153506757?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:05:29.503333"
+    },
+    {
+      "id_annonce": "51257789",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/La_transaction__L_acquisition__Le_soutien__51257789.htm",
+      "titre": "La transaction. L'acquisition. Le soutien. | Terrains et fermes à Benslimane | Avito.ma",
+      "description": "La société NFAS IMMO a le plaisir de vous accueillir. Nos équipes d'experts, spécialisées dans l'acquisition et dans la cession de terrains, fermes, villas et autres biens immobiliers sur Benslimane et ses environs, peuvent vous présenter un portefeuille sur-mesure d'opportunités. Notre entreprise assure également la gestion complète des formalités administratives, le forage de puits, la réalisation de travaux de construction (grosse œuvre et finitions), la clôture, le jardinage, etc. Nous vous accompagnons ainsi de bout en bout dans la concrétisation de votre projet immobilier. Vous pouvez prendre rendez-vous par téléphone pour visiter des biens que nous avons déjà réalisés, afin de constater le sérieux et la qualité de nos prestations. Définissez votre projet, nous nous chargeons de sa réalisation.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10143797272?t=images",
+        "https://content.avito.ma/classifieds/images/10127343032?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:05:42.997262"
+    },
+    {
+      "id_annonce": "57920020",
+      "url": "https://www.avito.ma/fr/marjane_2/terrains_et_fermes/Petite_ferme_proximité_centre_haj_Kadour_57920020.htm",
+      "titre": "Petite ferme proximité centre haj Kadour",
+      "description": "Petite ferme équipée proximité centre haj kaddour\nSuperficie 2 hectares\nGrande façade 200 mètres \nContenance: 1 hectare amande,olive, puit, équipements.....\nClôturé \nPour plus d'informations veuillez nous contacter",
+      "prix_dh": 2300000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148997475?t=images",
+        "https://content.avito.ma/classifieds/images/10148997476?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:05:46.365411"
+    },
+    {
+      "id_annonce": "58361160",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Ferme_à_vendre__Aïn_Jouhra__Tiflet__58361160.htm",
+      "titre": "Ferme à vendre (Aïn Jouhra, Tiflet)",
+      "description": "Une ferme à 100 m de la route goudronnée desservie par l'eau potable et l'électricité avec clôture contenant notamment :\n- Une grande porte coulissante et une porte d'entrée\n- 200 arbres d'avocat\n- 20 arbres de citron\n- Un puits d'irrigation\n- Une installation solaire d'électricité\n- Un local technique contenant du matériel solaire et un moteur gazoil\nLa ferme est située à 18 mn de Sidi Allal Bahraoui (Kamouni), à 22 mn de Tiflet et 48 mn de Rabat.",
+      "prix_dh": 1650000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152961702?t=images",
+        "https://content.avito.ma/classifieds/images/10152991443?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:05:49.676995"
+    },
+    {
+      "id_annonce": "57920057",
+      "url": "https://www.avito.ma/fr/marjane_2/terrains_et_fermes/Ferme_équipée_80_hectares_proximité_Meknes_57920057.htm",
+      "titre": "Ferme équipée 80 hectares proximité Meknes | Terrains et fermes à Meknès | Avito.ma",
+      "description": "Ferme équipée en vente proximité Meknes\nSuperficie 80 hectares\nBien positionner\nContenance: khoukh, chahdia, zitoune, Vignes, Puits, bassins, électricité, panneaux solaires......\nBon chiffre d'affaire\nTitré\nPour plus d infos veuillez me contacter",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148998052?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:05:56.331750"
+    },
+    {
+      "id_annonce": "57922342",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_agricole_sur_route_nationale_Haj_Kaddour_57922342.htm",
+      "titre": "Terrain agricole sur route nationale Haj Kaddour | Terrains et fermes à Meknès | Avito.ma",
+      "description": "Terrain agricole sur route nationale centre Haj Kaddour \nSuperficie 6 hectares et demi\nDeux façades opposées \nPour agriculture ou projet frigo station service dépôts....\nPour plus d infos veuillez me contacter",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149017071?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:06:09.948769"
+    },
+    {
+      "id_annonce": "57920277",
+      "url": "https://www.avito.ma/fr/marjane_2/terrains_et_fermes/Ferme_équipée_15_hectares_Villa_piscine_Meknes_57920277.htm",
+      "titre": "Ferme équipée 15 hectares Villa piscine Meknes | Terrains et fermes à Meknès | Avito.ma",
+      "description": "Ferme équipée en vente à 5km de Meknes\nSuperficie 15 hectares\nTitré\nContenance: Vignes, kaki.... frigo, matériels. Puits....\nBien positionner\nVilla de luxe avec piscine\nPour plus d infos veuillez me contacter",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10148999932?t=images",
+        "https://content.avito.ma/classifieds/images/10148999933?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:06:17.733403"
+    },
+    {
+      "id_annonce": "57920330",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrains_de_luxe_sur_route_Mhaya_57920330.htm",
+      "titre": "Terrains de luxe sur route Mhaya | Terrains et fermes à Meknès | Avito.ma",
+      "description": "Terrain de luxe à Mhaya sur route nationale \nSuperficie 2 hectares, 1.5 hectares, 3 hectares, 5 hectares \nBien positionné \nPour projet frigo, dépôts, unité, agriculture...\nTitré \nPour plus d'informations veuillez nous contacter",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149000593?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:06:34.324167"
+    },
+    {
+      "id_annonce": "58237978",
+      "url": "https://www.avito.ma/fr/khemisset/terrains_et_fermes/Terrain_Agricole_titré_Ait_Abbou_Khemisset_58237978.htm",
+      "titre": "Terrain Agricole titré Ait Abbou Khemisset",
+      "description": "Excellent Terrain Agricole titré forme rectangulaire et plat dans la commune de Ait Abbou région khemisset adjacent à la route goudronnée vers Souk Sebt (Sidi ALLAL LEMSADDAR).\nCe terrain est totalement approprié à l'agriculture et un projet de station de service ou restaurant ou piscine.",
+      "prix_dh": 1700000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152016456?t=images",
+        "https://content.avito.ma/classifieds/images/10152016458?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:06:41.073800"
+    },
+    {
+      "id_annonce": "57920447",
+      "url": "https://www.avito.ma/fr/el_hajeb/terrains_et_fermes/Ferme_équipée_Kharoub_Hajeb_57920447.htm",
+      "titre": "Ferme équipée Kharoub Hajeb | Terrains et fermes à El Hajeb | Avito.ma",
+      "description": "Ferme équipée Kharoub Hajeb\nSuperficie 20 hectares \nContenance: 6000 arbres kharoub de 2 ans, puit, bassins, clôture \nSur route nationale \nPour plus d infos veuillez me contacter",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149001236?t=images",
+        "https://content.avito.ma/classifieds/images/10149001246?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:06:47.714688"
+    },
+    {
+      "id_annonce": "57704286",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/2_4_ha___Titre_Foncier___Vue_Unique___7_km_de_Benslimane_57704286.htm",
+      "titre": "2.4 ha – Titre Foncier & Vue Unique – 7 km de Benslimane",
+      "description": "L'agence immobilière NFAS IMMO est fière de vous présenter une opportunité foncière de premier choix : un magnifique terrain agricole bénéficiant d'un titre foncier définitif, d'une superficie totale de 2 hectares, 40 ares et 32 centiares. Idéalement situé à seulement 7 km du centre-ville de Benslimane, ce domaine offre un équilibre parfait entre accessibilité et sérénité grâce à une piste carrossable de 700 mètres. De forme rectangulaire, le terrain comprend déjà une petite construction de plain-pied (rez-de-chaussée) et bénéficie d'un raccordement au réseau électrique. Ce site se distingue par un cadre naturel spectaculaire offrant une vue imprenable sur des formations rocheuses, apportant un cachet authentique et sauvage à votre futur projet.\n\nSituée dans un environnement calme et sécurisé, cette propriété garantit un confort d'installation immédiat. Le bien est totalement en règle sur le plan administratif et juridique, exempt de toute nuisance environnementale (ni carrière, ni ligne haute tension, ni écurie), vous offrant une tranquillité totale pour vos investissements. En choisissant NFAS IMMO, spécialiste de la vente, de l'achat et de la construction, vous bénéficiez d'un accompagnement à 100 % pour transformer ce vaste potentiel en réalité : de la gestion des formalités administratives jusqu'à la construction complète de votre futur projet, qu'il s'agisse d'une exploitation agricole d'envergure ou d'une villa de prestige avec piscine. Les visites sont organisées exclusivement sur rendez-vous, nous vous remercions de nous contacter au moins 24 heures à l'avance pour planifier votre venue.",
+      "prix_dh": 2300000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10147079580?t=images",
+        "https://content.avito.ma/classifieds/images/10147079565?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:06:54.519212"
+    },
+    {
+      "id_annonce": "57920498",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Ferme_équipée_Vignes_kaki_33_hectares_Meknes_57920498.htm",
+      "titre": "Ferme équipée Vignes kaki 33 hectares Meknes | Terrains et fermes à Meknès | Avito.ma",
+      "description": "Ferme équipée proximité Meknes\nSuperficie 33 hectares \nContenance: 20 hectares vignes, 13 hectares kaki, puits, bassins, villa, piscine \nSur route nationale \nPour plus d infos veuillez me contacter",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149001515?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:07:14.577256"
+    },
+    {
+      "id_annonce": "55540937",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Ferme_à_vendre_55540937.htm",
+      "titre": "Ferme à vendre",
+      "description": "À vendre une ferme à Tifelt, idéal pour la construction de villas.\n- Terrain titré\n- Zonage villa\nPour toute information complémentaire, contactez-moi si vous êtes intéressé.",
+      "prix_dh": 2600000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153237399?t=images",
+        "https://content.avito.ma/classifieds/images/10153237398?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:07:24.618253"
+    },
+    {
+      "id_annonce": "57930591",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Ferme_équipée_amande_olive_Ain_krma_35_hectares_57930591.htm",
+      "titre": "Ferme équipée amande olive Ain krma 35 hectares | Terrains et fermes à Meknès | Avito.ma",
+      "description": "Ferme équipée à Ain krma\nSuperficie 35 hectares \nSur route nationale \nContenance: 13 hectares olive, 10 hectares amande, 12 hectares vierges. Puits, bassins. ...\nPrix intéressant: 24 millions/ hectare \nPour plus d infos veuillez me contacter",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149095939?t=images",
+        "https://content.avito.ma/classifieds/images/10149095938?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:07:38.235600"
+    },
+    {
+      "id_annonce": "58313178",
+      "url": "https://www.avito.ma/fr/béni_mellal/terrains_et_fermes/À_VENDRE_UNE_TERRAIN_DE_4300H_À_REGION_MARRAKECH_58313178.htm",
+      "titre": "À VENDRE UNE TERRAIN DE 4300H À REGION MARRAKECH",
+      "description": "🌟 OFFRE D'INVESTISSEMENT EXCEPTIONNELLE AVEC L'AGENCE BOUAZZAOUI A EL AYACHI 🌟\nTOUJOURS DU NOUVEAU ET DES OFFRES MONUMENTALES !\n\nNOUS PROPOSONS AUX PORTEURS DE GRANDS PROJETS ET AUX INVESTISSEURS UNE OPPORTUNITÉ EXTRAORDINAIRE ET UNIQUE DANS LA RÉGION DE MARRAKECH.\n\n📌 DÉTAILS DE L'OFFRE :\n📐 SUPERFICIE TOTALE : 4 300 HECTARES\n\n📜 STATUT JURIDIQUE : TERRAIN TITRÉ\n\n💰 PRIX : 4 MILLIONS DE CENTIMES PAR HECTARE\n\n📍 LOCALISATION : ENVIRONS DE MARRAKECH\n\n💡 PROJETS ADAPTÉS AU SITE :\n🌳 AGRICULTURE ET ARBRES FRUITIERS : IDÉAL POUR LA CULTURE DES OLIVIERS, DES AMANDIERS ET DES FIGUIERS DE BARBARIE.\n\n🦌 RÉSERVES NATURELLES : TERRAIN PARFAITEMENT ADAPTÉ À LA CRÉATION DE RÉSERVES NATURELLES OU PRIVÉES.\n\n🐄 ÉLEVAGE : EXCELLENT ENVIRONNEMENT POUR L'ÉTABLISSEMENT DE FERMES MODÈLES D'ÉLEVAGE DE BÉTAIL ET DE VOLAILLE.\n\n📞 CONTACT ET RENSEIGNEMENTS :\n\nVEUILLEZ CONTACTER DIRECTEMENT L'AGENCE BOUAZZAOUI A EL AYACHI POUR VISITER LE TERRAIN OU OBTENIR DES INFORMATIONS COMPLÉMENTAIRES.\n\nUNE OPPORTUNITÉ INÉGALÉE POUR LANCER VOTRE GRAND PROJET D'INVESTISSEMENT.",
+      "prix_dh": 1720000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10152362674?t=images",
+        "https://content.avito.ma/classifieds/images/10152362681?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:07:44.894224"
+    },
+    {
+      "id_annonce": "58450713",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_à_vendre_près_de_Assen_58450713.htm",
+      "titre": "Terrain à vendre près de Assen | Terrains et fermes à Agadir | Avito.ma",
+      "description": "Je propose un terrain agricole à Agadir\n- Zonage agricole\nPour plus d'informations, contactez-moi si vous êtes intéressé.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153504265?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:07:48.186531"
+    },
+    {
+      "id_annonce": "57956337",
+      "url": "https://www.avito.ma/fr/marjane_2/terrains_et_fermes/Ferme_équipée_Vignes_avec_maison_région_Meknes_57956337.htm",
+      "titre": "Ferme équipée Vignes avec maison région Meknes",
+      "description": "Ferme équipée proximité Meknes\nSuperficie 4 hectares \nNouvelle exploitation \nBien positionné \nContenance: 4 hectares Olive Vignes\nPuit\nPour plus d infos veuillez me contacter",
+      "prix_dh": 4200000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10149384236?t=images",
+        "https://content.avito.ma/classifieds/images/10149384245?t=images"
+      ],
+      "date_scraping": "2026-08-13T12:08:01.513295"
+    }
+  ]
+}
