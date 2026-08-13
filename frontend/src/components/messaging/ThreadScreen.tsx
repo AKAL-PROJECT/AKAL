@@ -12,6 +12,12 @@ import type { Conversation, Message } from "@/types/messaging";
 // ouvert est un contexte plus « actif », l'utilisateur attend une réponse.
 const INTERVALLE_POLLING_MS = 5000;
 
+// Distance (px) au bas du conteneur en dessous de laquelle on considère que
+// l'utilisateur « suit » la conversation. Un nouveau message reçu l'amène
+// alors en bas ; au-delà (il consulte l'historique), on ne le téléporte pas
+// (audit visuel, correctif P0.1 — étape 6).
+const SEUIL_PRES_DU_BAS_PX = 80;
+
 export function ThreadScreen({
   conversation,
   messagesInitiaux,
@@ -25,7 +31,17 @@ export function ThreadScreen({
   const [contenu, setContenu] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const finRef = useRef<HTMLDivElement>(null);
+  // Conteneur des messages — seul élément scrollable du fil (cf. le div
+  // flex:1/overflowY:auto plus bas). Le scroll vers le bas s'écrit
+  // directement dessus (scrollTop/scrollTo) plutôt que via
+  // Element.scrollIntoView() sur un repère : scrollIntoView() remonte le
+  // premier ancêtre scrollable qu'il trouve, qui était body/html dès que ce
+  // conteneur n'avait lui-même pas besoin de scroller (conversation courte)
+  // — la page entière défilait alors au lieu du seul fil (audit visuel,
+  // correctif P0.1).
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const presDuBasRef = useRef(true);
+  const premierRenduRef = useRef(true);
 
   useEffect(() => {
     const id = setInterval(async () => {
@@ -36,8 +52,35 @@ export function ThreadScreen({
   }, [conversation.id]);
 
   useEffect(() => {
-    finRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    const el = messagesRef.current;
+    if (!el) return;
+
+    const dernierMessage = messages[messages.length - 1];
+    const estMonMessage = dernierMessage?.auteur.id === utilisateurId;
+
+    if (premierRenduRef.current) {
+      // Ouverture de la conversation : en bas immédiatement, sans animation
+      // — l'utilisateur ne doit jamais percevoir de saut, ni voir la page
+      // « vide » le temps que le scroll s'exécute.
+      el.scrollTop = el.scrollHeight;
+      premierRenduRef.current = false;
+      return;
+    }
+
+    // Nouveau message : on suit uniquement si l'utilisateur était déjà en
+    // bas, ou si c'est son propre envoi. Sinon (il relit l'historique), on
+    // ne le déplace pas.
+    if (presDuBasRef.current || estMonMessage) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
+  }, [messages, utilisateurId]);
+
+  function onScrollMessages() {
+    const el = messagesRef.current;
+    if (!el) return;
+    const distanceAuBas = el.scrollHeight - el.scrollTop - el.clientHeight;
+    presDuBasRef.current = distanceAuBas < SEUIL_PRES_DU_BAS_PX;
+  }
 
   function envoyer(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +92,7 @@ export function ThreadScreen({
       const resultat = await envoyerReponseAction(conversation.id, texte);
       if (resultat.message) {
         const nouveauMessage = resultat.message;
+        presDuBasRef.current = true; // mon propre envoi doit toujours amener en bas
         setMessages((prev) => [...prev, nouveauMessage]);
         setContenu("");
       } else {
@@ -66,9 +110,13 @@ export function ThreadScreen({
         display: "flex",
         flexDirection: "column",
         height: "calc(100vh - 64px)",
+        // Panneau plein écran contenu : seul le conteneur des messages
+        // ci-dessous scrolle (overflowY:auto) — celui-ci ne doit jamais
+        // déborder sur body (correctif P0.1).
+        overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderBottom: "1px solid var(--color-bordure)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderBottom: "1px solid var(--color-bordure)", flexShrink: 0 }}>
         <Link href="/messages" style={{ color: "var(--color-texte)", display: "flex" }}>
           <ChevronLeft size={20} />
         </Link>
@@ -107,14 +155,17 @@ export function ThreadScreen({
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div
+        ref={messagesRef}
+        onScroll={onScrollMessages}
+        style={{ flex: 1, overflowY: "auto", padding: "16px 0", display: "flex", flexDirection: "column", gap: 10 }}
+      >
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} estMoi={message.auteur.id === utilisateurId} />
         ))}
-        <div ref={finRef} />
       </div>
 
-      <form onSubmit={envoyer} style={{ display: "flex", gap: 8, padding: "12px 0 8px", borderTop: "1px solid var(--color-bordure)" }}>
+      <form onSubmit={envoyer} style={{ display: "flex", gap: 8, padding: "12px 0 8px", borderTop: "1px solid var(--color-bordure)", flexShrink: 0 }}>
         <input
           type="text"
           value={contenu}
