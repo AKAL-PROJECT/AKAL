@@ -171,9 +171,15 @@ export default function CarrouselPhotos({ photos, titre, badge, id }: Props) {
           cursor: "pointer",
         }}
       >
-        <ViewTransition name={`parcelle-photo-${id}`} share="morph">
-          <Image src={photos[0]} alt={titre} fill priority sizes="100vw" style={{ objectFit: "cover" }} />
-        </ViewTransition>
+        {/* Pas de ViewTransition ici : la variante desktop ci-dessus reste
+            montée en permanence dans le DOM (masquée en CSS via
+            .hidden-mobile/.hidden-desktop, pas démontée) — deux
+            <ViewTransition> partageant le même `name` en même temps fait
+            planter React (cf. audit visuel, correctif). Le morph carte→fiche
+            reste donc porté par la seule variante desktop ; sur mobile, la
+            navigation se fait simplement sans animation de morph, comme les
+            autres dégradations déjà prévues pour cette fonctionnalité. */}
+        <Image src={photos[0]} alt={titre} fill priority sizes="100vw" style={{ objectFit: "cover" }} />
         {badge && (
           <span
             style={{
