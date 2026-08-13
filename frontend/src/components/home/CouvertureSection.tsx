@@ -22,7 +22,7 @@ const CarteCouverture = dynamic(() => import("@/components/parcelles/CarteCouver
 // cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés.
 const REGIONS = [
   { code: "casablanca-settat", nom: "Casablanca-Settat" },
-  { code: "meknes-tafilalet", nom: "Meknès-Tafilalet" },
+  { code: "fes-meknes", nom: "Fès-Meknès" },
   { code: "souss-massa", nom: "Souss-Massa" },
   { code: "rabat-sale-kenitra", nom: "Rabat-Salé-Kénitra" },
   { code: "oriental", nom: "Oriental" },

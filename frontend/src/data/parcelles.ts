@@ -49,8 +49,8 @@ export const PARCELLES: Parcelle[] = [
       topographie: "vallonne",
       latitude: 31.5722,
       longitude: -7.6694,
-      regionCode: "meknes-tafilalet",
-      regionNom: "Meknès-Tafilalet",
+      regionCode: "fes-meknes",
+      regionNom: "Fès-Meknès",
       adresseApproximative: "Aït Ourir, Maroc",
     },
     scoreCourant: { scoreGlobal: 82, sousScores: null, versionPonderation: null },
@@ -113,8 +113,8 @@ export const PARCELLES: Parcelle[] = [
       topographie: "plat",
       latitude: 33.6914,
       longitude: -5.3711,
-      regionCode: "meknes-tafilalet",
-      regionNom: "Meknès-Tafilalet",
+      regionCode: "fes-meknes",
+      regionNom: "Fès-Meknès",
       adresseApproximative: "El Hajeb, Maroc",
     },
     scoreCourant: { scoreGlobal: 54, sousScores: null, versionPonderation: null },
@@ -238,7 +238,7 @@ export const PARCELLES: Parcelle[] = [
 export type Region = { code: string; nom: string };
 
 const REGIONS_MOCK: Region[] = [
-  { code: "meknes-tafilalet", nom: "Meknès-Tafilalet" },
+  { code: "fes-meknes", nom: "Fès-Meknès" },
   { code: "souss-massa", nom: "Souss-Massa" },
   { code: "casablanca-settat", nom: "Casablanca-Settat" },
   { code: "rabat-sale-kenitra", nom: "Rabat-Salé-Kénitra" },

@@ -99,7 +99,7 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
           Explorer
         </Link>
         <Link
-          href="/parcelles"
+          href="/parcelles?vue=carte"
           className="akal-nav-link"
           style={{ fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
         >
@@ -226,7 +226,7 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
         >
           {[
             { href: "/parcelles", label: "Explorer" },
-            { href: "/parcelles", label: "Carte" },
+            { href: "/parcelles?vue=carte", label: "Carte" },
             { href: "/#comment-ca-marche", label: "Comment ça marche" },
           ].map((item) => (
             <Link

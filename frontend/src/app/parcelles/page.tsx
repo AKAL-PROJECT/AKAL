@@ -36,10 +36,18 @@ const GRILLE_STYLE: React.CSSProperties = {
 
 type ModeAffichage = "grille" | "carte";
 const PAGE_SIZE = 12;
+// Vue carte : pas de pagination visible ni de sens à en avoir (on explore
+// géographiquement, pas page par page) — on demande le maximum autorisé par
+// le contrat plutôt que la taille de page grille (12 sur 122 annonces ne
+// montrait presque rien). 50 = max_page_size côté backend (annonces/api_views.py) ;
+// si le catalogue dépasse 50 résultats pour un même filtre, seuls les 50
+// premiers (les plus récents) apparaissent sur la carte — même limite que
+// la carte de couverture de l'accueil (CouvertureSection).
+const TAILLE_CARTE = 50;
 const NB_SKELETONS = 8;
 
 // ── URL ↔ état (persistance des filtres, §M-3 : "URL partageable") ──────────
-function lireDepuisUrl(sp: URLSearchParams): { filtres: FiltresState; tri: Tri; page: number } {
+function lireDepuisUrl(sp: URLSearchParams): { filtres: FiltresState; tri: Tri; page: number; vue: ModeAffichage } {
   return {
     filtres: {
       recherche: sp.get("q") ?? "",
@@ -53,10 +61,15 @@ function lireDepuisUrl(sp: URLSearchParams): { filtres: FiltresState; tri: Tri; 
     },
     tri: (sp.get("tri") as Tri) ?? "recent",
     page: sp.has("page") ? Math.max(1, Number(sp.get("page")) || 1) : 1,
+    // Permet à un lien externe (ex. "Carte" du header) d'ouvrir directement
+    // la vue carte plutôt que de retomber sur la grille par défaut, ce qui
+    // rendait ce lien indiscernable de "Explorer" (les deux menaient au
+    // même /parcelles en mode grille).
+    vue: sp.get("vue") === "carte" ? "carte" : "grille",
   };
 }
 
-function versUrl(filtres: FiltresState, tri: Tri, page: number): string {
+function versUrl(filtres: FiltresState, tri: Tri, page: number, vue: ModeAffichage): string {
   const sp = new URLSearchParams();
   if (filtres.recherche) sp.set("q", filtres.recherche);
   if (filtres.region) sp.set("region", filtres.region);
@@ -68,6 +81,7 @@ function versUrl(filtres: FiltresState, tri: Tri, page: number): string {
   if (filtres.surfaceMax != null) sp.set("surface_max", String(filtres.surfaceMax));
   if (tri !== "recent") sp.set("tri", tri);
   if (page !== 1) sp.set("page", String(page));
+  if (vue === "carte") sp.set("vue", "carte");
   const qs = sp.toString();
   return qs ? `/parcelles?${qs}` : "/parcelles";
 }
@@ -89,7 +103,7 @@ function Catalogue() {
   // ceux que CE composant écrit lui-même (voir l'effet de synchronisation plus bas).
   const initial = useMemo(() => lireDepuisUrl(searchParams), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [mode, setMode] = useState<ModeAffichage>("grille");
+  const [mode, setMode] = useState<ModeAffichage>(initial.vue);
   const [tri, setTri] = useState<Tri>(initial.tri);
   const [page, setPage] = useState(initial.page);
   const [filtres, setFiltres] = useState<FiltresState>(initial.filtres);
@@ -127,7 +141,7 @@ function Catalogue() {
         if (annule) return undefined;
         setChargement(true);
         setErreur(null);
-        return getParcelles(filtresVersParams(filtres, tri, page, PAGE_SIZE));
+        return getParcelles(filtresVersParams(filtres, tri, page, mode === "carte" ? TAILLE_CARTE : PAGE_SIZE));
       })
       .then((res) => {
         if (!annule && res) setDonnees(res);
@@ -142,12 +156,12 @@ function Catalogue() {
     return () => {
       annule = true;
     };
-  }, [filtres, tri, page]);
+  }, [filtres, tri, page, mode]);
 
   // URL partageable — navigation sans rechargement complet (router.replace shallow).
   useEffect(() => {
-    router.replace(versUrl(filtres, tri, page), { scroll: false });
-  }, [filtres, tri, page, router]);
+    router.replace(versUrl(filtres, tri, page, mode), { scroll: false });
+  }, [filtres, tri, page, mode, router]);
 
   const patchFiltres = useCallback((patch: Partial<FiltresState>) => {
     setFiltres((prev) => ({ ...prev, ...patch }));
@@ -270,7 +284,7 @@ function Catalogue() {
             <div style={{ display: "flex", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-bordure)", overflow: "hidden" }}>
               <button
                 type="button"
-                onClick={() => setMode("grille")}
+                onClick={() => { setMode("grille"); setPage(1); }}
                 aria-pressed={mode === "grille"}
                 aria-label="Vue grille"
                 className="akal-focusable"
@@ -280,7 +294,7 @@ function Catalogue() {
               </button>
               <button
                 type="button"
-                onClick={() => setMode("carte")}
+                onClick={() => { setMode("carte"); setPage(1); }}
                 aria-pressed={mode === "carte"}
                 aria-label="Vue carte"
                 className="akal-focusable"
