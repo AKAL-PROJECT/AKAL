@@ -1,10 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getParcelles } from "@/data/parcelles";
-import CardParcelle from "@/components/parcelles/CardParcelle";
 import { Reveal } from "@/components/Reveal";
 import CouvertureSection from "@/components/home/CouvertureSection";
 import CommentCaMarcheSection from "@/components/home/CommentCaMarcheSection";
+import SelectionTerrainsSlider from "@/components/home/SelectionTerrainsSlider";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
 
 // cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés. Sert
@@ -19,7 +19,7 @@ const REGIONS = [
 ];
 
 const CONFIANCE = [
-  { icone: Shield, titre: "Statut foncier vérifié", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — clairement identifié sur chaque annonce." },
+  { icone: Shield, titre: "Statut foncier déclaré", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — informations déclarées par le vendeur sur chaque annonce." },
   { icone: Check, titre: "Sans intermédiaire", desc: "Un espace de mise en relation directe entre propriétaires et acheteurs." },
   { icone: MapIcon, titre: "Couverture nationale", desc: "Des parcelles à travers les régions agricoles du Maroc." },
 ];
@@ -36,7 +36,6 @@ export default async function Home() {
   // contrat (§4.2), aucun flux de données spécifique à la Home. `count` est
   // le vrai total serveur (peut dépasser 50), jamais recalculé côté client.
   const { results: parcelles, count: totalCount } = await getParcelles({ page_size: 50 });
-  const vedettes = parcelles.slice(0, 3);
 
   return (
     <div>
@@ -85,7 +84,7 @@ export default async function Home() {
                 className="lede akal-push-up"
                 style={{ maxWidth: "460px", margin: "0 0 32px", animationDelay: "160ms" }}
               >
-                AKAL réunit statut foncier vérifié, données agronomiques et échanges directs — pour
+                AKAL réunit statut foncier déclaré, données agronomiques et échanges directs — pour
                 aborder la terre agricole marocaine en toute clarté.
               </p>
 
@@ -289,33 +288,17 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════ Preuves — terres à découvrir ═══════════════════════ */}
-      <section style={{ padding: "0 24px", maxWidth: "1100px", margin: "0 auto clamp(64px, 10vw, 120px)" }}>
-        <Reveal>
-          <div style={{ textAlign: "center", marginBottom: "40px" }}>
-            <span className="eyebrow" style={{ justifyContent: "center" }}>Sélection du catalogue</span>
-            <h2 className="display-2" style={{ color: "var(--color-nuit)", margin: "14px 0 0" }}>Des terres à découvrir</h2>
-          </div>
-        </Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
-          {vedettes.map((p, i) => (
-            <div key={p.id} className="akal-card-cascade" style={{ animationDelay: `${i * 60}ms` }}>
-              {/* vedettes = mêmes vraies annonces que le catalogue (getParcelles(),
-                  cf. Home ci-dessus) — favori/comparateur restent décoratifs
-                  ici volontairement : la Home est une vitrine de découverte,
-                  pas le catalogue interactif (useFavorisIds()/état comparateur
-                  vivent dans /parcelles, cf. "Voir toutes les parcelles" plus
-                  bas pour l'expérience complète). */}
-              <CardParcelle parcelle={p} enComparaison={false} favori={false} />
-            </div>
-          ))}
-        </div>
-        <div style={{ textAlign: "center", marginTop: "32px" }}>
-          <Link href="/parcelles" className="akal-link-fleche">
-            Voir toutes les parcelles →
-          </Link>
-        </div>
-      </section>
+      {/* ═══════════════════════ Preuves — slider "Sélection de terrains" (P1-05) ═══════════════════════ */}
+      {/* Remplace l'ancienne grille statique à 3 cartes : mêmes vraies
+          annonces que le catalogue (getParcelles(), cf. Home ci-dessus),
+          mais en piste défilante pour montrer plus de terrains sans
+          allonger la page. Favori/comparateur restent décoratifs ici
+          volontairement : la Home est une vitrine de découverte, pas le
+          catalogue interactif (useFavorisIds()/état comparateur vivent
+          dans /parcelles). */}
+      <Reveal>
+        <SelectionTerrainsSlider parcelles={parcelles.slice(0, 9)} />
+      </Reveal>
 
       {/* ═══════════════════════ Appel à l'action ═══════════════════════ */}
       <Reveal>
@@ -356,7 +339,7 @@ export default async function Home() {
         <Reveal style={{ position: "relative" }}>
           <h2 className="display-2" style={{ color: "white", margin: "0 0 12px" }}>Rejoignez AKAL</h2>
           <p className="lede" style={{ color: "var(--color-menthe)", maxWidth: "480px", margin: "0 auto 28px" }}>
-            Des terres vérifiées, des échanges directs, partout au Maroc.
+            Des terres déclarées en toute transparence, des échanges directs, partout au Maroc.
           </p>
           <Link href="/parcelles">
             <button className="btn-secondary" style={{ backgroundColor: "transparent", borderColor: "white", color: "white", padding: "14px 32px", fontSize: "15px" }}>
