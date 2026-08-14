@@ -61,6 +61,31 @@ describe("EtapeInfosGenerales — soumission", () => {
     await waitFor(() => expect(onSuivant).toHaveBeenCalledWith(ANNONCE_RETOURNEE));
   });
 
+  // Statut foncier / passeport agronomique facultatifs (audit dépôt
+  // d'annonce, correctif optionalité) : ni titre/description/prix/surface
+  // (ceux-là restent required) ne sont touchés, seuls ces 4 selects.
+  it("succès sans statut foncier ni données agronomiques => appelle onSuivant quand même", async () => {
+    enregistrerInfosGeneralesActionMock.mockResolvedValue({
+      annonce: ANNONCE_RETOURNEE,
+      error: "",
+      fieldErrors: null,
+    });
+    const onSuivant = vi.fn();
+
+    render(<EtapeInfosGenerales annonce={null} onSuivant={onSuivant} />);
+    fireEvent.change(screen.getByLabelText("Titre de l'annonce"), { target: { value: "Belle parcelle" } });
+    fireEvent.change(screen.getByLabelText("Description"), {
+      target: { value: "Une description suffisamment longue." },
+    });
+    fireEvent.change(screen.getByLabelText("Prix (MAD)"), { target: { value: "150000" } });
+    fireEvent.change(screen.getByLabelText("Surface (hectares)"), { target: { value: "2.5" } });
+    // Statut foncier / accès eau / topographie / accès routier : laissés
+    // sur "Non renseigné" (valeur "") — c'est précisément ce qui est testé.
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+
+    await waitFor(() => expect(onSuivant).toHaveBeenCalledWith(ANNONCE_RETOURNEE));
+  });
+
   it("erreur de validation serveur => affiche le message à côté du bon champ, n'avance pas", async () => {
     enregistrerInfosGeneralesActionMock.mockResolvedValue({
       annonce: null,
