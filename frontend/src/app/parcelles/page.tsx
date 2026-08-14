@@ -21,6 +21,7 @@ import CardParcelleSkeleton from "@/components/parcelles/CardParcelleSkeleton";
 import FiltresSidebar from "@/components/parcelles/FiltresSidebar";
 import BarreComparateur from "@/components/parcelles/BarreComparateur";
 import CarteParcelles from "@/components/parcelles/CarteParcelles";
+import type { RegionActive } from "@/components/parcelles/CarteRegions";
 import { Grid, Map, Filter } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
 
@@ -189,10 +190,32 @@ function Catalogue() {
       .finally(() => setChargement(false));
   };
 
-  const resultats = donnees?.results ?? [];
+  // useMemo (pas juste `donnees?.results ?? []`) : sinon nouvelle référence
+  // de tableau à chaque render, qui invaliderait le useMemo de regionActive
+  // ci-dessous à chaque frappe/interaction sans rapport (react-hooks/
+  // exhaustive-deps).
+  const resultats = useMemo(() => donnees?.results ?? [], [donnees]);
   // Recherche texte : filtre côté client, limité à la page actuellement
   // chargée — voir le commentaire sur FiltresState.recherche (data/parcelles.ts).
   const resultatsAffiches = filtrerRecherche(resultats, filtres.recherche);
+
+  // Région active pour la carte (P0-02/P0-03) : `filtres.region` est déjà
+  // envoyé au serveur (filtresVersParams), donc `resultats` ne contient
+  // déjà que des parcelles de cette région quand elle est sélectionnée —
+  // centre dérivé de leur moyenne réelle, jamais un centroïde inventé côté
+  // front (même principe que statsParRegion, components/home/CouvertureSection.tsx).
+  const regionActive: RegionActive = useMemo(() => {
+    if (!filtres.region) return null;
+    const r = regions.find((rg) => rg.code === filtres.region);
+    if (!r) return null;
+    const centre: [number, number] | null = resultats.length
+      ? [
+          resultats.reduce((s, p) => s + p.parcelle.latitude, 0) / resultats.length,
+          resultats.reduce((s, p) => s + p.parcelle.longitude, 0) / resultats.length,
+        ]
+      : null;
+    return { code: r.code, nom: r.nom, centre };
+  }, [filtres.region, regions, resultats]);
 
   const toggleComparaison = (id: string) => {
     setComparaison((prev) =>
@@ -356,7 +379,12 @@ function Catalogue() {
             ))}
           </div>
         ) : (
-          <CarteParcelles parcelles={resultatsAffiches} />
+          <CarteParcelles
+            parcelles={resultatsAffiches}
+            regions={regions}
+            regionActive={regionActive}
+            onSelectionnerRegion={(code) => patchFiltres({ region: filtres.region === code ? "" : code })}
+          />
         )}
 
         {!erreur && !chargement && (donnees?.next || donnees?.previous) && (
