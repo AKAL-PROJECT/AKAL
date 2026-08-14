@@ -31,8 +31,14 @@ export type Topographie = string;
 // et une adresse approximative, jamais aplati (§3.1, §4.4).
 export type ParcelleTerrain = {
   surface: number; // surface_ha
-  statutFoncier: StatutFoncier;
-  accesEau: AccesEau;
+  // Nullable depuis l'import de données scrapées (2026-08-11, cf.
+  // backend annonces/models.py) : aucune source externe (Avito, Mubawab)
+  // ne documente ces qualités du terrain — même traitement que
+  // `topographie` ci-dessous, déjà nullable pour la même raison (contrat
+  // v1.2 : "varchar optionnel", jamais un enum fermé pour une donnée dont
+  // la présence n'est pas garantie).
+  statutFoncier: StatutFoncier | null;
+  accesEau: AccesEau | null;
   topographie: Topographie | null;
   latitude: number;
   longitude: number;

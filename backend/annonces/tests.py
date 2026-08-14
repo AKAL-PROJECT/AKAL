@@ -1097,3 +1097,395 @@ class TransitionsStatutTests(AnnoncesTestBase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Annonce.objects.get(id=self.annonce_id).statut, Annonce.StatutAnnonce.VENDUE)
+
+
+# ══════════════════════════════════════════════════════════════
+# IMPORT DE DONNÉES SCRAPÉES (2026-08-11)
+# ══════════════════════════════════════════════════════════════
+#
+# `manage.py import_scraped_data` — jamais testé contre les gros fichiers
+# réels de annonces/data/scraped/ (lent, dépend du réseau pour les photos) :
+# des petits fichiers JSON isolés, écrits dans un répertoire temporaire,
+# couvrent chaque comportement individuellement.
+
+import json
+import tempfile
+from decimal import Decimal
+from unittest.mock import Mock, patch
+
+from django.core.management import CommandError, call_command
+from django.db import IntegrityError
+from django.test import TestCase, override_settings
+
+
+def _fichier_json_temporaire(annonces):
+    """Écrit `annonces` dans un fichier JSON temporaire au format attendu par
+    la commande, retourne son chemin (str). Jamais nettoyé explicitement :
+    tempfile choisit un répertoire que l'OS purge, pas besoin d'un tearDown
+    dédié pour un fichier de quelques Ko par test."""
+    fd = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8')
+    json.dump({'annonces': annonces}, fd)
+    fd.close()
+    return fd.name
+
+
+def _entree(id_annonce='1', titre='Terrain agricole à vendre', prix_dh=350000,
+            surface_m2=5000, url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x.htm',
+            images=None, **kwargs):
+    """Une entrée JSON scrapée valide par défaut (prix + surface renseignés) —
+    chaque test ne surcharge que le(s) champ(s) qui l'intéresse(nt)."""
+    data = {
+        'id_annonce': id_annonce, 'url': url, 'titre': titre,
+        'description': 'Description de test.', 'prix_dh': prix_dh,
+        'surface_m2': surface_m2, 'categorie': 'Agricole', 'titre_foncier': True,
+        'images': images if images is not None else [],
+        'date_scraping': '2026-08-10T08:00:00.000000',
+    }
+    data.update(kwargs)
+    return data
+
+
+class ImportScrapedDataTestBase(TestCase):
+    def setUp(self):
+        # Commune officielle nommée pour matcher le segment d'URL Avito
+        # "/fr/meknes_ville/..." une fois normalisé (minuscules, sans
+        # accents, underscores -> espaces) — même fixture géographique que
+        # AnnoncesTestBase.setUp() ci-dessus, dupliquée ici pour ne pas
+        # dépendre de APITestCase (inutilement lourd pour ces tests, aucune
+        # requête HTTP n'est faite).
+        region_officielle = RegionOfficielle.objects.create(code=3, slug='fes-meknes', nom='Fès-Meknès')
+        province_geom = ProvinceGeom.objects.create(
+            iso='MA-03-131', nom='Meknès', region=region_officielle,
+            geom=_polygone_carre(-5.5, 33.5),
+        )
+        self.commune_geom = CommuneGeom.objects.create(
+            source_fid=1, libelle='MU MEKNES VILLE', nom_affichage='Meknès Ville',
+            type_commune='MU', province=province_geom,
+            geom=_polygone_carre(-5.5, 33.5, demi_cote=0.05),
+        )
+
+    def importer(self, annonces, source='avito', **options):
+        chemin = _fichier_json_temporaire(annonces)
+        call_command('import_scraped_data', source=source, file=chemin, skip_images=True, **options)
+
+
+class ImportAvitoTests(ImportScrapedDataTestBase):
+    def test_import_avito_cree_une_annonce_source_avito(self):
+        self.importer([_entree(id_annonce='111', titre='Terrain à Berrechid')])
+
+        annonce = Annonce.objects.get(source='avito', source_id='111')
+        self.assertEqual(annonce.titre, 'Terrain à Berrechid')
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)  # pas de photo => jamais publiée
+        self.assertEqual(annonce.proprietaire.email, 'scraper.avito@akal.ma')
+        self.assertEqual(annonce.proprietaire.role, 'VENDEUR')
+
+    def test_prix_et_surface_correctement_convertis(self):
+        self.importer([_entree(id_annonce='112', prix_dh=420000, surface_m2=15000)])
+
+        annonce = Annonce.objects.get(source_id='112')
+        self.assertEqual(annonce.prix_mad, Decimal('420000.00'))
+        self.assertEqual(annonce.parcelle.surface_ha, Decimal('1.50'))  # 15000 m² = 1.5 ha
+
+
+class ImportMubawabTests(ImportScrapedDataTestBase):
+    def test_import_mubawab_cree_une_annonce_source_mubawab(self):
+        self.importer(
+            [_entree(id_annonce='222', url='https://www.mubawab.ma/fr/a/222/terrain', titre='Terrain Mubawab')],
+            source='mubawab',
+        )
+
+        annonce = Annonce.objects.get(source='mubawab', source_id='222')
+        self.assertEqual(annonce.titre, 'Terrain Mubawab')
+        self.assertEqual(annonce.proprietaire.email, 'scraper.mubawab@akal.ma')
+
+    def test_mubawab_jamais_geolocalise_aucun_champ_localite_fiable(self):
+        """Contrairement à Avito (segment d'URL), Mubawab n'a aucun champ
+        structuré de localité dans l'export fourni — jamais de résolution
+        de commune tentée, quel que soit le contenu du titre/description."""
+        self.importer(
+            [_entree(
+                id_annonce='223', source='mubawab',
+                url='https://www.mubawab.ma/fr/a/223/terrain-a-meknes-ville',
+                titre='Terrain agricole à Meknès Ville',  # la ville EST dans le titre...
+            )],
+            source='mubawab',
+        )
+
+        annonce = Annonce.objects.get(source_id='223')
+        self.assertIsNone(annonce.parcelle.commune_geom)
+        self.assertIsNone(annonce.parcelle.latitude)
+
+
+class ImportIdempotenceTests(ImportScrapedDataTestBase):
+    def test_deuxieme_execution_ne_duplique_rien(self):
+        entrees = [_entree(id_annonce='301'), _entree(id_annonce='302')]
+
+        self.importer(entrees)
+        self.assertEqual(Annonce.objects.filter(source='avito').count(), 2)
+
+        self.importer(entrees)  # relancée telle quelle
+
+        self.assertEqual(Annonce.objects.filter(source='avito').count(), 2)  # toujours 2, pas 4
+
+    def test_contrainte_unique_source_source_id_au_niveau_base(self):
+        """Vérifie la contrainte DB elle-même (migration 0008), pas
+        seulement le garde-fou applicatif de la commande."""
+        parcelle = Parcelle.objects.create(surface_ha=Decimal('1.00'))
+        bot = User.objects.create_user(email='bot@akal.ma', password='x', nom='B', prenom='O')
+        Annonce.objects.create(
+            parcelle=parcelle, proprietaire=bot, titre='A', description='',
+            prix_mad=Decimal('1000.00'), source='avito', source_id='dup',
+        )
+        with self.assertRaises(IntegrityError):
+            Annonce.objects.create(
+                parcelle=parcelle, proprietaire=bot, titre='B', description='',
+                prix_mad=Decimal('2000.00'), source='avito', source_id='dup',
+            )
+
+    def test_annonces_internes_jamais_concernees_par_la_contrainte(self):
+        """source='interne', source_id=NULL pour toutes — la contrainte est
+        conditionnée à source_id IS NOT NULL (migration 0008) : deux
+        annonces internes ne doivent jamais entrer en collision."""
+        parcelle = Parcelle.objects.create(surface_ha=Decimal('1.00'))
+        bot = User.objects.create_user(email='vendeur@akal.ma', password='x', nom='V', prenom='E')
+        Annonce.objects.create(
+            parcelle=parcelle, proprietaire=bot, titre='A', description='', prix_mad=Decimal('1000.00'),
+        )
+        Annonce.objects.create(  # ne doit lever aucune IntegrityError
+            parcelle=parcelle, proprietaire=bot, titre='B', description='', prix_mad=Decimal('2000.00'),
+        )
+        self.assertEqual(Annonce.objects.filter(source='interne').count(), 2)
+
+
+class ImportDonneesManquantesTests(ImportScrapedDataTestBase):
+    def test_prix_absent_rejete_jamais_invente(self):
+        self.importer([_entree(id_annonce='401', prix_dh=None)])
+
+        self.assertFalse(Annonce.objects.filter(source_id='401').exists())
+
+    def test_prix_nul_ou_negatif_rejete(self):
+        self.importer([_entree(id_annonce='402', prix_dh=0)])
+
+        self.assertFalse(Annonce.objects.filter(source_id='402').exists())
+
+    def test_surface_absente_rejetee_jamais_inventee(self):
+        self.importer([_entree(id_annonce='403', surface_m2=None)])
+
+        self.assertFalse(Annonce.objects.filter(source_id='403').exists())
+
+    def test_titre_absent_rejete(self):
+        self.importer([_entree(id_annonce='404', titre='')])
+
+        self.assertFalse(Annonce.objects.filter(source_id='404').exists())
+
+    def test_entree_valide_dans_le_meme_lot_est_quand_meme_importee(self):
+        """Une entrée rejetée ne doit jamais faire échouer l'import des
+        autres entrées du même fichier (transaction par entrée, pas globale)."""
+        self.importer([_entree(id_annonce='405', prix_dh=None), _entree(id_annonce='406')])
+
+        self.assertFalse(Annonce.objects.filter(source_id='405').exists())
+        self.assertTrue(Annonce.objects.filter(source_id='406').exists())
+
+    def test_statut_foncier_et_qualites_terrain_jamais_inventes(self):
+        """Aucune source scrapée ne documente statut_foncier/acces_eau/
+        topographie/acces_routier — doivent rester NULL, jamais une valeur
+        plausible mais fabriquée."""
+        self.importer([_entree(id_annonce='407')])
+
+        parcelle = Annonce.objects.get(source_id='407').parcelle
+        self.assertIsNone(parcelle.statut_foncier)
+        self.assertIsNone(parcelle.acces_eau)
+        self.assertIsNone(parcelle.topographie)
+        self.assertIsNone(parcelle.acces_routier)
+
+
+class ImportSourceConserveeTests(ImportScrapedDataTestBase):
+    def test_source_source_id_et_source_url_correctement_renseignes(self):
+        self.importer([_entree(
+            id_annonce='501', url='https://www.avito.ma/fr/berrechid/terrains_et_fermes/x_501.htm',
+        )])
+
+        annonce = Annonce.objects.get(source_id='501')
+        self.assertEqual(annonce.source, 'avito')
+        self.assertEqual(annonce.source_id, '501')
+        self.assertEqual(annonce.source_url, 'https://www.avito.ma/fr/berrechid/terrains_et_fermes/x_501.htm')
+
+    @override_settings(AKAL_DATASET='scraped')
+    def test_source_exposee_en_lecture_par_lapi_publique(self):
+        self.importer([_entree(id_annonce='502')])
+        annonce = Annonce.objects.get(source_id='502')
+        # Publiée manuellement ici (l'entrée de test n'a pas de photo, donc
+        # jamais can_publish() côté commande) — seul le contrat du serializer
+        # est vérifié, pas le workflow de publication (déjà couvert ailleurs).
+        # AKAL_DATASET='scraped' : sans ça, dataset_actif() exclurait cette
+        # annonce source=avito de la vue publique (comportement voulu,
+        # vérifié séparément par DatasetActifTests) et le test obtiendrait
+        # un 404 plutôt que la représentation attendue.
+        annonce.statut = Annonce.StatutAnnonce.EN_LIGNE
+        annonce.save()
+
+        response = APIClient().get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        self.assertEqual(response.data['source'], 'avito')
+
+
+class ImportGeolocalisationTests(ImportScrapedDataTestBase):
+    def test_localite_avito_resolue_contre_le_referentiel_officiel(self):
+        self.importer([_entree(
+            id_annonce='601',
+            url='https://www.avito.ma/fr/meknes_ville/terrains_et_fermes/x_601.htm',
+        )])
+
+        parcelle = Annonce.objects.get(source_id='601').parcelle
+        self.assertEqual(parcelle.commune_geom_id, self.commune_geom.pk)
+        self.assertIsNotNone(parcelle.latitude)
+        self.assertIsNotNone(parcelle.longitude)
+        self.assertIsNotNone(parcelle.geom)
+
+    def test_localite_sans_correspondance_reste_non_geolocalisee(self):
+        """"autre_secteur", "route_de_fes"... ne matchent aucune commune —
+        jamais de coordonnée approximée par défaut."""
+        self.importer([_entree(
+            id_annonce='602',
+            url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_602.htm',
+        )])
+
+        parcelle = Annonce.objects.get(source_id='602').parcelle
+        self.assertIsNone(parcelle.commune_geom)
+        self.assertIsNone(parcelle.latitude)
+        self.assertIsNone(parcelle.longitude)
+        self.assertIsNone(parcelle.geom)
+        self.assertFalse(parcelle.is_geolocated())
+
+
+class ImportPhotosEtPublicationTests(ImportScrapedDataTestBase):
+    def _reponse_image_factice(self, *args, **kwargs):
+        reponse = Mock()
+        reponse.status_code = 200
+        reponse.content = image_jpeg().read()
+        reponse.raise_for_status = Mock()
+        return reponse
+
+    @patch('annonces.management.commands.import_scraped_data.requests.get')
+    def test_annonce_complete_geolocalisee_avec_photo_est_publiee(self, mock_get):
+        """Reproduit exactement le chemin can_publish() réel (jamais
+        contourné) : geoloc + photo + prix positif => brouillon -> en_ligne
+        via la même méthode que l'API, pas une copie de la règle."""
+        mock_get.side_effect = self._reponse_image_factice
+
+        chemin = _fichier_json_temporaire([_entree(
+            id_annonce='701',
+            url='https://www.avito.ma/fr/meknes_ville/terrains_et_fermes/x_701.htm',
+            images=['https://content.avito.ma/classifieds/images/1?t=images'],
+        )])
+        call_command('import_scraped_data', source='avito', file=chemin)
+
+        annonce = Annonce.objects.get(source_id='701')
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
+        self.assertIsNotNone(annonce.date_publication)
+        self.assertEqual(annonce.photos.count(), 1)
+
+    @patch('annonces.management.commands.import_scraped_data.requests.get')
+    def test_telechargement_photo_echoue_reste_en_brouillon_jamais_de_crash(self, mock_get):
+        mock_get.side_effect = ConnectionError('réseau indisponible')
+
+        chemin = _fichier_json_temporaire([_entree(
+            id_annonce='702',
+            url='https://www.avito.ma/fr/meknes_ville/terrains_et_fermes/x_702.htm',
+            images=['https://content.avito.ma/classifieds/images/2?t=images'],
+        )])
+        call_command('import_scraped_data', source='avito', file=chemin)  # ne doit jamais lever
+
+        annonce = Annonce.objects.get(source_id='702')
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+        self.assertEqual(annonce.photos.count(), 0)
+
+    def test_sans_photo_reste_en_brouillon_meme_geolocalisee_avec_prix(self):
+        self.importer([_entree(
+            id_annonce='703',
+            url='https://www.avito.ma/fr/meknes_ville/terrains_et_fermes/x_703.htm',
+        )])
+
+        annonce = Annonce.objects.get(source_id='703')
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+
+
+class ImportGardeFouProductionTests(ImportScrapedDataTestBase):
+    """Audit du 2026-08-11 : cette commande importe des données de test,
+    jamais destinée à la production — seconde ligne de défense en plus du
+    filtre dataset_actif() (qui rendrait de toute façon ces annonces
+    invisibles publiquement tant que AKAL_DATASET reste 'simulated')."""
+
+    @patch('annonces.management.commands.import_scraped_data.settings')
+    def test_refuse_sous_akal_settings_prod_sans_force(self, mock_settings):
+        mock_settings.SETTINGS_MODULE = 'akal.settings.prod'
+
+        with self.assertRaises(CommandError):
+            self.importer([_entree(id_annonce='801')])
+
+        self.assertFalse(Annonce.objects.filter(source_id='801').exists())
+
+    @patch('annonces.management.commands.import_scraped_data.settings')
+    def test_fonctionne_sous_prod_avec_force(self, mock_settings):
+        mock_settings.SETTINGS_MODULE = 'akal.settings.prod'
+
+        self.importer([_entree(id_annonce='802')], force=True)
+
+        self.assertTrue(Annonce.objects.filter(source_id='802').exists())
+
+    def test_aucune_restriction_sous_settings_dev(self):
+        """Le garde-fou ne concerne que akal.settings.prod — dev/CI ne sont
+        jamais bloqués."""
+        self.importer([_entree(id_annonce='803')])  # pas de --force, doit passer
+
+        self.assertTrue(Annonce.objects.filter(source_id='803').exists())
+
+
+class DatasetActifTests(TestCase):
+    """settings.AKAL_DATASET — bascule en lecture seule, jamais de
+    suppression/modification des données de l'autre jeu (cf. managers.py)."""
+
+    def setUp(self):
+        parcelle = Parcelle.objects.create(surface_ha=Decimal('2.00'))
+        bot_interne = User.objects.create_user(email='vendeur.interne@akal.ma', password='x', nom='I', prenom='N')
+        bot_avito = User.objects.create_user(email='scraper.avito.test@akal.ma', password='x', nom='A', prenom='V')
+
+        self.annonce_interne = Annonce.objects.create(
+            parcelle=parcelle, proprietaire=bot_interne, titre='Annonce interne',
+            description='', prix_mad=Decimal('100000.00'),
+            statut=Annonce.StatutAnnonce.EN_LIGNE, source='interne',
+        )
+        self.annonce_avito = Annonce.objects.create(
+            parcelle=parcelle, proprietaire=bot_avito, titre='Annonce avito',
+            description='', prix_mad=Decimal('200000.00'),
+            statut=Annonce.StatutAnnonce.EN_LIGNE, source='avito', source_id='dataset-test-1',
+        )
+
+    @override_settings(AKAL_DATASET='simulated')
+    def test_dataset_simulated_ne_montre_que_les_annonces_internes(self):
+        resultat = list(Annonce.objects.en_ligne().dataset_actif())
+
+        self.assertIn(self.annonce_interne, resultat)
+        self.assertNotIn(self.annonce_avito, resultat)
+
+    @override_settings(AKAL_DATASET='scraped')
+    def test_dataset_scraped_ne_montre_que_les_annonces_externes(self):
+        resultat = list(Annonce.objects.en_ligne().dataset_actif())
+
+        self.assertNotIn(self.annonce_interne, resultat)
+        self.assertIn(self.annonce_avito, resultat)
+
+    def test_valeur_inconnue_replie_silencieusement_sur_simulated(self):
+        with override_settings(AKAL_DATASET='n_importe_quoi'):
+            resultat = list(Annonce.objects.en_ligne().dataset_actif())
+
+        self.assertIn(self.annonce_interne, resultat)
+        self.assertNotIn(self.annonce_avito, resultat)
+
+    @override_settings(AKAL_DATASET='scraped')
+    def test_api_publique_respecte_la_bascule(self):
+        response = APIClient().get(ANNONCES_URL)
+
+        titres = [a['titre'] for a in response.data['results']]
+        self.assertIn('Annonce avito', titres)
+        self.assertNotIn('Annonce interne', titres)

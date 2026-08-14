@@ -63,10 +63,19 @@ class Parcelle(models.Model):
     surface_ha = models.DecimalField(
         max_digits=8, decimal_places=2, help_text='Surface en hectares'
     )
-    statut_foncier = models.CharField(max_length=20, choices=StatutFoncier.choices)
-    acces_eau = models.CharField(max_length=20, choices=AccesEau.choices)
-    topographie = models.CharField(max_length=20, choices=Topographie.choices)
-    acces_routier = models.CharField(max_length=20, choices=AccesRoutier.choices)
+    # Nullable depuis l'import de données scrapées (2026-08-11, cf.
+    # annonces/management/commands/import_scraped_data.py) — même logique
+    # que commune/commune_geom/latitude/longitude ci-dessus : une source
+    # externe (Avito, Mubawab) ne documente jamais ces qualités physiques du
+    # terrain (statut foncier précis, accès eau, topographie, type de
+    # route), contrairement au dépôt F03 qui les rend obligatoires à l'écran
+    # "Infos générales". Laisser NULL plutôt que d'inventer une valeur
+    # plausible — même principe que is_geolocated()/can_publish() pour la
+    # géolocalisation : une donnée absente reste absente.
+    statut_foncier = models.CharField(max_length=20, choices=StatutFoncier.choices, null=True, blank=True)
+    acces_eau = models.CharField(max_length=20, choices=AccesEau.choices, null=True, blank=True)
+    topographie = models.CharField(max_length=20, choices=Topographie.choices, null=True, blank=True)
+    acces_routier = models.CharField(max_length=20, choices=AccesRoutier.choices, null=True, blank=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     geom = gis_models.PointField(srid=4326, null=True, blank=True)
@@ -136,6 +145,25 @@ class Annonce(models.Model):
         ARCHIVEE = 'archivee', 'Archivée'
         VENDUE = 'vendue', 'Vendue'
 
+    class Source(models.TextChoices):
+        """
+        Provenance d'une annonce (2026-08-11, cf. import_scraped_data).
+
+        INTERNE = créée via le dépôt d'annonce F03 (un vrai propriétaire,
+        authentifié, dépose sa propre parcelle) — c'est la valeur par défaut
+        et la seule utilisée avant cette migration, aucune donnée existante
+        n'est réinterprétée.
+        AVITO/MUBAWAB = importée depuis un export JSON scrapé d'une
+        plateforme tierce, jamais présentée comme une annonce déposée par un
+        utilisateur AKAL authentifié (cf. commande d'import : propriétaire
+        = compte bot dédié par source, jamais un vrai compte). Sert aussi de
+        clé de bascule entre jeux de données (settings.AKAL_DATASET, cf.
+        annonces/managers.py::dataset_actif()).
+        """
+        INTERNE = 'interne', 'Interne'
+        AVITO = 'avito', 'Avito'
+        MUBAWAB = 'mubawab', 'Mubawab'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     parcelle = models.ForeignKey(
         Parcelle, on_delete=models.CASCADE, related_name='annonces'
@@ -153,6 +181,13 @@ class Annonce(models.Model):
         max_length=20, choices=StatutAnnonce.choices, default=StatutAnnonce.BROUILLON
     )
     loc_confidentielle = models.BooleanField(default=False)
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.INTERNE)
+    # Identifiant de l'annonce chez la source externe (ex. id_annonce Avito) —
+    # jamais rempli pour source=interne. Combiné à `source` ci-dessus : clé
+    # d'idempotence de l'import (cf. contrainte unique en Meta), permet de
+    # relancer la commande d'import sans jamais dupliquer une même annonce.
+    source_id = models.CharField(max_length=64, null=True, blank=True)
+    source_url = models.URLField(max_length=500, null=True, blank=True)
     date_publication = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -170,6 +205,18 @@ class Annonce(models.Model):
         # `id` en second critère : deux annonces publiées à la même seconde
         # auraient sinon un ordre relatif non déterministe entre elles.
         ordering = ['-date_publication', 'id']
+        constraints = [
+            # Unique seulement quand source_id est renseigné (condition) :
+            # les annonces internes (source_id=NULL) ne doivent jamais
+            # collisionner entre elles — sémantique NULL standard Postgres
+            # (deux NULL ne sont jamais égaux), mais explicite ici plutôt que
+            # de compter dessus implicitement.
+            models.UniqueConstraint(
+                fields=['source', 'source_id'],
+                condition=models.Q(source_id__isnull=False),
+                name='annonce_unique_source_id',
+            ),
+        ]
 
     objects = AnnonceManager()
 

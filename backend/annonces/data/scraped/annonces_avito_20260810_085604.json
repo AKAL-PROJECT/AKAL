@@ -1,0 +1,626 @@
+{
+  "source": "avito",
+  "date_export": "2026-08-10T08:56:04.250350",
+  "nombre_annonces": 40,
+  "colonnes": [
+    "id_annonce",
+    "url",
+    "titre",
+    "description",
+    "prix_dh",
+    "surface_m2",
+    "categorie",
+    "titre_foncier",
+    "images",
+    "date_scraping"
+  ],
+  "annonces": [
+    {
+      "id_annonce": "55714808",
+      "url": "https://www.avito.ma/fr/tamesna/terrains_et_fermes/Ferme_Ã©quipÃ©e_Ã _vendre_avec_titre_foncier_55714808.htm",
+      "titre": "Ferme Ã©quipÃ©e Ã  vendre avec titre foncier | Terrains et fermes Ã  Tamesna | Avito.ma",
+      "description": "Ferme Ã  vendre Ã  Sidi Yahya ZaÃ¯r prÃ¨s de Tamesna, d'une superficie de 2500 mÃ¨tres, Ã©quipÃ©e d'une petite villa et de nombreux arbres et fruits. Tous les documents sont lÃ©gaux, le terrain est titrÃ© ainsi que les bÃ¢timents. Pour plus d'informations, contactez l'agent immobilier M. Aziz, merci.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10128713336?t=images",
+        "https://content.avito.ma/classifieds/images/10127884423?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:28:25.551172",
+      "_fixture_origine": "export_reel"
+    },
+    {
+      "id_annonce": "57586627",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/Terrain_agricole_Ã _vendre___Berrechid_57586627.htm",
+      "titre": "Terrain agricole Ã  vendre â€“ Berrechid",
+      "description": "Nous mettons en vente un terrain agricole de 5 hectares, situe a Berrechid, pres de la zone industrielle.",
+      "prix_dh": 10000000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10145889805?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:28:32.787233",
+      "_fixture_origine": "export_reel"
+    },
+    {
+      "id_annonce": "51216156",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/Terrain_agricole_Ã _vendre_Ã _Had_Soualem_51216156.htm",
+      "titre": "Terrain agricole Ã  vendre Ã  Had Soualem",
+      "description": "Je vends un terrain agricole titre a Had Soualem, Sahel Oulad H'riz.",
+      "prix_dh": 400000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif"
+      ],
+      "date_scraping": "2026-08-10T08:28:36.103270",
+      "_fixture_origine": "export_reel",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "57061779",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/Terrain_agricole_Ã _vendre___Excellent_emplacement_57061779.htm",
+      "titre": "Terrain agricole Ã  vendre â€“ Excellent emplacement",
+      "description": "Terre fertile propice a l'agriculture, route goudronnee menant directement au terrain.",
+      "prix_dh": 469000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10140424269?t=images",
+        "https://content.avito.ma/classifieds/images/10140424263?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:28:39.453312",
+      "_fixture_origine": "export_reel"
+    },
+    {
+      "id_annonce": "58432271",
+      "url": "https://www.avito.ma/fr/ben_ahmed/terrains_et_fermes/Terrain_agricole_1_4_Hectares_58432271.htm",
+      "titre": "Terrain agricole 1,4 Hectares",
+      "description": "Terrain agricole de 1,4 hectares, situe a 80 km de Casablanca, acces par route goudronnee.",
+      "prix_dh": 420000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153354412?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:28:42.776996",
+      "_fixture_origine": "export_reel"
+    },
+    {
+      "id_annonce": "58419835",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/Terrain_agricole_Ã _1_heure_de_route_de_KÃ©nitra_58419835.htm",
+      "titre": "Terrain agricole Ã  1 heure de route de KÃ©nitra",
+      "description": "Terrain agricole titre d'un hectare, region du Gharb.",
+      "prix_dh": 350000,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif"
+      ],
+      "date_scraping": "2026-08-10T08:28:46.108781",
+      "_fixture_origine": "export_reel",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "58432054",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/Terrain_agricole_titrÃ©_sur_route_provinciale_58432054.htm",
+      "titre": "Terrain agricole titrÃ© sur route provinciale",
+      "description": "Terrain agricole a vendre, acces a l'electricite, titre foncier et Melkia disponibles.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153352374?t=images",
+        "https://content.avito.ma/classifieds/images/10153352382?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:28:49.489859",
+      "_fixture_origine": "export_reel"
+    },
+    {
+      "id_annonce": "58431807",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/Terrains_titrÃ©s___fermes___Sidi_Rahal__Bord_de_Mer_58431807.htm",
+      "titre": "Terrains titrÃ©s & fermes â€“ Sidi Rahal, Bord de Mer",
+      "description": "Terrains titres varies, route cotiere Casablanca-Azemmour, vue mer.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153351073?t=images",
+        "https://content.avito.ma/classifieds/images/10153351074?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:28:56.325551",
+      "_fixture_origine": "export_reel"
+    },
+    {
+      "id_annonce": "58431309",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/Terrain_agricole_Ã _vendre_58431309.htm",
+      "titre": "Terrain agricole Ã  vendre",
+      "description": "Terrain agricole, propriete notariale, enregistrable, environs de Taza. Superficie 5 hectares.",
+      "prix_dh": 600000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153347333?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:28:59.620297",
+      "_fixture_origine": "export_reel"
+    },
+    {
+      "id_annonce": "58431052",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Terrains_et_fermes_titrÃ©s_la_rÃ©gion_de_Bir_Jdid_58431052.htm",
+      "titre": "Terrains et fermes titrÃ©s la rÃ©gion de Bir Jdid",
+      "description": "Terrains et fermes titres, superficies variees, region Bir Jdid, 42 km de Casablanca.",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10153345559?t=images",
+        "https://content.avito.ma/classifieds/images/10153345558?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:29:03.085407",
+      "_fixture_origine": "export_reel"
+    },
+    {
+      "id_annonce": "58000000",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/Terrain_agricole_Ã__vendre_58000000.htm",
+      "titre": "Terrain agricole Ã  vendre",
+      "description": "Terrain agricole situe pres de khemisset, contactez pour plus d'informations.",
+      "prix_dh": 320000,
+      "surface_m2": 40000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif"
+      ],
+      "date_scraping": "2026-08-10T08:40:00.000000",
+      "_fixture_origine": "generee_pour_tests",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "58000137",
+      "url": "https://www.avito.ma/fr/khemisset/terrains_et_fermes/Belle_opportunitÃ©_terrain_agricole_58000137.htm",
+      "titre": "Belle opportunitÃ© terrain agricole",
+      "description": "Terrain agricole situe pres de khemisset, contactez pour plus d'informations.",
+      "prix_dh": 900000,
+      "surface_m2": 40000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-10T08:41:07.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58000274",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Terrain_agricole_Ã__vendre_58000274.htm",
+      "titre": "Terrain agricole Ã  vendre",
+      "description": "Terrain agricole situe pres de bir jdid, contactez pour plus d'informations.",
+      "prix_dh": 150000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [],
+      "date_scraping": "2026-08-10T08:42:14.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58000411",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrains_et_fermes_titrÃ©s_58000411.htm",
+      "titre": "Terrains et fermes titrÃ©s",
+      "description": "Terrain agricole situe pres de autre secteur, contactez pour plus d'informations.",
+      "prix_dh": 320000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [],
+      "date_scraping": "2026-08-10T08:43:21.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58000548",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/Ferme_Ã©quipÃ©e_Ã__vendre_58000548.htm",
+      "titre": "Ferme Ã©quipÃ©e Ã  vendre",
+      "description": "Terrain agricole situe pres de taza, contactez pour plus d'informations.",
+      "prix_dh": 150000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150000388?t=images",
+        "https://content.avito.ma/classifieds/images/10150000389?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:44:28.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58000685",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/Terrain_agricole_Ã__vendre_58000685.htm",
+      "titre": "Terrain agricole Ã  vendre",
+      "description": "Terrain agricole situe pres de chtouka, contactez pour plus d'informations.",
+      "prix_dh": 2600000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150000485?t=images",
+        "https://content.avito.ma/classifieds/images/10150000486?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:45:35.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58000822",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/Terrain_agricole_enregistrÃ©_58000822.htm",
+      "titre": "Terrain agricole enregistrÃ©",
+      "description": "Terrain agricole situe pres de el ksiba, contactez pour plus d'informations.",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-10T08:46:42.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58000959",
+      "url": "https://www.avito.ma/fr/route_d_ourika/terrains_et_fermes/Terrain_agricole_titrÃ©_58000959.htm",
+      "titre": "Terrain agricole titrÃ©",
+      "description": "Terrain agricole situe pres de route d ourika, contactez pour plus d'informations.",
+      "prix_dh": null,
+      "surface_m2": 40000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-10T08:47:49.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58001096",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/Terrain_agricole_titrÃ©_58001096.htm",
+      "titre": "Terrain agricole titrÃ©",
+      "description": "Terrain agricole situe pres de berrechid, contactez pour plus d'informations.",
+      "prix_dh": null,
+      "surface_m2": 65000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150000776?t=images",
+        "https://content.avito.ma/classifieds/images/10150000777?t=images",
+        "https://content.avito.ma/classifieds/images/10150000778?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:48:56.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58001233",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/Terrain_agricole_titrÃ©_58001233.htm",
+      "titre": "Terrain agricole titrÃ©",
+      "description": "Terrain agricole situe pres de settat, contactez pour plus d'informations.",
+      "prix_dh": 320000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150000873?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:49:03.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58001370",
+      "url": "https://www.avito.ma/fr/sahel_oulad_h_riz/terrains_et_fermes/Belle_opportunitÃ©_terrain_agricole_58001370.htm",
+      "titre": "Belle opportunitÃ© terrain agricole",
+      "description": "Terrain agricole situe pres de sahel oulad h riz, contactez pour plus d'informations.",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150000970?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:50:10.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58001507",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/Ferme_Ã©quipÃ©e_Ã__vendre_58001507.htm",
+      "titre": "Ferme Ã©quipÃ©e Ã  vendre",
+      "description": "Terrain agricole situe pres de chtouka, contactez pour plus d'informations.",
+      "prix_dh": 1200000,
+      "surface_m2": 40000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001067?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:51:17.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58001644",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_agricole_Ã__vendre_58001644.htm",
+      "titre": "Terrain agricole Ã  vendre",
+      "description": "Terrain agricole situe pres de autre secteur, contactez pour plus d'informations.",
+      "prix_dh": 320000,
+      "surface_m2": 65000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001164?t=images",
+        "https://content.avito.ma/classifieds/images/10150001165?t=images",
+        "https://content.avito.ma/classifieds/images/10150001166?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:52:24.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58001781",
+      "url": "https://www.avito.ma/fr/route_de_fes/terrains_et_fermes/Terrain_agricole_enregistrÃ©_58001781.htm",
+      "titre": "Terrain agricole enregistrÃ©",
+      "description": "Terrain agricole situe pres de route de fes, contactez pour plus d'informations.",
+      "prix_dh": 320000,
+      "surface_m2": 40000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001261?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:53:31.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58001918",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/Terrain_agricole_titrÃ©_58001918.htm",
+      "titre": "Terrain agricole titrÃ©",
+      "description": "Terrain agricole situe pres de el ksiba, contactez pour plus d'informations.",
+      "prix_dh": 150000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001358?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:54:38.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58002055",
+      "url": "https://www.avito.ma/fr/route_d_ourika/terrains_et_fermes/Terrains_et_fermes_titrÃ©s_58002055.htm",
+      "titre": "Terrains et fermes titrÃ©s",
+      "description": "Terrain agricole situe pres de route d ourika, contactez pour plus d'informations.",
+      "prix_dh": 150000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001455?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:55:45.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58002192",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/Terrain_agricole_Ã__vendre_58002192.htm",
+      "titre": "Terrain agricole Ã  vendre",
+      "description": "Terrain agricole situe pres de azemmour, contactez pour plus d'informations.",
+      "prix_dh": 1200000,
+      "surface_m2": 2000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001552?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:56:52.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58002329",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/Terrains_et_fermes_titrÃ©s_58002329.htm",
+      "titre": "Terrains et fermes titrÃ©s",
+      "description": "Terrain agricole situe pres de chtouka, contactez pour plus d'informations.",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001649?t=images",
+        "https://content.avito.ma/classifieds/images/10150001650?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:57:59.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58002466",
+      "url": "https://www.avito.ma/fr/beni_mellal/terrains_et_fermes/Ferme_Ã©quipÃ©e_Ã__vendre_58002466.htm",
+      "titre": "Ferme Ã©quipÃ©e Ã  vendre",
+      "description": "Terrain agricole situe pres de beni mellal, contactez pour plus d'informations.",
+      "prix_dh": 1200000,
+      "surface_m2": 65000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001746?t=images",
+        "https://content.avito.ma/classifieds/images/10150001747?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:58:06.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58002603",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/Terrain_agricole_titrÃ©_58002603.htm",
+      "titre": "Terrain agricole titrÃ©",
+      "description": "Terrain agricole situe pres de sidi smail, contactez pour plus d'informations.",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001843?t=images",
+        "https://content.avito.ma/classifieds/images/10150001844?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:40:13.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58002740",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/Belle_opportunitÃ©_terrain_agricole_58002740.htm",
+      "titre": "Belle opportunitÃ© terrain agricole",
+      "description": "Terrain agricole situe pres de had soualem, contactez pour plus d'informations.",
+      "prix_dh": 900000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150001940?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:41:20.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58002877",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/Terrain_agricole_enregistrÃ©_58002877.htm",
+      "titre": "Terrain agricole enregistrÃ©",
+      "description": "Terrain agricole situe pres de tifelt, contactez pour plus d'informations.",
+      "prix_dh": 900000,
+      "surface_m2": 65000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [],
+      "date_scraping": "2026-08-10T08:42:27.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58003014",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/Terrain_agricole_Ã__vendre_58003014.htm",
+      "titre": "Terrain agricole Ã  vendre",
+      "description": "Terrain agricole situe pres de bir jdid, contactez pour plus d'informations.",
+      "prix_dh": 2600000,
+      "surface_m2": 5000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150002134?t=images",
+        "https://content.avito.ma/classifieds/images/10150002135?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:43:34.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58003151",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/Terrain_agricole_enregistrÃ©_58003151.htm",
+      "titre": "Terrain agricole enregistrÃ©",
+      "description": "Terrain agricole situe pres de autre secteur, contactez pour plus d'informations.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150002231?t=images",
+        "https://content.avito.ma/classifieds/images/10150002232?t=images",
+        "https://content.avito.ma/classifieds/images/10150002233?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:44:41.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58003288",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/Belle_opportunitÃ©_terrain_agricole_58003288.htm",
+      "titre": "Belle opportunitÃ© terrain agricole",
+      "description": "Terrain agricole situe pres de sidi rahal, contactez pour plus d'informations.",
+      "prix_dh": 900000,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150002328?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:45:48.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58003425",
+      "url": "https://www.avito.ma/fr/route_de_fes/terrains_et_fermes/Terrain_agricole_enregistrÃ©_58003425.htm",
+      "titre": "Terrain agricole enregistrÃ©",
+      "description": "Terrain agricole situe pres de route de fes, contactez pour plus d'informations.",
+      "prix_dh": 1200000,
+      "surface_m2": 65000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150002425?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:46:55.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58003562",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/Terrains_et_fermes_titrÃ©s_58003562.htm",
+      "titre": "Terrains et fermes titrÃ©s",
+      "description": "Terrain agricole situe pres de settat, contactez pour plus d'informations.",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-10T08:47:02.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58003699",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/Ferme_Ã©quipÃ©e_Ã__vendre_58003699.htm",
+      "titre": "Ferme Ã©quipÃ©e Ã  vendre",
+      "description": "Terrain agricole situe pres de berrechid, contactez pour plus d'informations.",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150002619?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:48:09.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58003836",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/Belle_opportunitÃ©_terrain_agricole_58003836.htm",
+      "titre": "Belle opportunitÃ© terrain agricole",
+      "description": "Terrain agricole situe pres de berrechid, contactez pour plus d'informations.",
+      "prix_dh": null,
+      "surface_m2": 40000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150002716?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:49:16.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "58003973",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/Terrain_agricole_Ã__vendre_58003973.htm",
+      "titre": "Terrain agricole Ã  vendre",
+      "description": "Terrain agricole situe pres de taza, contactez pour plus d'informations.",
+      "prix_dh": 150000,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10150002813?t=images",
+        "https://content.avito.ma/classifieds/images/10150002814?t=images"
+      ],
+      "date_scraping": "2026-08-10T08:50:23.000000",
+      "_fixture_origine": "generee_pour_tests"
+    }
+  ]
+}

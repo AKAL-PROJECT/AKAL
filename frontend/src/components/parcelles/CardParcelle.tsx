@@ -193,7 +193,10 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
               {t}
             </span>
           ))}
-          {a.parcelle.accesEau !== "bour" && (
+          {/* accesEau nullable (annonces scrapées) : comparaison explicite,
+              jamais "!== bour" seul qui afficherait l'icône eau par défaut
+              pour une donnée absente. */}
+          {(a.parcelle.accesEau === "irriguee" || a.parcelle.accesEau === "mixte") && (
             <Droplets size={13} style={{ color: "var(--color-info)" }} aria-label="Accès à l'eau" />
           )}
         </div>

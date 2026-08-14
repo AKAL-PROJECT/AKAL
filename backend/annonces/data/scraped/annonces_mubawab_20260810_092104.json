@@ -1,0 +1,347 @@
+{
+  "date_export": "2026-08-10T09:21:04.224158",
+  "nombre_annonces": 20,
+  "colonnes": [
+    "id_annonce",
+    "url",
+    "source",
+    "titre",
+    "description",
+    "prix_dh",
+    "surface_m2",
+    "categorie",
+    "titre_foncier",
+    "images",
+    "date_scraping"
+  ],
+  "annonces": [
+    {
+      "id_annonce": "8400000",
+      "url": "https://www.mubawab.ma/fr/a/8400000/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Agadir",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Agadir.",
+      "prix_dh": 48000000,
+      "surface_m2": 0,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/400/000F/h/photo_0_83000000.avif",
+        "https://www.mubawab-media.com/ad/8/400/000F/h/photo_1_83000001.avif",
+        "https://www.mubawab-media.com/ad/8/400/000F/h/photo_2_83000002.avif"
+      ],
+      "date_scraping": "2026-08-10T09:00:00.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400053",
+      "url": "https://www.mubawab.ma/fr/a/8400053/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Rabat",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Rabat.",
+      "prix_dh": null,
+      "surface_m2": 0,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [],
+      "date_scraping": "2026-08-10T09:01:11.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400106",
+      "url": "https://www.mubawab.ma/fr/a/8400106/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Fes",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Fes.",
+      "prix_dh": 12200000,
+      "surface_m2": 5300,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif",
+        "https://www.mubawab-media.com/ad/8/389/518F/h/41831D18-4520-4C19-85A8-6F04693EEFC1_82936662.avif",
+        "https://www.mubawab-media.com/ad/8/384/642F/h/1000031997_82982557.avif"
+      ],
+      "date_scraping": "2026-08-10T09:02:22.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400159",
+      "url": "https://www.mubawab.ma/fr/a/8400159/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Marrakech",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Marrakech.",
+      "prix_dh": 12200000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/403/159F/h/photo_0_83000123.avif",
+        "https://www.mubawab-media.com/ad/8/403/159F/h/photo_1_83000124.avif"
+      ],
+      "date_scraping": "2026-08-10T09:03:33.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400212",
+      "url": "https://www.mubawab.ma/fr/a/8400212/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Tanger",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Tanger.",
+      "prix_dh": 18400000,
+      "surface_m2": 0,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/404/212F/h/photo_0_83000164.avif",
+        "https://www.mubawab-media.com/ad/8/404/212F/h/photo_1_83000165.avif",
+        "https://www.mubawab-media.com/ad/8/404/212F/h/photo_2_83000166.avif"
+      ],
+      "date_scraping": "2026-08-10T09:04:44.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400265",
+      "url": "https://www.mubawab.ma/fr/a/8400265/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Benslimane",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Benslimane.",
+      "prix_dh": 12200000,
+      "surface_m2": 1900,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/392/565F/h/photo_00_82970566.avif",
+        "https://www.mubawab-media.com/ad/8/389/518F/h/41831D18-4520-4C19-85A8-6F04693EEFC1_82936662.avif",
+        "https://www.mubawab-media.com/ad/8/384/642F/h/1000031997_82982557.avif"
+      ],
+      "date_scraping": "2026-08-10T09:05:55.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400318",
+      "url": "https://www.mubawab.ma/fr/a/8400318/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Agadir",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Agadir.",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-10T09:06:06.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400371",
+      "url": "https://www.mubawab.ma/fr/a/8400371/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Benslimane",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Benslimane.",
+      "prix_dh": 12200000,
+      "surface_m2": 5300,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/407/371F/h/photo_0_83000287.avif",
+        "https://www.mubawab-media.com/ad/8/407/371F/h/photo_1_83000288.avif",
+        "https://www.mubawab-media.com/ad/8/407/371F/h/photo_2_83000289.avif"
+      ],
+      "date_scraping": "2026-08-10T09:07:17.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400424",
+      "url": "https://www.mubawab.ma/fr/a/8400424/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Khemisset",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Khemisset.",
+      "prix_dh": 12200000,
+      "surface_m2": 0,
+      "categorie": "Ferme",
+      "titre_foncier": false,
+      "images": [],
+      "date_scraping": "2026-08-10T09:08:28.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400477",
+      "url": "https://www.mubawab.ma/fr/a/8400477/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Essaouira",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Essaouira.",
+      "prix_dh": 12200000,
+      "surface_m2": 1900,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/409/477F/h/photo_0_83000369.avif",
+        "https://www.mubawab-media.com/ad/8/409/477F/h/photo_1_83000370.avif",
+        "https://www.mubawab-media.com/ad/8/409/477F/h/photo_2_83000371.avif"
+      ],
+      "date_scraping": "2026-08-10T09:09:39.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400530",
+      "url": "https://www.mubawab.ma/fr/a/8400530/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Meknes",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Meknes.",
+      "prix_dh": null,
+      "surface_m2": 0,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [],
+      "date_scraping": "2026-08-10T09:10:50.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400583",
+      "url": "https://www.mubawab.ma/fr/a/8400583/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Khemisset",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Khemisset.",
+      "prix_dh": 18400000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/411/583F/h/photo_0_83000451.avif",
+        "https://www.mubawab-media.com/ad/8/411/583F/h/photo_1_83000452.avif",
+        "https://www.mubawab-media.com/ad/8/411/583F/h/photo_2_83000453.avif"
+      ],
+      "date_scraping": "2026-08-10T09:11:01.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400636",
+      "url": "https://www.mubawab.ma/fr/a/8400636/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Khemisset",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Khemisset.",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/412/636F/h/photo_0_83000492.avif"
+      ],
+      "date_scraping": "2026-08-10T09:12:12.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400689",
+      "url": "https://www.mubawab.ma/fr/a/8400689/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Tanger",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Tanger.",
+      "prix_dh": null,
+      "surface_m2": 5300,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/413/689F/h/photo_0_83000533.avif"
+      ],
+      "date_scraping": "2026-08-10T09:13:23.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400742",
+      "url": "https://www.mubawab.ma/fr/a/8400742/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Casablanca",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Casablanca.",
+      "prix_dh": 12200000,
+      "surface_m2": null,
+      "categorie": "Ferme",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/414/742F/h/photo_0_83000574.avif",
+        "https://www.mubawab-media.com/ad/8/414/742F/h/photo_1_83000575.avif"
+      ],
+      "date_scraping": "2026-08-10T09:14:34.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400795",
+      "url": "https://www.mubawab.ma/fr/a/8400795/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Fes",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Fes.",
+      "prix_dh": 4400000,
+      "surface_m2": 0,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/415/795F/h/photo_0_83000615.avif",
+        "https://www.mubawab-media.com/ad/8/415/795F/h/photo_1_83000616.avif",
+        "https://www.mubawab-media.com/ad/8/415/795F/h/photo_2_83000617.avif"
+      ],
+      "date_scraping": "2026-08-10T09:15:45.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400848",
+      "url": "https://www.mubawab.ma/fr/a/8400848/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Essaouira",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Essaouira.",
+      "prix_dh": null,
+      "surface_m2": 1900,
+      "categorie": "Ferme",
+      "titre_foncier": true,
+      "images": [],
+      "date_scraping": "2026-08-10T09:16:56.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400901",
+      "url": "https://www.mubawab.ma/fr/a/8400901/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Marrakech",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Marrakech.",
+      "prix_dh": 2100000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/417/901F/h/photo_0_83000697.avif",
+        "https://www.mubawab-media.com/ad/8/417/901F/h/photo_1_83000698.avif"
+      ],
+      "date_scraping": "2026-08-10T09:17:07.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8400954",
+      "url": "https://www.mubawab.ma/fr/a/8400954/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Marrakech",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Marrakech.",
+      "prix_dh": 4400000,
+      "surface_m2": 0,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/418/954F/h/photo_0_83000738.avif",
+        "https://www.mubawab-media.com/ad/8/418/954F/h/photo_1_83000739.avif"
+      ],
+      "date_scraping": "2026-08-10T09:18:18.000000",
+      "_fixture_origine": "generee_pour_tests"
+    },
+    {
+      "id_annonce": "8401007",
+      "url": "https://www.mubawab.ma/fr/a/8401007/terrain-agricole-a-vendre",
+      "source": "Mubawab",
+      "titre": "Terrain agricole Ã  Agadir",
+      "description": "DÃ©couvrez ce terrain agricole situÃ© Ã  proximitÃ© de Agadir.",
+      "prix_dh": 4400000,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [],
+      "date_scraping": "2026-08-10T09:19:29.000000",
+      "_fixture_origine": "generee_pour_tests"
+    }
+  ]
+}
