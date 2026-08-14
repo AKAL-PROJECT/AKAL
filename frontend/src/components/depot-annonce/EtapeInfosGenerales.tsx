@@ -129,17 +129,26 @@ export function EtapeInfosGenerales({
         </div>
       </div>
 
+      {/* Statut foncier + passeport agronomique — facultatifs (annonces
+          scrapées/importées : souvent aucune de ces données structurées).
+          Ni required ni astérisque : le backend accepte déjà l'absence
+          (Parcelle.statut_foncier/acces_eau/topographie/acces_routier sont
+          null=True/blank=True, can_publish() ne les vérifie pas) — seul le
+          `required` HTML ci-dessous bloquait réellement la saisie/publication. */}
+      <p style={{ fontSize: 13, color: "var(--color-secondaire)", margin: "-8px 0 0" }}>
+        Facultatif — vous pourrez compléter ces informations plus tard.
+      </p>
+
       <div style={{ display: "flex", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <label htmlFor="statut_foncier" style={champLabelStyle}>Statut foncier</label>
           <select
             id="statut_foncier"
             name="statut_foncier"
-            required
             defaultValue={annonce?.parcelle.statut_foncier ?? ""}
             className="input select-chevron"
           >
-            <option value="" disabled>Choisir...</option>
+            <option value="">Non renseigné</option>
             {OPTIONS_STATUT_FONCIER.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -150,11 +159,10 @@ export function EtapeInfosGenerales({
           <select
             id="acces_eau"
             name="acces_eau"
-            required
             defaultValue={annonce?.parcelle.acces_eau ?? ""}
             className="input select-chevron"
           >
-            <option value="" disabled>Choisir...</option>
+            <option value="">Non renseigné</option>
             {OPTIONS_ACCES_EAU.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -168,11 +176,10 @@ export function EtapeInfosGenerales({
           <select
             id="topographie"
             name="topographie"
-            required
             defaultValue={annonce?.parcelle.topographie ?? ""}
             className="input select-chevron"
           >
-            <option value="" disabled>Choisir...</option>
+            <option value="">Non renseigné</option>
             {OPTIONS_TOPOGRAPHIE.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -183,11 +190,10 @@ export function EtapeInfosGenerales({
           <select
             id="acces_routier"
             name="acces_routier"
-            required
             defaultValue={annonce?.parcelle.acces_routier ?? ""}
             className="input select-chevron"
           >
-            <option value="" disabled>Choisir...</option>
+            <option value="">Non renseigné</option>
             {OPTIONS_ACCES_ROUTIER.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}

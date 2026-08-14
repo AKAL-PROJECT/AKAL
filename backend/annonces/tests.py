@@ -1114,7 +1114,7 @@ from decimal import Decimal
 from unittest.mock import Mock, patch
 
 from django.core.management import CommandError, call_command
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 
 
@@ -1236,7 +1236,16 @@ class ImportIdempotenceTests(ImportScrapedDataTestBase):
             parcelle=parcelle, proprietaire=bot, titre='A', description='',
             prix_mad=Decimal('1000.00'), source='avito', source_id='dup',
         )
-        with self.assertRaises(IntegrityError):
+        # transaction.atomic() indispensable ici : sans savepoint dédié,
+        # l'IntegrityError laisse la transaction de test (par ailleurs
+        # rollback-only, cf. TestCase) dans un état "aborted" côté Postgres —
+        # toute requête suivante (dans ce test ou les suivants, tant que la
+        # connexion n'est pas explicitement récupérée) échoue en cascade,
+        # jusqu'au DROP DATABASE final du teardown ("database is being
+        # accessed by other users"). Constaté en CI (job 94769774541) :
+        # 100+ erreurs sans rapport, dans annonces/geo/messaging, toutes en
+        # aval de ce seul test.
+        with self.assertRaises(IntegrityError), transaction.atomic():
             Annonce.objects.create(
                 parcelle=parcelle, proprietaire=bot, titre='B', description='',
                 prix_mad=Decimal('2000.00'), source='avito', source_id='dup',
@@ -1385,9 +1394,23 @@ class ImportPhotosEtPublicationTests(ImportScrapedDataTestBase):
         self.assertIsNotNone(annonce.date_publication)
         self.assertEqual(annonce.photos.count(), 1)
 
+    # Mocker requests.get() seul ne suffit pas à simuler un "réseau
+    # indisponible" : _recuperer_octets_image() retombe alors sur le repli
+    # navigateur (_telecharger_via_navigateur, Playwright — réellement
+    # installé dans cet environnement) qui, lui, N'EST PAS mocké et tente
+    # une vraie requête réseau externe vers content.avito.ma, jusqu'à 15s de
+    # timeout — pendant que la transaction DB de _importer_entree
+    # (@transaction.atomic) reste ouverte. Constaté en CI/local : la
+    # connexion Postgres finit fermée par l'environnement pendant cette
+    # attente, corrompant tous les tests suivants du même run (job CI
+    # 94769774541). Neutralisé ici aussi pour que ce test simule
+    # effectivement une panne réseau totale, sans jamais sortir du process
+    # de test.
+    @patch('annonces.management.commands.import_scraped_data.Command._telecharger_via_navigateur')
     @patch('annonces.management.commands.import_scraped_data.requests.get')
-    def test_telechargement_photo_echoue_reste_en_brouillon_jamais_de_crash(self, mock_get):
+    def test_telechargement_photo_echoue_reste_en_brouillon_jamais_de_crash(self, mock_get, mock_navigateur):
         mock_get.side_effect = ConnectionError('réseau indisponible')
+        mock_navigateur.return_value = None
 
         chemin = _fichier_json_temporaire([_entree(
             id_annonce='702',

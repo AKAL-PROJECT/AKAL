@@ -1,0 +1,3176 @@
+{
+  "annonces": [
+    {
+      "id_annonce": "59000000",
+      "url": "https://www.avito.ma/fr/safi/terrains_et_fermes/terrain_59000000.htm",
+      "titre": "Terrain agricole a vendre 0",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/347/428F/h/WhatsApp%20Image%202026-05-10%20at%2018.55.47%20%281%29_82433734.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59000173",
+      "url": "https://www.avito.ma/fr/essaouira/terrains_et_fermes/terrain_59000173.htm",
+      "titre": "Terrain agricole a vendre 1",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/337/349F/h/WhatsApp%20Image%202026-04-22%20at%2014.36.33%20%283%29_82324134.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59000346",
+      "url": "https://www.avito.ma/fr/essaouira/terrains_et_fermes/terrain_59000346.htm",
+      "titre": "Terrain agricole a vendre 2",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 30000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.46%20%281%29_79419128.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59000519",
+      "url": "https://www.avito.ma/fr/safi/terrains_et_fermes/terrain_59000519.htm",
+      "titre": "Terrain agricole a vendre 3",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.22.47_82197764.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59000692",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59000692.htm",
+      "titre": "Terrain agricole a vendre 4",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 30000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/348/875F/h/WhatsApp%20Image%202026-05-08%20at%2016.43.12%20%281%29_82452405.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59000865",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59000865.htm",
+      "titre": "Terrain agricole a vendre 5",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/5.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59001038",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59001038.htm",
+      "titre": "Terrain agricole a vendre 6",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/6.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59001211",
+      "url": "https://www.avito.ma/fr/safi/terrains_et_fermes/terrain_59001211.htm",
+      "titre": "Terrain agricole a vendre 7",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.56.06%20%281%29_82198089.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59001384",
+      "url": "https://www.avito.ma/fr/khouribga/terrains_et_fermes/terrain_59001384.htm",
+      "titre": "Terrain agricole a vendre 8",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/8.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59001557",
+      "url": "https://www.avito.ma/fr/beni_mellal/terrains_et_fermes/terrain_59001557.htm",
+      "titre": "Terrain agricole a vendre 9",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/9.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59001730",
+      "url": "https://www.avito.ma/fr/marrakech/terrains_et_fermes/terrain_59001730.htm",
+      "titre": "Terrain agricole a vendre 10",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/10.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59001903",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/terrain_59001903.htm",
+      "titre": "Terrain agricole a vendre 11",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/11.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59002076",
+      "url": "https://www.avito.ma/fr/route_d_ourika/terrains_et_fermes/terrain_59002076.htm",
+      "titre": "Terrain agricole a vendre 12",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/12.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59002249",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59002249.htm",
+      "titre": "Terrain agricole a vendre 13",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/13.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59002422",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59002422.htm",
+      "titre": "Terrain agricole a vendre 14",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/14.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59002595",
+      "url": "https://www.avito.ma/fr/fes/terrains_et_fermes/terrain_59002595.htm",
+      "titre": "Terrain agricole a vendre 15",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/15.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59002768",
+      "url": "https://www.avito.ma/fr/oujda/terrains_et_fermes/terrain_59002768.htm",
+      "titre": "Terrain agricole a vendre 16",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/16.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59002941",
+      "url": "https://www.avito.ma/fr/route_de_fes/terrains_et_fermes/terrain_59002941.htm",
+      "titre": "Terrain agricole a vendre 17",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/17.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59003114",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/terrain_59003114.htm",
+      "titre": "Terrain agricole a vendre 18",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/348/875F/h/WhatsApp%20Image%202026-05-08%20at%2016.43.12%20%281%29_82452405.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59003287",
+      "url": "https://www.avito.ma/fr/essaouira/terrains_et_fermes/terrain_59003287.htm",
+      "titre": "Terrain agricole a vendre 19",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 30000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/274/131F/h/photo_00_81652350.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59003460",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59003460.htm",
+      "titre": "Terrain agricole a vendre 20",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/20.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59003633",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/terrain_59003633.htm",
+      "titre": "Terrain agricole a vendre 21",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/21.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59003806",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59003806.htm",
+      "titre": "Terrain agricole a vendre 22",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/359/525F/h/1000126254_82567902.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59003979",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/terrain_59003979.htm",
+      "titre": "Terrain agricole a vendre 23",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/23.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59004152",
+      "url": "https://www.avito.ma/fr/fes/terrains_et_fermes/terrain_59004152.htm",
+      "titre": "Terrain agricole a vendre 24",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/24.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59004325",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/terrain_59004325.htm",
+      "titre": "Terrain agricole a vendre 25",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/25.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59004498",
+      "url": "https://www.avito.ma/fr/rabat/terrains_et_fermes/terrain_59004498.htm",
+      "titre": "Terrain agricole a vendre 26",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/26.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59004671",
+      "url": "https://www.avito.ma/fr/nador/terrains_et_fermes/terrain_59004671.htm",
+      "titre": "Terrain agricole a vendre 27",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/226/018F/h/b58309e1-0054-49dc-bd18-911cbf2a9369_81134148.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59004844",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/terrain_59004844.htm",
+      "titre": "Terrain agricole a vendre 28",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/359/525F/h/1000126254_82567902.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59005017",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59005017.htm",
+      "titre": "Terrain agricole a vendre 29",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/361/197F/h/photo_00_82708345.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59005190",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59005190.htm",
+      "titre": "Terrain agricole a vendre 30",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/30.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59005363",
+      "url": "https://www.avito.ma/fr/khemisset/terrains_et_fermes/terrain_59005363.htm",
+      "titre": "Terrain agricole a vendre 31",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/31.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59005536",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59005536.htm",
+      "titre": "Terrain agricole a vendre 32",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 30000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/202/742F/h/IMG20250210121526_80889037.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59005709",
+      "url": "https://www.avito.ma/fr/oujda/terrains_et_fermes/terrain_59005709.htm",
+      "titre": "Terrain agricole a vendre 33",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/357/139F/h/IMG_3449_82540503.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59005882",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59005882.htm",
+      "titre": "Terrain agricole a vendre 34",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.46%20%281%29_79419128.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59006055",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/terrain_59006055.htm",
+      "titre": "Terrain agricole a vendre 35",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/35.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59006228",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59006228.htm",
+      "titre": "Terrain agricole a vendre 36",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/392/845F/h/WhatsApp%20Image%202026-07-27%20at%2013.04.11_82973577.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59006401",
+      "url": "https://www.avito.ma/fr/beni_mellal/terrains_et_fermes/terrain_59006401.htm",
+      "titre": "Terrain agricole a vendre 37",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/37.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59006574",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/terrain_59006574.htm",
+      "titre": "Terrain agricole a vendre 38",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/192F/h/photo_0_82613876.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59006747",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/terrain_59006747.htm",
+      "titre": "Terrain agricole a vendre 39",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 2000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/39.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59006920",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59006920.htm",
+      "titre": "Terrain agricole a vendre 40",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/173/521F/h/fa448045-81ae-43ad-9eba-7423a2c8fed8_80596695.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59007093",
+      "url": "https://www.avito.ma/fr/nador/terrains_et_fermes/terrain_59007093.htm",
+      "titre": "Terrain agricole a vendre 41",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/362/828F/h/photo_0_82603162.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59007266",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/terrain_59007266.htm",
+      "titre": "Terrain agricole a vendre 42",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/173/521F/h/fa448045-81ae-43ad-9eba-7423a2c8fed8_80596695.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59007439",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/terrain_59007439.htm",
+      "titre": "Terrain agricole a vendre 43",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/43.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59007612",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/terrain_59007612.htm",
+      "titre": "Terrain agricole a vendre 44",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/44.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59007785",
+      "url": "https://www.avito.ma/fr/ain_aouda/terrains_et_fermes/terrain_59007785.htm",
+      "titre": "Terrain agricole a vendre 45",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/45.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59007958",
+      "url": "https://www.avito.ma/fr/nador/terrains_et_fermes/terrain_59007958.htm",
+      "titre": "Terrain agricole a vendre 46",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/46.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59008131",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/terrain_59008131.htm",
+      "titre": "Terrain agricole a vendre 47",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 30000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/47.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59008304",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/terrain_59008304.htm",
+      "titre": "Terrain agricole a vendre 48",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/48.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59008477",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/terrain_59008477.htm",
+      "titre": "Terrain agricole a vendre 49",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/49.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59008650",
+      "url": "https://www.avito.ma/fr/larache/terrains_et_fermes/terrain_59008650.htm",
+      "titre": "Terrain agricole a vendre 50",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.03_82932877.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59008823",
+      "url": "https://www.avito.ma/fr/sahel_oulad_h_riz/terrains_et_fermes/terrain_59008823.htm",
+      "titre": "Terrain agricole a vendre 51",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/51.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59008996",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/terrain_59008996.htm",
+      "titre": "Terrain agricole a vendre 52",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/52.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59009169",
+      "url": "https://www.avito.ma/fr/sidi_slimane/terrains_et_fermes/terrain_59009169.htm",
+      "titre": "Terrain agricole a vendre 53",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/53.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59009342",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59009342.htm",
+      "titre": "Terrain agricole a vendre 54",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/273/156F/h/output_82465079.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59009515",
+      "url": "https://www.avito.ma/fr/khouribga/terrains_et_fermes/terrain_59009515.htm",
+      "titre": "Terrain agricole a vendre 55",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/55.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59009688",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59009688.htm",
+      "titre": "Terrain agricole a vendre 56",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/100/905F/h/photo_0_80184995.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59009861",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59009861.htm",
+      "titre": "Terrain agricole a vendre 57",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/57.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59010034",
+      "url": "https://www.avito.ma/fr/ain_aouda/terrains_et_fermes/terrain_59010034.htm",
+      "titre": "Terrain agricole a vendre 58",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/58.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59010207",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/terrain_59010207.htm",
+      "titre": "Terrain agricole a vendre 59",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/59.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59010380",
+      "url": "https://www.avito.ma/fr/nador/terrains_et_fermes/terrain_59010380.htm",
+      "titre": "Terrain agricole a vendre 60",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 2000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.22.47_82197764.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59010553",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59010553.htm",
+      "titre": "Terrain agricole a vendre 61",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/098F/h/photo_0_82610304.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59010726",
+      "url": "https://www.avito.ma/fr/marrakech/terrains_et_fermes/terrain_59010726.htm",
+      "titre": "Terrain agricole a vendre 62",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/62.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59010899",
+      "url": "https://www.avito.ma/fr/beni_mellal/terrains_et_fermes/terrain_59010899.htm",
+      "titre": "Terrain agricole a vendre 63",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/63.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59011072",
+      "url": "https://www.avito.ma/fr/ain_aouda/terrains_et_fermes/terrain_59011072.htm",
+      "titre": "Terrain agricole a vendre 64",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/64.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59011245",
+      "url": "https://www.avito.ma/fr/beni_mellal/terrains_et_fermes/terrain_59011245.htm",
+      "titre": "Terrain agricole a vendre 65",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/65.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59011418",
+      "url": "https://www.avito.ma/fr/safi/terrains_et_fermes/terrain_59011418.htm",
+      "titre": "Terrain agricole a vendre 66",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/66.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59011591",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59011591.htm",
+      "titre": "Terrain agricole a vendre 67",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/339/781F/h/photo_00_82349606.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59011764",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/terrain_59011764.htm",
+      "titre": "Terrain agricole a vendre 68",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/68.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59011937",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/terrain_59011937.htm",
+      "titre": "Terrain agricole a vendre 69",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 5000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/69.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59012110",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/terrain_59012110.htm",
+      "titre": "Terrain agricole a vendre 70",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/70.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59012283",
+      "url": "https://www.avito.ma/fr/safi/terrains_et_fermes/terrain_59012283.htm",
+      "titre": "Terrain agricole a vendre 71",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/329/032F/h/1000365390_82238230.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59012456",
+      "url": "https://www.avito.ma/fr/essaouira/terrains_et_fermes/terrain_59012456.htm",
+      "titre": "Terrain agricole a vendre 72",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/359/525F/h/1000126254_82567902.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59012629",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59012629.htm",
+      "titre": "Terrain agricole a vendre 73",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/73.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59012802",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59012802.htm",
+      "titre": "Terrain agricole a vendre 74",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/74.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59012975",
+      "url": "https://www.avito.ma/fr/sidi_slimane/terrains_et_fermes/terrain_59012975.htm",
+      "titre": "Terrain agricole a vendre 75",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/75.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59013148",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/terrain_59013148.htm",
+      "titre": "Terrain agricole a vendre 76",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/273/156F/h/output_82465079.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59013321",
+      "url": "https://www.avito.ma/fr/khouribga/terrains_et_fermes/terrain_59013321.htm",
+      "titre": "Terrain agricole a vendre 77",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/77.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59013494",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/terrain_59013494.htm",
+      "titre": "Terrain agricole a vendre 78",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_00_82734485.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59013667",
+      "url": "https://www.avito.ma/fr/nador/terrains_et_fermes/terrain_59013667.htm",
+      "titre": "Terrain agricole a vendre 79",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/105/366F/h/20160403_074402_79898685.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59013840",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/terrain_59013840.htm",
+      "titre": "Terrain agricole a vendre 80",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/80.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59014013",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/terrain_59014013.htm",
+      "titre": "Terrain agricole a vendre 81",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/056/052F/h/WhatsApp%20Image%202024-12-13%20at%2016.19.46%20%281%29_79419128.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59014186",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59014186.htm",
+      "titre": "Terrain agricole a vendre 82",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/82.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59014359",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/terrain_59014359.htm",
+      "titre": "Terrain agricole a vendre 83",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/83.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59014532",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59014532.htm",
+      "titre": "Terrain agricole a vendre 84",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/362/828F/h/photo_0_82603162.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59014705",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59014705.htm",
+      "titre": "Terrain agricole a vendre 85",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/85.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59014878",
+      "url": "https://www.avito.ma/fr/errachidia/terrains_et_fermes/terrain_59014878.htm",
+      "titre": "Terrain agricole a vendre 86",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/312/420F/h/WhatsApp%20Image%202026-03-03%20at%2015.53.13_82063264.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59015051",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/terrain_59015051.htm",
+      "titre": "Terrain agricole a vendre 87",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/87.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59015224",
+      "url": "https://www.avito.ma/fr/oujda/terrains_et_fermes/terrain_59015224.htm",
+      "titre": "Terrain agricole a vendre 88",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.56.06%20%281%29_82198089.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59015397",
+      "url": "https://www.avito.ma/fr/nador/terrains_et_fermes/terrain_59015397.htm",
+      "titre": "Terrain agricole a vendre 89",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/392/845F/h/WhatsApp%20Image%202026-07-27%20at%2013.04.11_82973577.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59015570",
+      "url": "https://www.avito.ma/fr/nador/terrains_et_fermes/terrain_59015570.htm",
+      "titre": "Terrain agricole a vendre 90",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 5000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/396/811F/h/annonce-agenz-20260806T100437318Z-1785960254949_83017894.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59015743",
+      "url": "https://www.avito.ma/fr/oujda/terrains_et_fermes/terrain_59015743.htm",
+      "titre": "Terrain agricole a vendre 91",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/91.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59015916",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/terrain_59015916.htm",
+      "titre": "Terrain agricole a vendre 92",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/92.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59016089",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/terrain_59016089.htm",
+      "titre": "Terrain agricole a vendre 93",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/93.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59016262",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59016262.htm",
+      "titre": "Terrain agricole a vendre 94",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/352/161F/h/1000198831_82487240.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59016435",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/terrain_59016435.htm",
+      "titre": "Terrain agricole a vendre 95",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/95.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59016608",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59016608.htm",
+      "titre": "Terrain agricole a vendre 96",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/96.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59016781",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59016781.htm",
+      "titre": "Terrain agricole a vendre 97",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/347/428F/h/WhatsApp%20Image%202026-05-10%20at%2018.55.47%20%281%29_82433734.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59016954",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59016954.htm",
+      "titre": "Terrain agricole a vendre 98",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/354/697F/h/photo_10_82514261.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59017127",
+      "url": "https://www.avito.ma/fr/meknes/terrains_et_fermes/terrain_59017127.htm",
+      "titre": "Terrain agricole a vendre 99",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.40_83011959.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59017300",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59017300.htm",
+      "titre": "Terrain agricole a vendre 100",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/211F/h/photo_0_82614787.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59017473",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59017473.htm",
+      "titre": "Terrain agricole a vendre 101",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/384/535F/h/photo_00_82882205.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59017646",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59017646.htm",
+      "titre": "Terrain agricole a vendre 102",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/102.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59017819",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59017819.htm",
+      "titre": "Terrain agricole a vendre 103",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/202/742F/h/IMG20250210121526_80889037.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59017992",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59017992.htm",
+      "titre": "Terrain agricole a vendre 104",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/323/471F/h/1000020593_82175428.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59018165",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/terrain_59018165.htm",
+      "titre": "Terrain agricole a vendre 105",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/105.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59018338",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/terrain_59018338.htm",
+      "titre": "Terrain agricole a vendre 106",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/106.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59018511",
+      "url": "https://www.avito.ma/fr/essaouira/terrains_et_fermes/terrain_59018511.htm",
+      "titre": "Terrain agricole a vendre 107",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/105/366F/h/20160403_074402_79898685.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59018684",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/terrain_59018684.htm",
+      "titre": "Terrain agricole a vendre 108",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/108.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59018857",
+      "url": "https://www.avito.ma/fr/route_d_ourika/terrains_et_fermes/terrain_59018857.htm",
+      "titre": "Terrain agricole a vendre 109",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/109.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59019030",
+      "url": "https://www.avito.ma/fr/larache/terrains_et_fermes/terrain_59019030.htm",
+      "titre": "Terrain agricole a vendre 110",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/110.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59019203",
+      "url": "https://www.avito.ma/fr/larache/terrains_et_fermes/terrain_59019203.htm",
+      "titre": "Terrain agricole a vendre 111",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/100/905F/h/photo_0_80184995.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59019376",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59019376.htm",
+      "titre": "Terrain agricole a vendre 112",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 5000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/384/535F/h/photo_00_82882205.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59019549",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59019549.htm",
+      "titre": "Terrain agricole a vendre 113",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 10000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/384/535F/h/photo_00_82882205.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59019722",
+      "url": "https://www.avito.ma/fr/rabat/terrains_et_fermes/terrain_59019722.htm",
+      "titre": "Terrain agricole a vendre 114",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/114.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59019895",
+      "url": "https://www.avito.ma/fr/essaouira/terrains_et_fermes/terrain_59019895.htm",
+      "titre": "Terrain agricole a vendre 115",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/115.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59020068",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59020068.htm",
+      "titre": "Terrain agricole a vendre 116",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/173/521F/h/fa448045-81ae-43ad-9eba-7423a2c8fed8_80596695.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59020241",
+      "url": "https://www.avito.ma/fr/sidi_slimane/terrains_et_fermes/terrain_59020241.htm",
+      "titre": "Terrain agricole a vendre 117",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/117.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59020414",
+      "url": "https://www.avito.ma/fr/ain_aouda/terrains_et_fermes/terrain_59020414.htm",
+      "titre": "Terrain agricole a vendre 118",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/118.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59020587",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/terrain_59020587.htm",
+      "titre": "Terrain agricole a vendre 119",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.40_83011959.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59020760",
+      "url": "https://www.avito.ma/fr/fes/terrains_et_fermes/terrain_59020760.htm",
+      "titre": "Terrain agricole a vendre 120",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/120.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59020933",
+      "url": "https://www.avito.ma/fr/meknes/terrains_et_fermes/terrain_59020933.htm",
+      "titre": "Terrain agricole a vendre 121",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/357/139F/h/IMG_3449_82540503.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59021106",
+      "url": "https://www.avito.ma/fr/beni_mellal/terrains_et_fermes/terrain_59021106.htm",
+      "titre": "Terrain agricole a vendre 122",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/122.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59021279",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59021279.htm",
+      "titre": "Terrain agricole a vendre 123",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/396/811F/h/annonce-agenz-20260806T100437318Z-1785960254949_83017894.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59021452",
+      "url": "https://www.avito.ma/fr/essaouira/terrains_et_fermes/terrain_59021452.htm",
+      "titre": "Terrain agricole a vendre 124",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 30000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/211F/h/photo_0_82614787.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59021625",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59021625.htm",
+      "titre": "Terrain agricole a vendre 125",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/125.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59021798",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59021798.htm",
+      "titre": "Terrain agricole a vendre 126",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 10000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/337/349F/h/WhatsApp%20Image%202026-04-22%20at%2014.36.33%20%283%29_82324134.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59021971",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59021971.htm",
+      "titre": "Terrain agricole a vendre 127",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/392/845F/h/WhatsApp%20Image%202026-07-27%20at%2013.04.11_82973577.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59022144",
+      "url": "https://www.avito.ma/fr/sidi_slimane/terrains_et_fermes/terrain_59022144.htm",
+      "titre": "Terrain agricole a vendre 128",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/354/697F/h/photo_10_82514261.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59022317",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59022317.htm",
+      "titre": "Terrain agricole a vendre 129",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/129.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59022490",
+      "url": "https://www.avito.ma/fr/berrechid/terrains_et_fermes/terrain_59022490.htm",
+      "titre": "Terrain agricole a vendre 130",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 2000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/361/197F/h/photo_00_82708345.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59022663",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/terrain_59022663.htm",
+      "titre": "Terrain agricole a vendre 131",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/361/197F/h/photo_00_82708345.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59022836",
+      "url": "https://www.avito.ma/fr/khouribga/terrains_et_fermes/terrain_59022836.htm",
+      "titre": "Terrain agricole a vendre 132",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/132.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59023009",
+      "url": "https://www.avito.ma/fr/rabat/terrains_et_fermes/terrain_59023009.htm",
+      "titre": "Terrain agricole a vendre 133",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/133.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59023182",
+      "url": "https://www.avito.ma/fr/route_d_ourika/terrains_et_fermes/terrain_59023182.htm",
+      "titre": "Terrain agricole a vendre 134",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/134.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59023355",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/terrain_59023355.htm",
+      "titre": "Terrain agricole a vendre 135",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/135.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59023528",
+      "url": "https://www.avito.ma/fr/oujda/terrains_et_fermes/terrain_59023528.htm",
+      "titre": "Terrain agricole a vendre 136",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 30000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_00_82734485.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59023701",
+      "url": "https://www.avito.ma/fr/marrakech/terrains_et_fermes/terrain_59023701.htm",
+      "titre": "Terrain agricole a vendre 137",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/137.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59023874",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/terrain_59023874.htm",
+      "titre": "Terrain agricole a vendre 138",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/138.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59024047",
+      "url": "https://www.avito.ma/fr/sidi_slimane/terrains_et_fermes/terrain_59024047.htm",
+      "titre": "Terrain agricole a vendre 139",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/347/428F/h/WhatsApp%20Image%202026-05-10%20at%2018.55.47%20%281%29_82433734.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59024220",
+      "url": "https://www.avito.ma/fr/larache/terrains_et_fermes/terrain_59024220.htm",
+      "titre": "Terrain agricole a vendre 140",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/216F/h/photo_0_82614989.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59024393",
+      "url": "https://www.avito.ma/fr/oujda/terrains_et_fermes/terrain_59024393.htm",
+      "titre": "Terrain agricole a vendre 141",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/141.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59024566",
+      "url": "https://www.avito.ma/fr/meknes/terrains_et_fermes/terrain_59024566.htm",
+      "titre": "Terrain agricole a vendre 142",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/162F/h/photo_0_82612571.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59024739",
+      "url": "https://www.avito.ma/fr/safi/terrains_et_fermes/terrain_59024739.htm",
+      "titre": "Terrain agricole a vendre 143",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 30000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/339/781F/h/photo_00_82349606.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59024912",
+      "url": "https://www.avito.ma/fr/sidi_slimane/terrains_et_fermes/terrain_59024912.htm",
+      "titre": "Terrain agricole a vendre 144",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/192F/h/photo_0_82613876.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59025085",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59025085.htm",
+      "titre": "Terrain agricole a vendre 145",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/348/875F/h/WhatsApp%20Image%202026-05-08%20at%2016.43.12%20%281%29_82452405.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59025258",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59025258.htm",
+      "titre": "Terrain agricole a vendre 146",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/146.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59025431",
+      "url": "https://www.avito.ma/fr/beni_mellal/terrains_et_fermes/terrain_59025431.htm",
+      "titre": "Terrain agricole a vendre 147",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 20000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/147.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59025604",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59025604.htm",
+      "titre": "Terrain agricole a vendre 148",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/396/811F/h/annonce-agenz-20260806T100437318Z-1785960254949_83017894.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59025777",
+      "url": "https://www.avito.ma/fr/khemisset/terrains_et_fermes/terrain_59025777.htm",
+      "titre": "Terrain agricole a vendre 149",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/149.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59025950",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/terrain_59025950.htm",
+      "titre": "Terrain agricole a vendre 150",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/150.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59026123",
+      "url": "https://www.avito.ma/fr/errachidia/terrains_et_fermes/terrain_59026123.htm",
+      "titre": "Terrain agricole a vendre 151",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/151.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59026296",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59026296.htm",
+      "titre": "Terrain agricole a vendre 152",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/312/420F/h/WhatsApp%20Image%202026-03-03%20at%2015.53.13_82063264.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59026469",
+      "url": "https://www.avito.ma/fr/meknes/terrains_et_fermes/terrain_59026469.htm",
+      "titre": "Terrain agricole a vendre 153",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/250F/h/photo_0_82616512.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59026642",
+      "url": "https://www.avito.ma/fr/ain_aouda/terrains_et_fermes/terrain_59026642.htm",
+      "titre": "Terrain agricole a vendre 154",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/154.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59026815",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59026815.htm",
+      "titre": "Terrain agricole a vendre 155",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/352/161F/h/1000198831_82487240.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59026988",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/terrain_59026988.htm",
+      "titre": "Terrain agricole a vendre 156",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/156.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59027161",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/terrain_59027161.htm",
+      "titre": "Terrain agricole a vendre 157",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/323/471F/h/1000020593_82175428.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59027334",
+      "url": "https://www.avito.ma/fr/larache/terrains_et_fermes/terrain_59027334.htm",
+      "titre": "Terrain agricole a vendre 158",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/158.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59027507",
+      "url": "https://www.avito.ma/fr/khouribga/terrains_et_fermes/terrain_59027507.htm",
+      "titre": "Terrain agricole a vendre 159",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 30000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/159.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59027680",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/terrain_59027680.htm",
+      "titre": "Terrain agricole a vendre 160",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/160.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59027853",
+      "url": "https://www.avito.ma/fr/sahel_oulad_h_riz/terrains_et_fermes/terrain_59027853.htm",
+      "titre": "Terrain agricole a vendre 161",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/161.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59028026",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/terrain_59028026.htm",
+      "titre": "Terrain agricole a vendre 162",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/162.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59028199",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/terrain_59028199.htm",
+      "titre": "Terrain agricole a vendre 163",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 30000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/163.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59028372",
+      "url": "https://www.avito.ma/fr/safi/terrains_et_fermes/terrain_59028372.htm",
+      "titre": "Terrain agricole a vendre 164",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/357/687F/h/photo_0_82548125.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59028545",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/terrain_59028545.htm",
+      "titre": "Terrain agricole a vendre 165",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 30000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/165.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59028718",
+      "url": "https://www.avito.ma/fr/rabat/terrains_et_fermes/terrain_59028718.htm",
+      "titre": "Terrain agricole a vendre 166",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 5000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/166.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59028891",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59028891.htm",
+      "titre": "Terrain agricole a vendre 167",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/357/687F/h/photo_0_82548125.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59029064",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59029064.htm",
+      "titre": "Terrain agricole a vendre 168",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/168.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59029237",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/terrain_59029237.htm",
+      "titre": "Terrain agricole a vendre 169",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/169.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59029410",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/terrain_59029410.htm",
+      "titre": "Terrain agricole a vendre 170",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/170.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59029583",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/terrain_59029583.htm",
+      "titre": "Terrain agricole a vendre 171",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/339/781F/h/photo_00_82349606.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59029756",
+      "url": "https://www.avito.ma/fr/errachidia/terrains_et_fermes/terrain_59029756.htm",
+      "titre": "Terrain agricole a vendre 172",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 5000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/172.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59029929",
+      "url": "https://www.avito.ma/fr/route_de_fes/terrains_et_fermes/terrain_59029929.htm",
+      "titre": "Terrain agricole a vendre 173",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": null,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/173.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59030102",
+      "url": "https://www.avito.ma/fr/route_de_fes/terrains_et_fermes/terrain_59030102.htm",
+      "titre": "Terrain agricole a vendre 174",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 30000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/174.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59030275",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/terrain_59030275.htm",
+      "titre": "Terrain agricole a vendre 175",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/175.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59030448",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59030448.htm",
+      "titre": "Terrain agricole a vendre 176",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.03_82932877.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59030621",
+      "url": "https://www.avito.ma/fr/khouribga/terrains_et_fermes/terrain_59030621.htm",
+      "titre": "Terrain agricole a vendre 177",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/177.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59030794",
+      "url": "https://www.avito.ma/fr/oujda/terrains_et_fermes/terrain_59030794.htm",
+      "titre": "Terrain agricole a vendre 178",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/250F/h/photo_0_82616512.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59030967",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59030967.htm",
+      "titre": "Terrain agricole a vendre 179",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/179.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59031140",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59031140.htm",
+      "titre": "Terrain agricole a vendre 180",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/216F/h/photo_0_82614989.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59031313",
+      "url": "https://www.avito.ma/fr/oujda/terrains_et_fermes/terrain_59031313.htm",
+      "titre": "Terrain agricole a vendre 181",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/357/139F/h/IMG_3449_82540503.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59031486",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59031486.htm",
+      "titre": "Terrain agricole a vendre 182",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/182.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59031659",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59031659.htm",
+      "titre": "Terrain agricole a vendre 183",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/183.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59031832",
+      "url": "https://www.avito.ma/fr/khemisset/terrains_et_fermes/terrain_59031832.htm",
+      "titre": "Terrain agricole a vendre 184",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 5000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/226/018F/h/b58309e1-0054-49dc-bd18-911cbf2a9369_81134148.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59032005",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/terrain_59032005.htm",
+      "titre": "Terrain agricole a vendre 185",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/185.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59032178",
+      "url": "https://www.avito.ma/fr/azemmour/terrains_et_fermes/terrain_59032178.htm",
+      "titre": "Terrain agricole a vendre 186",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/354/697F/h/photo_10_82514261.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59032351",
+      "url": "https://www.avito.ma/fr/route_de_fes/terrains_et_fermes/terrain_59032351.htm",
+      "titre": "Terrain agricole a vendre 187",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/187.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59032524",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59032524.htm",
+      "titre": "Terrain agricole a vendre 188",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 30000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/162F/h/photo_0_82612571.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59032697",
+      "url": "https://www.avito.ma/fr/safi/terrains_et_fermes/terrain_59032697.htm",
+      "titre": "Terrain agricole a vendre 189",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 5000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/363/098F/h/photo_0_82610304.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59032870",
+      "url": "https://www.avito.ma/fr/sahel_oulad_h_riz/terrains_et_fermes/terrain_59032870.htm",
+      "titre": "Terrain agricole a vendre 190",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/190.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59033043",
+      "url": "https://www.avito.ma/fr/khouribga/terrains_et_fermes/terrain_59033043.htm",
+      "titre": "Terrain agricole a vendre 191",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 5000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/191.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59033216",
+      "url": "https://www.avito.ma/fr/el_ksiba/terrains_et_fermes/terrain_59033216.htm",
+      "titre": "Terrain agricole a vendre 192",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/192.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59033389",
+      "url": "https://www.avito.ma/fr/tanger/terrains_et_fermes/terrain_59033389.htm",
+      "titre": "Terrain agricole a vendre 193",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/193.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59033562",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59033562.htm",
+      "titre": "Terrain agricole a vendre 194",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 10000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/194.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59033735",
+      "url": "https://www.avito.ma/fr/guelmim/terrains_et_fermes/terrain_59033735.htm",
+      "titre": "Terrain agricole a vendre 195",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 10000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/325/301F/h/WhatsApp%20Image%202026-03-31%20at%2018.56.06%20%281%29_82198089.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59033908",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/terrain_59033908.htm",
+      "titre": "Terrain agricole a vendre 196",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 5000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/371/242F/h/photo_00_82734485.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59034081",
+      "url": "https://www.avito.ma/fr/ouarzazate/terrains_et_fermes/terrain_59034081.htm",
+      "titre": "Terrain agricole a vendre 197",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/273/156F/h/output_82465079.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59034254",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/terrain_59034254.htm",
+      "titre": "Terrain agricole a vendre 198",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/198.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59034427",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/terrain_59034427.htm",
+      "titre": "Terrain agricole a vendre 199",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/199.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59034600",
+      "url": "https://www.avito.ma/fr/beni_mellal/terrains_et_fermes/terrain_59034600.htm",
+      "titre": "Terrain agricole a vendre 200",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 30000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/200.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59034773",
+      "url": "https://www.avito.ma/fr/larache/terrains_et_fermes/terrain_59034773.htm",
+      "titre": "Terrain agricole a vendre 201",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 30000,
+      "categorie": "Villa",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/201.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59034946",
+      "url": "https://www.avito.ma/fr/chtouka/terrains_et_fermes/terrain_59034946.htm",
+      "titre": "Terrain agricole a vendre 202",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/329/032F/h/1000365390_82238230.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59035119",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59035119.htm",
+      "titre": "Terrain agricole a vendre 203",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 20000,
+      "categorie": null,
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/203.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59035292",
+      "url": "https://www.avito.ma/fr/taza/terrains_et_fermes/terrain_59035292.htm",
+      "titre": "Terrain agricole a vendre 204",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/396/218F/h/WhatsApp%20Image%202026-07-16%20at%2018.23.40_83011959.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59035465",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59035465.htm",
+      "titre": "Terrain agricole a vendre 205",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 20000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/205.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59035638",
+      "url": "https://www.avito.ma/fr/sidi_rahal/terrains_et_fermes/terrain_59035638.htm",
+      "titre": "Terrain agricole a vendre 206",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/206.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59035811",
+      "url": "https://www.avito.ma/fr/agadir/terrains_et_fermes/terrain_59035811.htm",
+      "titre": "Terrain agricole a vendre 207",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/100/905F/h/photo_0_80184995.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59035984",
+      "url": "https://www.avito.ma/fr/bir_jdid/terrains_et_fermes/terrain_59035984.htm",
+      "titre": "Terrain agricole a vendre 208",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 2000000,
+      "surface_m2": 10000,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/208.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59036157",
+      "url": "https://www.avito.ma/fr/route_d_ourika/terrains_et_fermes/terrain_59036157.htm",
+      "titre": "Terrain agricole a vendre 209",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": null,
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/209.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59036330",
+      "url": "https://www.avito.ma/fr/sidi_smail/terrains_et_fermes/terrain_59036330.htm",
+      "titre": "Terrain agricole a vendre 210",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/389/154F/h/WhatsApp%20Image%202026-07-24%20at%2013.26.03_82932877.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59036503",
+      "url": "https://www.avito.ma/fr/errachidia/terrains_et_fermes/terrain_59036503.htm",
+      "titre": "Terrain agricole a vendre 211",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 1200000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/357/687F/h/photo_0_82548125.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    },
+    {
+      "id_annonce": "59036676",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/terrain_59036676.htm",
+      "titre": "Terrain agricole a vendre 212",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/212.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59036849",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/terrain_59036849.htm",
+      "titre": "Terrain agricole a vendre 213",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 320000,
+      "surface_m2": 5000,
+      "categorie": "Villa",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/213.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59037022",
+      "url": "https://www.avito.ma/fr/fes/terrains_et_fermes/terrain_59037022.htm",
+      "titre": "Terrain agricole a vendre 214",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/214.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59037195",
+      "url": "https://www.avito.ma/fr/had_soualem/terrains_et_fermes/terrain_59037195.htm",
+      "titre": "Terrain agricole a vendre 215",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": null,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/215.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59037368",
+      "url": "https://www.avito.ma/fr/settat/terrains_et_fermes/terrain_59037368.htm",
+      "titre": "Terrain agricole a vendre 216",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 150000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/325/269F/h/WhatsApp%20Image%202026-03-27%20at%2013.22.47_82197764.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_substituees": true
+    },
+    {
+      "id_annonce": "59037541",
+      "url": "https://www.avito.ma/fr/tifelt/terrains_et_fermes/terrain_59037541.htm",
+      "titre": "Terrain agricole a vendre 217",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": null,
+      "surface_m2": 2000,
+      "categorie": "Agricole",
+      "titre_foncier": true,
+      "images": [
+        "https://content.avito.ma/classifieds/images/217.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59037714",
+      "url": "https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/terrain_59037714.htm",
+      "titre": "Terrain agricole a vendre 218",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 480000,
+      "surface_m2": 10000,
+      "categorie": "Agricole",
+      "titre_foncier": false,
+      "images": [
+        "https://content.avito.ma/classifieds/images/218.jpg"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000"
+    },
+    {
+      "id_annonce": "59037887",
+      "url": "https://www.avito.ma/fr/kenitra/terrains_et_fermes/terrain_59037887.htm",
+      "titre": "Terrain agricole a vendre 219",
+      "description": "Terrain agricole, echantillon a l echelle reelle (test manuel).",
+      "prix_dh": 900000,
+      "surface_m2": 2000,
+      "categorie": "Local",
+      "titre_foncier": true,
+      "images": [
+        "https://www.mubawab-media.com/ad/8/274/131F/h/photo_00_81652350.avif"
+      ],
+      "date_scraping": "2026-08-12T08:00:00.000000",
+      "_images_test_reutilisees": true
+    }
+  ]
+}

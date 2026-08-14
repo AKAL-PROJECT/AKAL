@@ -23,6 +23,16 @@ N'invente jamais de donnée absente :
       coordonnée approximée. Mubawab n'a aucun champ de localité structuré
       dans l'export fourni : jamais géolocalisé par cette commande.
 
+Téléchargement des photos : requests.get() en premier (rapide, marche pour
+la plupart des CDN). Repli navigateur headless (Playwright/Chromium) quand
+ça échoue — nécessaire pour content.avito.ma, derrière un challenge JS
+Cloudflare qui renvoie une page HTML de challenge à tout client qui n'exécute
+pas de JS (curl, requests...) ; un vrai navigateur passe ce challenge
+normalement (audit du 2026-08-13). Nécessite `playwright install chromium`
+une fois après `pip install -r requirements.txt` (pas fait automatiquement
+par pip). Si Playwright/Chromium est absent, le repli est simplement
+désactivé pour le run (les photos Avito échouent, tout le reste continue).
+
 Usage:
     python manage.py import_scraped_data --source avito
     python manage.py import_scraped_data --source mubawab
@@ -142,10 +152,22 @@ class Command(BaseCommand):
             _normaliser(c.nom_affichage): c for c in CommuneGeom.objects.all()
         }
 
-        bilan_global = []
-        for source in sources:
-            fichier = Path(options['file']) if options['file'] else DEFAULT_FILES[source]
-            bilan_global.append(self._importer_source(source, fichier, options))
+        # État du repli navigateur headless (cf. _telecharger_via_navigateur) :
+        # None = jamais tenté, False = tenté et indisponible (désactivé pour
+        # le run), sinon l'instance Browser réutilisée pour toutes les photos.
+        self._browser = None
+        self._playwright_ctx = None
+
+        try:
+            bilan_global = []
+            for source in sources:
+                fichier = Path(options['file']) if options['file'] else DEFAULT_FILES[source]
+                bilan_global.append(self._importer_source(source, fichier, options))
+        finally:
+            if self._browser:
+                self._browser.close()
+            if self._playwright_ctx:
+                self._playwright_ctx.stop()
 
         self.stdout.write(self.style.MIGRATE_HEADING('\n== Bilan global ==\n'))
         for b in bilan_global:
@@ -223,6 +245,18 @@ class Command(BaseCommand):
         except InvalidOperation:
             self._rejeter(bilan, 'prix illisible')
             return
+        # Annonce.prix_mad = DecimalField(max_digits=12, decimal_places=2) —
+        # borne à 9 999 999 999.99. Une source scrapée peut porter un prix
+        # aberrant (faute de saisie, doublon de chiffre côté annonceur) ; sans
+        # ce garde-fou, la valeur passe la validation ci-dessus (elle est bien
+        # > 0) puis fait planter tout le run sur un DataError Postgres au save
+        # (constaté en local lors de l'import du 13/08 avec un id Mubawab à
+        # 16 366 000 000 DH). Rejeté
+        # proprement plutôt que tronqué — même principe que le reste : jamais
+        # de valeur inventée/corrigée à la place de la source.
+        if prix_mad >= Decimal('10000000000'):
+            self._rejeter(bilan, 'prix hors limites (dépasse la capacité du champ)')
+            return
 
         surface_m2 = entree.get('surface_m2')
         if not surface_m2 or surface_m2 <= 0:
@@ -293,23 +327,11 @@ class Command(BaseCommand):
     def _importer_photos(self, urls, annonce, max_photos, bilan):
         ordre = 0
         for url in urls[:max_photos]:
-            try:
-                reponse = requests.get(url, timeout=8)
-                reponse.raise_for_status()
-                contenu = reponse.content
-                if len(contenu) > MAX_PHOTO_OCTETS:
-                    bilan['photos_echec'] += 1
-                    continue
-                # Validation réelle du contenu (même garde-fou que l'upload
-                # utilisateur, api_views.py::AnnonceUpdateAPIView) : jamais
-                # confiance aveugle dans l'extension d'URL.
-                from PIL import Image
-                Image.open(BytesIO(contenu)).verify()
-            except Exception:
+            contenu, extension = self._recuperer_octets_image(url)
+            if contenu is None:
                 bilan['photos_echec'] += 1
                 continue
 
-            extension = url.split('?')[0].rsplit('.', 1)[-1][:5] or 'jpg'
             photo = Photo(annonce=annonce, ordre=ordre)
             photo.image.save(
                 f"scraped_{annonce.source}_{annonce.source_id}_{ordre}.{extension}",
@@ -318,3 +340,101 @@ class Command(BaseCommand):
             )
             ordre += 1
             bilan['photos_ok'] += 1
+
+    def _recuperer_octets_image(self, url):
+        """
+        (octets, extension) de l'image à l'URL donnée, ou (None, None) si
+        indisponible.
+
+        Chemin rapide : requests.get() direct (marche pour la plupart des
+        CDN, ex. Mubawab/CloudFront). Repli : navigateur headless (cf.
+        _telecharger_via_navigateur) pour les CDN derrière un challenge JS
+        (constaté sur content.avito.ma — Cloudflare répond avec une page de
+        challenge HTML plutôt que l'image tant que le JS n'est pas exécuté ;
+        un navigateur réel passe ce challenge normalement, cf. audit du
+        2026-08-13 : image identique accessible via Playwright/Chromium).
+
+        Toujours validé en vrai contenu image (PIL, même garde-fou que
+        l'upload utilisateur) avant d'être retourné — jamais de confiance
+        aveugle dans un status 200. L'extension vient du format réel détecté
+        par PIL, jamais de l'URL : les URLs Avito n'ont pas d'extension de
+        fichier (juste un id numérique), et url.rsplit('.', 1) tombait sur
+        le point de "avito.ma" — fichiers stockés avec une "extension"
+        invalide (ex. "ma/cl") et donc un Content-Type application/octet-stream
+        au lieu de image/jpeg côté stockage (constaté et corrigé le 2026-08-13).
+        """
+        for tentative in (self._telecharger_direct, self._telecharger_via_navigateur):
+            candidat = tentative(url)
+            if candidat is None or len(candidat) > MAX_PHOTO_OCTETS:
+                continue
+            try:
+                from PIL import Image
+                img = Image.open(BytesIO(candidat))
+                format_detecte = (img.format or 'JPEG').lower()
+                img.verify()
+            except Exception:
+                continue
+            extension = {'jpeg': 'jpg'}.get(format_detecte, format_detecte)[:5]
+            return candidat, extension
+        return None, None
+
+    def _telecharger_direct(self, url):
+        try:
+            reponse = requests.get(url, timeout=8)
+            reponse.raise_for_status()
+            return reponse.content
+        except Exception:
+            return None
+
+    def _telecharger_via_navigateur(self, url):
+        """
+        Repli navigateur (Playwright/Chromium), lancé une seule fois par
+        exécution de la commande (self._browser, cf. handle()) et réutilisé
+        pour toutes les photos — instancier un navigateur par photo serait
+        beaucoup trop coûteux. Si Playwright n'est pas installé ou que le
+        lancement échoue, désactivé silencieusement pour le reste du run
+        (self._browser passe à False) : ce repli est un complément, jamais
+        une dépendance dure de la commande.
+
+        headless=False, volontairement : Cloudflare détecte spécifiquement
+        Chromium en mode headless et sert le challenge JS au lieu de
+        l'image (403) même quand le JS s'exécute correctement — testé et
+        confirmé le 2026-08-13 (headless=True -> 403, headless=False -> 200
+        sur la même URL). Ça exige un vrai display ; marche sur un poste de
+        dev avec interface graphique (cas d'usage prévu, cf. garde-fou prod
+        plus haut), pas sur un serveur headless sans Xvfb.
+        """
+        if self._browser is False:
+            return None
+        if self._browser is None:
+            try:
+                # Playwright sync API instancie une boucle asyncio dans ce
+                # thread ; Django détecte alors (à tort, pour notre usage)
+                # un contexte async et bloque les appels ORM synchrones
+                # (SynchronousOnlyOperation) — y compris ceux qui suivent,
+                # hors de Playwright, dans le reste de _importer_entree().
+                # Échappatoire officielle Django pour ce cas exact.
+                import os
+                os.environ.setdefault('DJANGO_ALLOW_ASYNC_UNSAFE', 'true')
+                from playwright.sync_api import sync_playwright
+                self._playwright_ctx = sync_playwright().start()
+                self._browser = self._playwright_ctx.chromium.launch(headless=False)
+            except Exception as exc:
+                self.stderr.write(self.style.WARNING(
+                    f"Playwright indisponible ({exc}) — repli navigateur désactivé pour ce run."
+                ))
+                self._browser = False
+                return None
+
+        page = None
+        try:
+            page = self._browser.new_page()
+            reponse = page.goto(url, timeout=15000)
+            if reponse is None or not reponse.ok:
+                return None
+            return reponse.body()
+        except Exception:
+            return None
+        finally:
+            if page is not None:
+                page.close()

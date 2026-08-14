@@ -2,19 +2,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { getParcelles } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
-import ScoreBar from "@/components/parcelles/ScoreBar";
-import BadgeStatut from "@/components/parcelles/BadgeStatut";
 import { Reveal } from "@/components/Reveal";
 import CouvertureSection from "@/components/home/CouvertureSection";
-import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight, MapPin } from "@/components/icons/Icons";
-import { AGRISCORE_ACTIF } from "@/config/features";
+import CommentCaMarcheSection from "@/components/home/CommentCaMarcheSection";
+import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
 
 // cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés. Sert
 // uniquement au <select> du formulaire de recherche du Hero ci-dessous
 // (aucune interactivité region→carte ici, cf. CouvertureSection pour ça).
 const REGIONS = [
   { code: "casablanca-settat", nom: "Casablanca-Settat" },
-  { code: "meknes-tafilalet", nom: "Meknès-Tafilalet" },
+  { code: "fes-meknes", nom: "Fès-Meknès" },
   { code: "souss-massa", nom: "Souss-Massa" },
   { code: "rabat-sale-kenitra", nom: "Rabat-Salé-Kénitra" },
   { code: "oriental", nom: "Oriental" },
@@ -24,12 +22,6 @@ const CONFIANCE = [
   { icone: Shield, titre: "Statut foncier vérifié", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — clairement identifié sur chaque annonce." },
   { icone: Check, titre: "Sans intermédiaire", desc: "Un espace de mise en relation directe entre propriétaires et acheteurs." },
   { icone: MapIcon, titre: "Couverture nationale", desc: "Des parcelles à travers les régions agricoles du Maroc." },
-];
-
-const ETAPES = [
-  { num: "01", titre: "Explorez", desc: "Parcourez des parcelles vérifiées partout au Maroc. Filtrez par région et budget." },
-  { num: "02", titre: "Comparez", desc: "Statut foncier, accès à l'eau, prix au m² — comparez les parcelles côte à côte." },
-  { num: "03", titre: "Contactez", desc: "Échangez directement avec le vendeur, sans intermédiaire." },
 ];
 
 const RAISONS = [
@@ -45,7 +37,6 @@ export default async function Home() {
   // le vrai total serveur (peut dépasser 50), jamais recalculé côté client.
   const { results: parcelles, count: totalCount } = await getParcelles({ page_size: 50 });
   const vedettes = parcelles.slice(0, 3);
-  const parcelleVitrine = vedettes[0];
 
   return (
     <div>
@@ -231,43 +222,6 @@ export default async function Home() {
               aria-hidden
               style={{ position: "absolute", left: "63%", top: "58%", width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "var(--color-terre)", transform: "translate(-50%,-50%)", boxShadow: "0 0 0 2px rgba(255,255,255,0.5)" }}
             />
-
-            {/* Carte catalogue — ancrée en bas-gauche de l'image plein bleed ;
-                vraie parcelle du catalogue, pas de statistique inventée. */}
-            {parcelleVitrine && (
-              <div
-                className="akal-chip-donnee akal-pop-in"
-                style={{
-                  position: "absolute",
-                  left: "24px",
-                  bottom: "24px",
-                  right: "24px",
-                  maxWidth: "320px",
-                  padding: "18px",
-                  animationDelay: "520ms",
-                }}
-              >
-                <div style={{ fontSize: "11px", color: "var(--color-tertiaire)", marginBottom: "4px" }}>
-                  Exemple du catalogue
-                </div>
-                <div style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-nuit)", marginBottom: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {parcelleVitrine.titre}
-                </div>
-                {AGRISCORE_ACTIF ? (
-                  // AgriScore hors périmètre actuel (cf. src/config/features.ts) —
-                  // chip d'origine conservée intacte, juste non rendue.
-                  <ScoreBar score={parcelleVitrine.scoreCourant?.scoreGlobal ?? null} />
-                ) : (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--color-tertiaire)" }}>
-                      <MapPin size={12} />
-                      {parcelleVitrine.parcelle.regionNom}
-                    </span>
-                    <BadgeStatut statut={parcelleVitrine.parcelle.statutFoncier} />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </section>
@@ -304,32 +258,7 @@ export default async function Home() {
       <CouvertureSection parcelles={parcelles} totalCount={totalCount} />
 
       {/* ═══════════════════════ Fonctionnalités ═══════════════════════ */}
-      <section id="comment-ca-marche" style={{ maxWidth: "1000px", margin: "0 auto clamp(64px, 10vw, 120px)", padding: "0 24px" }}>
-        <Reveal>
-          <div style={{ textAlign: "center", marginBottom: "56px" }}>
-            <span className="eyebrow" style={{ justifyContent: "center" }}>Fonctionnement</span>
-            <h2 className="display-2" style={{ color: "var(--color-nuit)", margin: "14px 0 0" }}>Comment ça marche</h2>
-          </div>
-        </Reveal>
-        <div style={{ position: "relative" }}>
-          <svg viewBox="0 0 1000 20" style={{ width: "100%", height: "20px", position: "absolute", top: "32px", left: 0 }} preserveAspectRatio="none">
-            <line x1="100" y1="10" x2="900" y2="10" stroke="var(--color-menthe)" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-          <div style={{ display: "flex", gap: "24px", justifyContent: "space-between", position: "relative", zIndex: 2, flexWrap: "wrap" }}>
-            {ETAPES.map(({ num, titre, desc }, i) => (
-              <Reveal key={num} delayMs={i * 90}>
-                <div style={{ width: "220px", maxWidth: "100%", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", margin: "0 auto" }}>
-                  <div style={{ width: "64px", height: "64px", borderRadius: "50%", backgroundColor: "var(--color-foret)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: 500, boxShadow: "var(--shadow-2)" }}>
-                    {num}
-                  </div>
-                  <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--color-nuit)" }}>{titre}</div>
-                  <div style={{ fontSize: "14px", color: "var(--color-secondaire)", lineHeight: 1.5 }}>{desc}</div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      <CommentCaMarcheSection />
 
       {/* ═══════════════════════ Mission ═══════════════════════ */}
       <section style={{ maxWidth: "1000px", margin: "0 auto clamp(64px, 10vw, 120px)", padding: "0 24px" }}>

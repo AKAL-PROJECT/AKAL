@@ -37,7 +37,7 @@ export default function Footer() {
             <Link href="/parcelles" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Parcelles
             </Link>
-            <Link href="/parcelles" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+            <Link href="/parcelles?vue=carte" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Carte
             </Link>
           </div>

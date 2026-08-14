@@ -259,6 +259,81 @@
     z-index: 30;
   }
 
+  /* --- Dashboard propriétaire : ligne d'annonce responsive (audit mobile,
+     correctif P0 /compte/annonces) ---
+     Desktop/tablette (>=768px, non touché ici) : ListeAnnonces.tsx regroupe
+     déjà les 5 éléments de la rangée en 2 conteneurs — identité (vignette +
+     titre) et infos-actions (statut + prix + Modifier + actions du cycle de
+     vie) — avec des gaps imbriqués qui reproduisent exactement l'ancienne
+     rangée à plat, donc rien à faire ici pour ce gabarit.
+     Mobile (<768px) : les 2 blocs s'empilent en pleine largeur. Le titre
+     passe d'une ellipse une ligne (pouvait se réduire à une seule lettre
+     quand statut/prix/actions restaient sur la même rangée, cf. audit) à un
+     clamp deux lignes avec une vraie largeur. Statut et prix passent d'une
+     colonne alignée à droite à une rangée justifiée (plus de chevauchement).
+     Le bouton Modifier et le groupe d'actions du cycle de vie prennent
+     chacun toute la largeur — cibles tactiles confortables.
+     max-width: 767px (et non 768px comme .hidden-mobile/.filtres-sidebar
+     plus bas) : le brief distingue explicitement mobile "<768px" de
+     desktop/tablette "à partir de 768px", et 768px fait partie des
+     gabarits testés côté desktop — à ne pas faire basculer en layout
+     empilé. */
+  @media (max-width: 767px) {
+    .akal-annonce-ligne {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 12px !important;
+    }
+    .akal-annonce-identite {
+      width: 100%;
+      align-items: flex-start !important;
+    }
+    .akal-annonce-vignette {
+      width: 64px !important;
+      height: 64px !important;
+    }
+    .akal-annonce-titre {
+      white-space: normal !important;
+      display: -webkit-box !important;
+      -webkit-line-clamp: 2 !important;
+      -webkit-box-orient: vertical !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .akal-annonce-meta {
+      flex-wrap: wrap !important;
+      row-gap: 2px !important;
+    }
+    .akal-annonce-infos-actions {
+      width: 100%;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+    }
+    .akal-annonce-statut-prix {
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100%;
+      gap: 12px !important;
+    }
+    .akal-annonce-modifier {
+      width: 100%;
+      text-align: center !important;
+      box-sizing: border-box;
+    }
+    .akal-annonce-actions {
+      flex-direction: row !important;
+      flex-wrap: wrap !important;
+      width: 100%;
+      gap: 8px !important;
+    }
+    .akal-annonce-actions > button {
+      flex: 1 1 auto !important;
+      min-width: 130px;
+    }
+  }
+
   @media (max-width: 768px) {
     .filtres-sidebar {
       position: fixed;

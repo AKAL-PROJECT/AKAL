@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { MapContainer, Marker, Popup, Circle, useMap } from "react-leaflet";
+import { useEffect, useMemo, useState } from "react";
+import { MapContainer, Marker, Popup, GeoJSON, useMap } from "react-leaflet";
+// Alias pour éviter la collision de nom avec le composant GeoJSON de
+// react-leaflet importé ci-dessus — `import type * as` pour ne référencer
+// que les types du namespace global fourni par @types/geojson.
+import type * as GJ from "geojson";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import Link from "next/link";
 import type { Parcelle } from "@/types/parcelle";
 import TuileOSM from "@/components/TuileOSM";
 import { iconeAkal, CENTRE_MAROC } from "@/lib/leaflet";
 import { formatMAD } from "@/lib/format";
+import { apiFetch } from "@/lib/api";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
@@ -16,6 +21,52 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 // réelles de la région (jamais un tracé inventé) — cf. statsParRegion dans
 // app/page.tsx. `centre` peut être null si la région n'a aucune parcelle.
 export type RegionActive = { code: string; nom: string; centre: [number, number] | null } | null;
+
+// GeoJSON minimal utile ici — FeatureCollection de provinces (contrat API
+// /api/geo/limites/provinces/?region=<slug>, cf. geo/serializers.py).
+type FeatureCollectionProvinces = {
+  type: "FeatureCollection";
+  features: { type: "Feature"; geometry: GJ.Geometry; properties: Record<string, unknown> }[];
+};
+
+// Limite réelle de la région active — union des provinces qui la composent
+// (référentiel géométrique officiel, cf. geo/models.py ProvinceGeom). Un
+// seul appel par région sélectionnée ; jamais de tracé approximatif/inventé
+// à la place (remplace l'ancien halo circulaire "spotlight" qui ne
+// représentait aucune vraie limite).
+function LimiteRegion({ code }: { code: string | null }) {
+  const [donnees, setDonnees] = useState<FeatureCollectionProvinces | null>(null);
+
+  useEffect(() => {
+    // Pas de setDonnees(null) synchrone ici pour `!code` (react-hooks/
+    // set-state-in-effect — CI, cf. job 94769774578) : dériver directement
+    // du prop `code` au rendu ci-dessous plutôt que resynchroniser un état
+    // "vide" par effet. `donnees` peut rester stale en mémoire le temps
+    // qu'une prochaine région soit sélectionnée — sans conséquence visuelle
+    // puisque le rendu est de toute façon masqué tant que `code` est null.
+    if (!code) return;
+    let annule = false;
+    apiFetch<FeatureCollectionProvinces>("/geo/limites/provinces/", { params: { region: code } })
+      .then((d) => {
+        if (!annule) setDonnees(d);
+      })
+      .catch(() => {
+        if (!annule) setDonnees(null);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [code]);
+
+  if (!code || !donnees) return null;
+  return (
+    <GeoJSON
+      key={code}
+      data={donnees as GJ.FeatureCollection}
+      style={{ color: "#2D6A4F", weight: 2, fillColor: "#52B788", fillOpacity: 0.12 }}
+    />
+  );
+}
 
 function VolVersRegion({ centre }: { centre: [number, number] | null }) {
   const map = useMap();
@@ -44,16 +95,11 @@ export default function CarteCouvertureLeaflet({
 
       <VolVersRegion centre={regionActive?.centre ?? null} />
 
-      {/* Repère de la région sélectionnée — reprend l'idée de "spotlight" de
-          MoroccoMap (composant remplacé par cette carte sur la Home), mais
-          sans tracé de région inventé : un simple halo autour du centre réel. */}
-      {regionActive?.centre && (
-        <Circle
-          center={regionActive.centre}
-          radius={55000}
-          pathOptions={{ color: "#2D6A4F", weight: 1.5, fillColor: "#52B788", fillOpacity: 0.08 }}
-        />
-      )}
+      {/* Limite réelle de la région sélectionnée (union des provinces qui la
+          composent, référentiel géométrique officiel) — remplace l'ancien
+          halo circulaire "spotlight" qui ne représentait aucune vraie
+          limite (cf. LimiteRegion ci-dessus). */}
+      <LimiteRegion code={regionActive?.code ?? null} />
 
       <MarkerClusterGroup key={regionActive?.code ?? "tout"} chunkedLoading maxClusterRadius={45}>
         {visibles.map((p) => (
