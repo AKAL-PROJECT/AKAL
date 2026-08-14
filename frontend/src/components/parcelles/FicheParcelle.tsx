@@ -10,6 +10,8 @@ import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
 import SimulateurROI from "./SimulateurROI";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
+import { useComparateur } from "@/hooks/useComparateur";
+import { COMPARATEUR_MAX } from "./comparateurStorage";
 import { formatMAD } from "@/lib/format";
 import {
   MapPin,
@@ -19,6 +21,7 @@ import {
   Check,
   ChevronLeft,
   MessageSquare,
+  BarChart,
 } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
 
@@ -55,6 +58,12 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
   const { favorisIds, toggleFavori } = useFavorisIds();
   const favori = favorisIds.has(a.id);
   const [lienCopie, setLienCopie] = useState(false);
+  // Comparateur (P1-01) — deuxième point d'entrée voulu par Baroud, en plus
+  // du catalogue/favoris : même liste partagée (hooks/useComparateur.ts),
+  // donc une parcelle ajoutée ici apparaît immédiatement dans la barre du
+  // catalogue si l'utilisateur y retourne.
+  const { parcelles: parcellesComparees, basculer: basculerComparaison, estEnComparaison, estComplet } = useComparateur();
+  const enComparaison = estEnComparaison(a.id);
 
   // navigator.share() (mobile/OS) avec repli sur la copie du lien — les deux
   // sont des capacités déjà natives du navigateur, aucune dépendance ajoutée.
@@ -312,6 +321,46 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
                 {lienCopie ? "Lien copié !" : "Partager"}
               </button>
             </div>
+
+            {/* Comparateur (P1-01) — deuxième point d'entrée en plus du
+                catalogue/favoris, cf. hooks/useComparateur.ts. Désactivé
+                seulement si le plafond est atteint SANS que cette parcelle
+                en fasse déjà partie (sinon on ne pourrait plus la retirer
+                depuis ici une fois le plafond atteint ailleurs). */}
+            <button
+              type="button"
+              aria-pressed={enComparaison}
+              disabled={estComplet && !enComparaison}
+              onClick={() => basculerComparaison(a)}
+              className="akal-focusable"
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                padding: "10px",
+                borderRadius: "var(--radius-sm)",
+                border: `1px solid ${enComparaison ? "var(--color-foret)" : "var(--color-bordure)"}`,
+                backgroundColor: enComparaison ? "var(--color-rosee)" : "transparent",
+                color: enComparaison ? "var(--color-foret)" : "var(--color-secondaire)",
+                fontSize: "13px",
+                cursor: estComplet && !enComparaison ? "default" : "pointer",
+                opacity: estComplet && !enComparaison ? 0.5 : 1,
+                transition: "all 200ms ease",
+              }}
+            >
+              <BarChart size={14} />
+              {enComparaison ? "Dans le comparateur" : "Ajouter au comparateur"}
+            </button>
+            {parcellesComparees.length > 0 && (
+              <p style={{ fontSize: "12px", color: "var(--color-secondaire)", textAlign: "center", margin: 0 }}>
+                {parcellesComparees.length}/{COMPARATEUR_MAX} sélectionnées ·{" "}
+                <Link href="/comparateur" style={{ color: "var(--color-foret)", fontWeight: 500 }}>
+                  Voir le comparateur →
+                </Link>
+              </p>
+            )}
           </div>
         </aside>
       </div>

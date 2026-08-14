@@ -17,6 +17,7 @@ import {
 } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
+import { useComparateur } from "@/hooks/useComparateur";
 import CardParcelleSkeleton from "@/components/parcelles/CardParcelleSkeleton";
 import FiltresSidebar from "@/components/parcelles/FiltresSidebar";
 import BarreComparateur from "@/components/parcelles/BarreComparateur";
@@ -113,8 +114,8 @@ function Catalogue() {
   const [page, setPage] = useState(initial.page);
   const [filtres, setFiltres] = useState<FiltresState>(initial.filtres);
   const [sidebarOuverte, setSidebarOuverte] = useState(false);
-  const [comparaison, setComparaison] = useState<string[]>([]);
   const { favorisIds, toggleFavori } = useFavorisIds();
+  const { parcelles: parcellesComparees, basculer: basculerComparaison, estEnComparaison, retirer: retirerComparaison } = useComparateur();
 
   const [regions, setRegions] = useState<Region[]>([]);
   const [donnees, setDonnees] = useState<ParcellesPage | null>(null);
@@ -221,12 +222,13 @@ function Catalogue() {
     return { code: r.code, nom: r.nom, centre };
   }, [filtres.region, regions, resultats]);
 
+  // basculerComparaison prend une Parcelle complète (useComparateur), alors
+  // que CardParcelle expose un id (cf. sa propre prop onToggleComparaison) —
+  // résolue depuis `resultats`, déjà en mémoire (pas de nouveau fetch).
   const toggleComparaison = (id: string) => {
-    setComparaison((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 3 ? [...prev, id] : prev,
-    );
+    const p = resultats.find((r) => r.id === id);
+    if (p) basculerComparaison(p);
   };
-  const parcellesComparees = resultats.filter((p) => comparaison.includes(p.id));
 
   return (
     <div className="catalogue" style={{ display: "flex", minHeight: "calc(100vh - 64px)", backgroundColor: "var(--color-fond)" }}>
@@ -241,7 +243,7 @@ function Catalogue() {
       />
 
       {/* Zone principale */}
-      <main style={{ flex: 1, minWidth: 0, padding: "20px", paddingBottom: comparaison.length > 0 ? "96px" : "20px" }}>
+      <main style={{ flex: 1, minWidth: 0, padding: "20px", paddingBottom: parcellesComparees.length > 0 ? "96px" : "20px" }}>
         {/* Page sans titre visible jusqu'ici — absence de h1 (revue a11y,
             Phase 3) : la navigation par titres au clavier/lecteur d'écran
             n'avait aucun repère pour cet écran. */}
@@ -377,7 +379,7 @@ function Catalogue() {
                 index={i}
                 favori={favorisIds.has(p.id)}
                 onToggleFavori={toggleFavori}
-                enComparaison={comparaison.includes(p.id)}
+                enComparaison={estEnComparaison(p.id)}
                 onToggleComparaison={toggleComparaison}
               />
             ))}
@@ -419,7 +421,11 @@ function Catalogue() {
         )}
       </main>
 
-      <BarreComparateur parcelles={parcellesComparees} onRetirer={toggleComparaison} />
+      {/* retirerComparaison directement (pas toggleComparaison, qui résout
+          l'id via `resultats` — un ajout suivi d'un changement de page/filtre
+          ferait échouer silencieusement le retrait, la parcelle n'étant plus
+          dans `resultats`). */}
+      <BarreComparateur parcelles={parcellesComparees} onRetirer={retirerComparaison} />
     </div>
   );
 }

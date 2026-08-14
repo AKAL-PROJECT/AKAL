@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GeoJSON, useMap } from "react-leaflet";
+import { GeoJSON, Marker, Popup, useMap } from "react-leaflet";
+import Link from "next/link";
 import type * as GJ from "geojson";
 import { apiFetch } from "@/lib/api";
-import { CENTRE_MAROC } from "@/lib/leaflet";
+import { CENTRE_MAROC, iconeAkal } from "@/lib/leaflet";
+import { formatMAD } from "@/lib/format";
+import type { Parcelle } from "@/types/parcelle";
 
 // Région active côté carte : centre dérivé de la moyenne des parcelles
 // réelles de la région (jamais un tracé inventé) — cf. statsParRegion dans
@@ -181,4 +184,30 @@ export function VolVersRegion({ centre }: { centre: [number, number] | null }) {
     else map.flyTo(CENTRE_MAROC, 6, { duration: 0.8 });
   }, [centre, map]);
   return null;
+}
+
+// Marqueur + popup d'une parcelle — identique sur les 3 cartes qui affichent
+// des annonces (catalogue, couverture Home, comparateur P1-01), jusque-là
+// dupliqué tel quel dans CarteLeaflet.tsx et CarteCouvertureLeaflet.tsx.
+// Centralisé ici pour que les 3 restent visuellement identiques par
+// construction plutôt que par discipline de copier-coller.
+export function MarqueurParcelle({ parcelle: p }: { parcelle: Parcelle }) {
+  return (
+    <Marker position={[p.parcelle.latitude, p.parcelle.longitude]} icon={iconeAkal}>
+      <Popup>
+        <div style={{ minWidth: "160px" }}>
+          <strong style={{ fontSize: "13px", color: "#2D6A4F" }}>{p.titre}</strong>
+          <div style={{ fontSize: "12px", color: "#555", margin: "4px 0" }}>
+            {p.parcelle.regionNom} · {p.parcelle.surface} ha
+          </div>
+          <div style={{ fontSize: "13px", fontWeight: 600, color: "#2D6A4F" }}>
+            {formatMAD.format(p.prix)} MAD
+          </div>
+          <Link href={`/parcelles/${p.slug}`} style={{ fontSize: "12px", color: "#C4622D", textDecoration: "underline" }}>
+            Voir l&apos;annonce →
+          </Link>
+        </div>
+      </Popup>
+    </Marker>
+  );
 }

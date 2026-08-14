@@ -1,12 +1,18 @@
 "use client";
 
-import { MapContainer, Marker, Popup } from "react-leaflet";
-import Link from "next/link";
+import { MapContainer } from "react-leaflet";
 import type { Parcelle } from "@/types/parcelle";
 import TuileOSM from "@/components/TuileOSM";
-import { iconeAkal, CENTRE_MAROC } from "@/lib/leaflet";
-import { formatMAD } from "@/lib/format";
-import { useLimitesRegions, LimitesRegions, VolVersRegion, RecalculTailleCarte, type RegionActive, type RegionRef } from "./CarteRegions";
+import { CENTRE_MAROC } from "@/lib/leaflet";
+import {
+  useLimitesRegions,
+  LimitesRegions,
+  VolVersRegion,
+  RecalculTailleCarte,
+  MarqueurParcelle,
+  type RegionActive,
+  type RegionRef,
+} from "./CarteRegions";
 import "leaflet/dist/leaflet.css";
 
 export default function CarteLeaflet({
@@ -44,26 +50,7 @@ export default function CarteLeaflet({
       <LimitesRegions limites={limites} codeActif={regionActive?.code ?? null} onSelectionner={onSelectionnerRegion} />
 
       {parcelles.map((p) => (
-        <Marker
-          key={p.id}
-          position={[p.parcelle.latitude, p.parcelle.longitude]}
-          icon={iconeAkal}
-        >
-          <Popup>
-            <div style={{ minWidth: "160px" }}>
-              <strong style={{ fontSize: "13px", color: "#2D6A4F" }}>{p.titre}</strong>
-              <div style={{ fontSize: "12px", color: "#555", margin: "4px 0" }}>
-                {p.parcelle.regionNom} · {p.parcelle.surface} ha
-              </div>
-              <div style={{ fontSize: "13px", fontWeight: 600, color: "#2D6A4F" }}>
-                {formatMAD.format(p.prix)} MAD
-              </div>
-              <Link href={`/parcelles/${p.slug}`} style={{ fontSize: "12px", color: "#C4622D", textDecoration: "underline" }}>
-                Voir l&apos;annonce →
-              </Link>
-            </div>
-          </Popup>
-        </Marker>
+        <MarqueurParcelle key={p.id} parcelle={p} />
       ))}
     </MapContainer>
   );

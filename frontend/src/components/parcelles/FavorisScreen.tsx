@@ -6,6 +6,7 @@ import CardParcelle from "./CardParcelle";
 import BarreComparateur from "./BarreComparateur";
 import { EtatVide } from "@/components/EtatVide";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
+import { useComparateur } from "@/hooks/useComparateur";
 import type { Parcelle } from "@/types/parcelle";
 
 const GRILLE_STYLE: React.CSSProperties = {
@@ -22,19 +23,22 @@ export function FavorisScreen({ parcellesInitiales }: { parcellesInitiales: Parc
   // On retire simplement de la liste locale au clic, après confirmation serveur.
   const [parcelles, setParcelles] = useState(parcellesInitiales);
   const { toggleFavori } = useFavorisIds();
-  const [comparaison, setComparaison] = useState<string[]>([]);
+  // Même liste de comparaison que le catalogue et la fiche annonce (P1-01) —
+  // persistée en sessionStorage par le hook, pas un état local à cet écran.
+  const { parcelles: parcellesComparees, basculer: basculerComparaison, estEnComparaison, retirer: retirerComparaison } = useComparateur();
 
   const toggleComparaison = (id: string) => {
-    setComparaison((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    const p = parcelles.find((x) => x.id === id);
+    if (p) basculerComparaison(p);
   };
 
   async function retirerDesFavoris(id: string) {
     await toggleFavori(id);
     setParcelles((prev) => prev.filter((p) => p.id !== id));
-    setComparaison((prev) => prev.filter((x) => x !== id));
+    // Un favori retiré n'a plus de raison de rester dans la comparaison —
+    // no-op si elle n'y était pas (retirer() est déjà idempotent).
+    retirerComparaison(id);
   }
-
-  const parcellesComparees = parcelles.filter((p) => comparaison.includes(p.id));
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 20px 80px" }}>
@@ -59,14 +63,14 @@ export function FavorisScreen({ parcellesInitiales }: { parcellesInitiales: Parc
               index={i}
               favori
               onToggleFavori={retirerDesFavoris}
-              enComparaison={comparaison.includes(p.id)}
+              enComparaison={estEnComparaison(p.id)}
               onToggleComparaison={toggleComparaison}
             />
           ))}
         </div>
       )}
 
-      <BarreComparateur parcelles={parcellesComparees} onRetirer={toggleComparaison} />
+      <BarreComparateur parcelles={parcellesComparees} onRetirer={retirerComparaison} />
     </div>
   );
 }
