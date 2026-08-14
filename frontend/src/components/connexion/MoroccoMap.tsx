@@ -26,6 +26,11 @@ const REGIONS: Region[] = [
   { name: "Dakhla-Oued Ed-Dahab", x: "17%", y: "82%", side: "below" },
 ];
 
+// Réutilisé par AuthMapPanel.tsx pour le micro-label sous la carte compacte
+// (les libellés de région étant masqués à cette taille, cf. plus bas) — un
+// seul décompte, jamais désynchronisé du contenu réel de REGIONS.
+export const NOMBRE_REGIONS = REGIONS.length;
+
 const LABEL_STYLE: Record<Side, React.CSSProperties> = {
   above: { position: "absolute", left: 0, top: "-11px", transform: "translate(-50%,-100%)", textAlign: "center", whiteSpace: "nowrap" },
   below: { position: "absolute", left: 0, top: "11px", transform: "translateX(-50%)", textAlign: "center", whiteSpace: "nowrap" },
@@ -72,7 +77,17 @@ export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "c
         src="/uploads/akal-maroc-regions.svg"
         alt="Carte des régions agricoles du Maroc"
         className="akal-drift"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        // objectFit:"contain" — le conteneur ci-dessus est déjà au ratio
+        // intrinsèque du SVG (1282/1299, vérifié sur le fichier source), donc
+        // ça ne change rien en temps normal. Filet de sécurité explicite
+        // plutôt qu'implicite : sans lui, le moindre écart entre la hauteur
+        // réellement calculée par `aspect-ratio` (arrondi sous-pixel, écarts
+        // de support navigateur) et celle de l'image se traduit par un
+        // rognage silencieux (object-fit par défaut = "fill") au lieu d'un
+        // simple letterboxing — le sud du Maroc / Dakhla-Oued Ed-Dahab étant
+        // en bas de l'image, c'est la première zone concernée (audit
+        // responsive, correctif carte compacte).
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }}
       />
 
       {REGIONS.map((r, i) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "@/components/icons/Icons";
-import MoroccoMap from "@/components/connexion/MoroccoMap";
+import MoroccoMap, { NOMBRE_REGIONS } from "@/components/connexion/MoroccoMap";
 
 // Panneau carte des écrans d'authentification — identique entre Connexion
 // et Inscription (extrait de la duplication relevée par l'audit qualité
@@ -26,6 +26,15 @@ export default function AuthMapPanel({ variant }: { variant: "mobile" | "desktop
         }}
       >
         <MoroccoMap variant="compact" />
+        {/* Micro-label optionnel (correctif carte compacte, audit responsive) :
+            les libellés de région disparaissent sur cette variante compacte
+            (illisibles à cette taille, cf. MoroccoMap.tsx) — cette seule
+            ligne compense un peu l'information perdue sans réintroduire les
+            12 libellés individuels. S'insère dans le flex-column existant
+            (gap déjà présent), aucun redesign du bandeau. */}
+        <span style={{ fontSize: 12, color: "#2D6A4F", fontWeight: 500 }}>
+          {NOMBRE_REGIONS} régions couvertes
+        </span>
       </div>
     );
   }
