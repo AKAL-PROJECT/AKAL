@@ -71,6 +71,8 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
     Paramètres query string :
         ?q=                → Recherche texte sur le titre et la description
         ?region=           → Code slug de la région (ex: casablanca-settat)
+        ?province=         → Id ProvinceGeom (référentiel officiel, cascade P0-04)
+        ?commune=          → Id CommuneGeom (référentiel officiel, cascade P0-04)
         ?statut_foncier=   → Statut foncier exact
         ?acces_eau=        → Accès eau exact
         ?prix_min=         → Prix minimum (>=)
@@ -87,6 +89,30 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
     region = dj_filters.CharFilter(
         method='filter_region',
         label='Région (code slug)',
+    )
+    # Ajout P0-04 (cascade région/province/commune du catalogue) — même
+    # remarque de périmètre que filter_region ci-dessous : ce référentiel
+    # appartient normalement à Ibrahim, ajouté ici par nécessité (la
+    # cascade frontend consomme déjà /api/geo/limites/provinces/ et
+    # /communes/ via lib/geo-api.ts pour le dépôt d'annonce, il ne manquait
+    # que le filtre côté recherche). À signaler pour relecture.
+    #
+    # Filtre uniquement sur `commune_geom` (référentiel officiel), jamais en
+    # OR avec le `commune` legacy comme le fait filter_region pour `region` :
+    # Province/Commune (legacy) et ProvinceGeom/CommuneGeom (officiel) sont
+    # deux tables distinctes dont les id ne coïncident pas (même id = deux
+    # lieux différents) — un OR sur `commune__province_id=value` matcherait
+    # une province arbitraire du petit jeu de démo legacy à chaque fois que
+    # son id coïncide avec celui, sans rapport, d'une ProvinceGeom. Le
+    # référentiel legacy n'est de toute façon quasiment plus alimenté par de
+    # nouvelles annonces (cf. commentaire Parcelle.commune_geom, geo/models.py).
+    province = dj_filters.NumberFilter(
+        field_name='parcelle__commune_geom__province_id',
+        label='Province (id ProvinceGeom, référentiel officiel)',
+    )
+    commune = dj_filters.NumberFilter(
+        field_name='parcelle__commune_geom_id',
+        label='Commune (id CommuneGeom, référentiel officiel)',
     )
     statut_foncier = dj_filters.ChoiceFilter(
         field_name='parcelle__statut_foncier',
@@ -193,7 +219,7 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
     Réponse : { count, next, previous, results: [...] }
 
     Filtres query params :
-        q, region, statut_foncier, acces_eau,
+        q, region, province, commune, statut_foncier, acces_eau,
         prix_min, prix_max, surface_min, surface_max
 
     Ordering (tri) — paramètre ?ordering= :

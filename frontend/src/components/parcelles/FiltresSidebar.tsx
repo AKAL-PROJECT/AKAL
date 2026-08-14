@@ -11,6 +11,12 @@ import {
 import { STATUT_FONCIER_LABEL } from "./BadgeStatut";
 import { Search, X, ChevronDown, Check } from "@/components/icons/Icons";
 import { formatMAD } from "@/lib/format";
+// Cascade P0-04 (région → province → commune) — référentiel officiel
+// (2026-08-06), même source et mêmes fonctions que la cascade du dépôt
+// d'annonce (EtapeLocalisation.tsx, territoire d'Ibrahim) : lib/geo-api.ts
+// est un fichier-frontière, consommé ici en lecture seule.
+import { fetchCommunesGeom, fetchProvincesGeom } from "@/lib/geo-api";
+import type { CommuneGeomRef, ProvinceGeomRef } from "@/types/depot-annonce";
 
 type Props = {
   ouverte: boolean;
@@ -39,19 +45,25 @@ function parseNum(v: string): number | null {
 const PRIX_MAX_BORNE = 5_000_000;
 const SURFACE_MAX_BORNE = 50;
 
-// ── Dropdown Région : liste custom avec cascade d'apparition au clic ──────
-function DropdownRegion({
+// ── Dropdown générique : liste custom avec cascade d'apparition au clic ──
+// Réutilisé pour Région, Province et Commune (P0-04) — un seul jeu de
+// styles/comportement (clic dehors, Échap) plutôt que trois quasi-copies.
+function DropdownCascade({
   value,
-  regions,
+  options,
+  placeholder,
+  disabled,
   onChange,
 }: {
   value: string;
-  regions: Region[];
+  options: { code: string; nom: string }[];
+  placeholder: string;
+  disabled?: boolean;
   onChange: (code: string) => void;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const label = regions.find((r) => r.code === value)?.nom ?? "Toutes les régions";
+  const label = options.find((o) => o.code === value)?.nom ?? placeholder;
 
   useEffect(() => {
     if (!ouvert) return;
@@ -73,9 +85,10 @@ function DropdownRegion({
     <div ref={ref} style={{ position: "relative" }}>
       <button
         type="button"
-        onClick={() => setOuvert((v) => !v)}
+        onClick={() => !disabled && setOuvert((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={ouvert}
+        disabled={disabled}
         className="input"
         style={{
           height: "44px",
@@ -83,7 +96,8 @@ function DropdownRegion({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          cursor: "pointer",
+          cursor: disabled ? "default" : "pointer",
+          opacity: disabled ? 0.55 : 1,
           color: value ? "var(--color-texte)" : "var(--color-tertiaire)",
         }}
       >
@@ -94,7 +108,7 @@ function DropdownRegion({
         />
       </button>
 
-      {ouvert && (
+      {ouvert && !disabled && (
         <div
           role="listbox"
           className="akal-pop-in"
@@ -113,14 +127,14 @@ function DropdownRegion({
             padding: "6px",
           }}
         >
-          {[{ code: "", nom: "Toutes les régions" }, ...regions].map((r, i) => (
+          {[{ code: "", nom: placeholder }, ...options].map((o, i) => (
             <button
-              key={r.code || "toutes"}
+              key={o.code || "toutes"}
               type="button"
               role="option"
-              aria-selected={value === r.code}
+              aria-selected={value === o.code}
               onClick={() => {
-                onChange(r.code);
+                onChange(o.code);
                 setOuvert(false);
               }}
               className="akal-card-cascade"
@@ -133,18 +147,43 @@ function DropdownRegion({
                 borderRadius: "var(--radius-xs)",
                 border: "none",
                 cursor: "pointer",
-                backgroundColor: value === r.code ? "var(--color-rosee)" : "transparent",
-                color: value === r.code ? "var(--color-foret)" : "var(--color-texte)",
+                backgroundColor: value === o.code ? "var(--color-rosee)" : "transparent",
+                color: value === o.code ? "var(--color-foret)" : "var(--color-texte)",
                 animationDelay: `${i * 30}ms`,
                 animationDuration: "220ms",
               }}
             >
-              {r.nom}
+              {o.nom}
             </button>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+// ── Retour ligne+bouton pour un niveau de cascade en échec (province ou
+// commune) : cf. commentaire sur les effets de fetch dans FiltresSidebar. ──
+function ErreurCascade({ message, onReessayer }: { message: string; onReessayer: () => void }) {
+  return (
+    <p style={{ fontSize: 12, color: "var(--color-erreur)", marginTop: 6 }}>
+      {message}{" "}
+      <button
+        type="button"
+        onClick={onReessayer}
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          font: "inherit",
+          color: "inherit",
+          textDecoration: "underline",
+          cursor: "pointer",
+        }}
+      >
+        Réessayer
+      </button>
+    </p>
   );
 }
 
@@ -158,6 +197,56 @@ export default function FiltresSidebar({
   onAppliquer,
 }: Props) {
   const f = filtres;
+
+  // Cascade P0-04 — provinces/communes du référentiel officiel, chargées au
+  // fil de la sélection (jamais tout le référentiel national d'un coup :
+  // 75 provinces/1536 communes, cf. docstring backend geo/api_views.py).
+  // `tentative*` ne sert qu'à redéclencher le fetch depuis le bouton
+  // Réessayer (incrémenté, sans autre effet).
+  const [provinces, setProvinces] = useState<ProvinceGeomRef[]>([]);
+  const [communes, setCommunes] = useState<CommuneGeomRef[]>([]);
+  const [erreurProvinces, setErreurProvinces] = useState(false);
+  const [erreurCommunes, setErreurCommunes] = useState(false);
+  const [tentativeProvinces, setTentativeProvinces] = useState(0);
+  const [tentativeCommunes, setTentativeCommunes] = useState(0);
+
+  useEffect(() => {
+    if (!f.region) return;
+    let annule = false;
+    fetchProvincesGeom(f.region)
+      .then((p) => {
+        if (annule) return;
+        setProvinces(p);
+        setErreurProvinces(false);
+      })
+      .catch(() => {
+        if (annule) return;
+        setProvinces([]);
+        setErreurProvinces(true);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [f.region, tentativeProvinces]);
+
+  useEffect(() => {
+    if (!f.province) return;
+    let annule = false;
+    fetchCommunesGeom({ province: Number(f.province) })
+      .then((c) => {
+        if (annule) return;
+        setCommunes(c);
+        setErreurCommunes(false);
+      })
+      .catch(() => {
+        if (annule) return;
+        setCommunes([]);
+        setErreurCommunes(true);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [f.province, tentativeCommunes]);
 
   return (
     <>
@@ -229,10 +318,56 @@ export default function FiltresSidebar({
             />
           </div>
 
-          {/* Région — dropdown custom avec cascade d'apparition au clic */}
+          {/* Région → Province → Commune (P0-04) — référentiel officiel,
+              chaque niveau vide/désactive les suivants à la sélection.
+              `options` retombe à [] dès que le parent est vide plutôt que
+              de vider `provinces`/`communes` nous-mêmes : évite un flash de
+              données obsolètes si l'utilisateur re-choisit vite la même
+              région (le fetch en cours écrasera de toute façon l'ancien
+              contenu), et rend inutile toute synchronisation d'état dans
+              les gestionnaires onChange ci-dessous. */}
           <div>
             <label style={labelStyle}>Région</label>
-            <DropdownRegion value={f.region} regions={regions} onChange={(code) => onChange({ region: code })} />
+            <DropdownCascade
+              value={f.region}
+              options={regions}
+              placeholder="Toutes les régions"
+              onChange={(code) => onChange({ region: code, province: "", commune: "" })}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Province</label>
+            <DropdownCascade
+              value={f.province}
+              options={f.region ? provinces.map((p) => ({ code: String(p.id), nom: p.nom })) : []}
+              placeholder="Toutes les provinces"
+              disabled={!f.region}
+              onChange={(code) => onChange({ province: code, commune: "" })}
+            />
+            {erreurProvinces && (
+              <ErreurCascade
+                message="Impossible de charger les provinces."
+                onReessayer={() => setTentativeProvinces((n) => n + 1)}
+              />
+            )}
+          </div>
+
+          <div>
+            <label style={labelStyle}>Commune</label>
+            <DropdownCascade
+              value={f.commune}
+              options={f.province ? communes.map((c) => ({ code: String(c.id), nom: c.nomAffichage })) : []}
+              placeholder="Toutes les communes"
+              disabled={!f.province}
+              onChange={(code) => onChange({ commune: code })}
+            />
+            {erreurCommunes && (
+              <ErreurCascade
+                message="Impossible de charger les communes."
+                onReessayer={() => setTentativeCommunes((n) => n + 1)}
+              />
+            )}
           </div>
 
           {/* Statut foncier — rendu en chips façon "checkbox", mais

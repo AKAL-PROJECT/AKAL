@@ -53,6 +53,8 @@ function lireDepuisUrl(sp: URLSearchParams): { filtres: FiltresState; tri: Tri; 
     filtres: {
       recherche: sp.get("q") ?? "",
       region: sp.get("region") ?? "",
+      province: sp.get("province") ?? "",
+      commune: sp.get("commune") ?? "",
       statutFoncier: (sp.get("statut_foncier") as FiltresState["statutFoncier"]) ?? "",
       eau: (sp.get("eau") as FiltresState["eau"]) ?? "tous",
       prixMin: sp.has("prix_min") ? Number(sp.get("prix_min")) : null,
@@ -74,6 +76,8 @@ function versUrl(filtres: FiltresState, tri: Tri, page: number, vue: ModeAfficha
   const sp = new URLSearchParams();
   if (filtres.recherche) sp.set("q", filtres.recherche);
   if (filtres.region) sp.set("region", filtres.region);
+  if (filtres.province) sp.set("province", filtres.province);
+  if (filtres.commune) sp.set("commune", filtres.commune);
   if (filtres.statutFoncier) sp.set("statut_foncier", filtres.statutFoncier);
   if (filtres.eau !== "tous") sp.set("eau", filtres.eau);
   if (filtres.prixMin != null) sp.set("prix_min", String(filtres.prixMin));

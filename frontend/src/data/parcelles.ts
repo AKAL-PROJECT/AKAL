@@ -273,6 +273,11 @@ export const ACCES_EAU_OPTIONS: { value: AccesEau; label: string }[] = [
 
 export type ParcellesQueryParams = {
   region?: string; // code
+  // Cascade P0-04 — id ProvinceGeom / CommuneGeom (référentiel officiel,
+  // cf. lib/geo-api.ts), jamais les id du référentiel legacy (backend
+  // AnnonceAPIFilter.province/.commune ne filtrent que sur commune_geom).
+  province?: number;
+  commune?: number;
   statut_foncier?: StatutFoncier;
   acces_eau?: AccesEau;
   prix_min?: number;
@@ -308,6 +313,8 @@ function paramsVersRecherche(params: ParcellesQueryParams): URLSearchParams {
 function rechercheVersParams(sp: URLSearchParams): ParcellesQueryParams {
   const params: ParcellesQueryParams = {};
   if (sp.has("region")) params.region = sp.get("region")!;
+  if (sp.has("province")) params.province = Number(sp.get("province"));
+  if (sp.has("commune")) params.commune = Number(sp.get("commune"));
   if (sp.has("statut_foncier")) params.statut_foncier = sp.get("statut_foncier") as StatutFoncier;
   if (sp.has("acces_eau")) params.acces_eau = sp.get("acces_eau") as AccesEau;
   if (sp.has("prix_min")) params.prix_min = Number(sp.get("prix_min"));
@@ -321,6 +328,10 @@ function rechercheVersParams(sp: URLSearchParams): ParcellesQueryParams {
 }
 
 function filtrerParcellesParams(liste: Parcelle[], params: ParcellesQueryParams): Parcelle[] {
+  // `province`/`commune` (cascade P0-04) ne sont pas filtrables ici : PARCELLES
+  // (jeu de mock) ne porte que regionCode, pas d'id province/commune du
+  // référentiel officiel — mode mock de toute façon réservé au dev sans
+  // backend (NEXT_PUBLIC_USE_MOCKS), jamais le chemin par défaut.
   return liste.filter((p) => {
     if (params.region && p.parcelle.regionCode !== params.region) return false;
     if (params.statut_foncier && p.parcelle.statutFoncier !== params.statut_foncier) return false;
@@ -415,6 +426,13 @@ export type FiltresState = {
   // — limitation connue, suivi proposé côté back (issue api-mismatch).
   recherche: string;
   region: string; // "" = pas de filtre, sinon code (ex. "casablanca-settat")
+  // Cascade P0-04 — id ProvinceGeom/CommuneGeom (référentiel officiel) en
+  // string ("" = pas de filtre), même convention que `region` ci-dessus ;
+  // converti en number seulement à la frontière API (filtresVersParams).
+  // Remis à "" en cascade dès que le parent change (région → vide province
+  // et commune, province → vide commune) — géré côté FiltresSidebar, pas ici.
+  province: string;
+  commune: string;
   // Select unique : le contrat ne documente pas de multi-valeurs pour
   // statut_foncier (contrairement à l'ancienne hypothèse), donc plus de
   // sélection multiple ici.
@@ -429,6 +447,8 @@ export type FiltresState = {
 export const FILTRES_INITIAUX: FiltresState = {
   recherche: "",
   region: "",
+  province: "",
+  commune: "",
   statutFoncier: "",
   eau: "tous",
   prixMin: null,
@@ -464,6 +484,8 @@ export function filtresVersParams(
 ): ParcellesQueryParams {
   return {
     region: f.region || undefined,
+    province: f.province ? Number(f.province) : undefined,
+    commune: f.commune ? Number(f.commune) : undefined,
     statut_foncier: f.statutFoncier || undefined,
     acces_eau: f.eau === "tous" ? undefined : f.eau,
     prix_min: f.prixMin ?? undefined,
@@ -480,6 +502,8 @@ export function filtresActifs(f: FiltresState): boolean {
   return (
     f.recherche.trim() !== "" ||
     f.region !== "" ||
+    f.province !== "" ||
+    f.commune !== "" ||
     f.statutFoncier !== "" ||
     f.eau !== "tous" ||
     f.prixMin != null ||
