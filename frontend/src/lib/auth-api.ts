@@ -13,6 +13,7 @@
 import { cookies } from "next/headers";
 import { ApiError, lireErreur, type FieldErrors } from "./api";
 import { attrsVersOptions, parseSetCookie } from "./cookie-parsing";
+import { fetchWithAuth } from "./fetchWithAuth";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
 
@@ -27,6 +28,7 @@ export type User = {
   nom: string;
   prenom: string;
   telephone: string | null;
+  avatar: string | null;
   role: Role;
   is_verified: boolean;
   date_inscription: string;
@@ -91,6 +93,26 @@ export async function login(input: LoginInput): Promise<User> {
     throw new ApiError(res.status, message, fieldErrors);
   }
   await suivreCookies(res);
+  return (await res.json()) as User;
+}
+
+// Édition de profil (page /compte, mission « avatar + téléphone ») —
+// PATCH /auth/me/, même endpoint que getCurrentUser() (accounts/views.py::
+// MeView, désormais RetrieveUpdateAPIView). FormData plutôt que JSON dans
+// tous les cas (même si l'appelant ne modifie que le téléphone) : au moins
+// un des deux champs (avatar) est un fichier, donc multipart de toute façon
+// — même choix que uploaderPhotos() ci-dessous pour les photos d'annonce.
+// Authentifié (contrairement à signup/login) : passe par fetchWithAuth
+// (cookie + CSRF + retry sur 401), pas un fetch nu.
+export async function updateProfil(formData: FormData): Promise<User> {
+  const res = await fetchWithAuth(`${API_URL}/auth/me/`, {
+    method: "PATCH",
+    body: formData,
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
   return (await res.json()) as User;
 }
 

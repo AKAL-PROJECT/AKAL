@@ -19,6 +19,7 @@ from django.middleware.csrf import get_token
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import exceptions, generics, status
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle
@@ -35,6 +36,7 @@ from .serializers import (
     PasswordResetRequestSerializer,
     SignupSerializer,
     UserSerializer,
+    UserUpdateSerializer,
 )
 
 
@@ -170,14 +172,38 @@ class RefreshView(APIView):
         return response
 
 
-class MeView(generics.RetrieveAPIView):
-    """Utilisateur courant."""
+class MeView(generics.RetrieveUpdateAPIView):
+    """Utilisateur courant. GET pour la lecture (UserSerializer, y compris
+    `avatar` en URL absolue) ; PATCH pour l'édition de profil (page /compte,
+    mission « avatar + téléphone ») — même endpoint, pas de route dédiée
+    séparée, à l'image de AnnonceUpdateAPIView (annonces/api_views.py) qui
+    combine déjà lecture/écriture y compris upload de fichier sur une seule
+    vue.
+
+    PUT n'a pas d'usage prévu ici (édition partielle uniquement) — retiré
+    explicitement comme sur AnnonceUpdateAPIView, même raison.
+    """
 
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+    http_method_names = ['get', 'patch', 'head', 'options']
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        # UserUpdateSerializer valide/enregistre (telephone + avatar
+        # uniquement) ; la réponse reste au format UserSerializer complet
+        # (même forme que GET) — le frontend n'a qu'un seul type `User` à
+        # gérer, jamais une forme partielle propre au PATCH.
+        instance = self.get_object()
+        serializer = UserUpdateSerializer(
+            instance, data=request.data, partial=True, context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserSerializer(instance, context=self.get_serializer_context()).data)
 
 
 class PasswordResetRequestView(APIView):

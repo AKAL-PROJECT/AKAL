@@ -11,12 +11,52 @@ from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Représentation publique de l'utilisateur courant (GET /auth/me)."""
+    """Représentation publique de l'utilisateur courant (GET /auth/me, et
+    forme des réponses signup/login/PATCH — cf. MeView.update()).
+
+    `avatar` en SerializerMethodField (URL absolue) suit le même motif que
+    PhotoSerializer.get_url (annonces/serializers.py) — géré en écriture par
+    UserUpdateSerializer ci-dessous (page /compte), jamais par celui-ci (un
+    SerializerMethodField est structurellement read-only côté DRF)."""
+
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'nom', 'prenom', 'telephone', 'role', 'is_verified', 'date_inscription']
+        fields = ['id', 'email', 'nom', 'prenom', 'telephone', 'avatar', 'role', 'is_verified', 'date_inscription']
         read_only_fields = fields
+
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.avatar and request:
+            return request.build_absolute_uri(obj.avatar.url)
+        elif obj.avatar:
+            return obj.avatar.url
+        return None
+
+
+# Plafond de taille pour l'avatar — même valeur que MAX_PHOTO_OCTETS
+# (annonces/api_views.py) : pas de constante partagée entre les deux apps
+# pour éviter un couplage accounts -> annonces, mais la même convention
+# produit (2 Mo par image) pour rester cohérent pour l'utilisateur.
+MAX_AVATAR_OCTETS = 2 * 1024 * 1024
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """Édition du profil (PATCH /auth/me, cf. MeView.update()) — page /compte
+    (mission « avatar + téléphone »). Volontairement restreint à ces deux
+    champs : nom/prénom/email/rôle n'ont pas d'UI d'édition prévue par cette
+    mission, donc pas exposés en écriture ici (contrairement à UserSerializer
+    ci-dessus, qui les expose en lecture)."""
+
+    class Meta:
+        model = User
+        fields = ['telephone', 'avatar']
+
+    def validate_avatar(self, value):
+        if value and value.size > MAX_AVATAR_OCTETS:
+            raise serializers.ValidationError("L'image dépasse la taille maximale de 2 Mo.")
+        return value
 
 
 class SignupSerializer(serializers.ModelSerializer):
