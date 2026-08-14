@@ -11,10 +11,23 @@ import type { AnnonceEcriture } from "@/types/depot-annonce";
 // Compression client obligatoire (mission F03) : le serveur revalide ensuite
 // systématiquement (≤2 Mo, contenu image réel) — on ne fait jamais confiance
 // au client, cette compression n'est qu'une optimisation de bande passante.
+//
+// libURL auto-hébergé (2026-08-14) : useWebWorker: true fait tourner la
+// compression dans un Web Worker qui charge le CODE de la librairie via
+// importScripts() — et browser-image-compression pointe ça par défaut vers
+// https://cdn.jsdelivr.net/... (cf. son README, section CSP). Sur un réseau
+// qui bloque/ralentit ce CDN (proxy, ad-blocker, poste sans accès internet),
+// la Promise de imageCompression() ne se résout ni ne rejette jamais : le
+// bouton "Ajouter des photos" reste figé sur "Compression en cours…" sans
+// la moindre erreur — symptôme rapporté "ne répond pas". On sert donc notre
+// propre copie statique (public/vendor/, copiée depuis
+// node_modules/browser-image-compression/dist/) plutôt que de dépendre d'un
+// CDN tiers au moment critique de l'upload.
 const OPTIONS_COMPRESSION = {
   maxSizeMB: 2,
   maxWidthOrHeight: 1920,
   useWebWorker: true,
+  libURL: "/vendor/browser-image-compression.js",
 };
 
 export function EtapePhotosPublication({
