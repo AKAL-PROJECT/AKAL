@@ -38,10 +38,13 @@ function LimiteRegion({ code }: { code: string | null }) {
   const [donnees, setDonnees] = useState<FeatureCollectionProvinces | null>(null);
 
   useEffect(() => {
-    if (!code) {
-      setDonnees(null);
-      return;
-    }
+    // Pas de setDonnees(null) synchrone ici pour `!code` (react-hooks/
+    // set-state-in-effect — CI, cf. job 94769774578) : dériver directement
+    // du prop `code` au rendu ci-dessous plutôt que resynchroniser un état
+    // "vide" par effet. `donnees` peut rester stale en mémoire le temps
+    // qu'une prochaine région soit sélectionnée — sans conséquence visuelle
+    // puisque le rendu est de toute façon masqué tant que `code` est null.
+    if (!code) return;
     let annule = false;
     apiFetch<FeatureCollectionProvinces>("/geo/limites/provinces/", { params: { region: code } })
       .then((d) => {
@@ -55,7 +58,7 @@ function LimiteRegion({ code }: { code: string | null }) {
     };
   }, [code]);
 
-  if (!donnees) return null;
+  if (!code || !donnees) return null;
   return (
     <GeoJSON
       key={code}
