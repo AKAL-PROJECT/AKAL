@@ -13,7 +13,7 @@ const PARCOURS = {
   acheteur: {
     label: "Vous achetez",
     etapes: [
-      { num: "01", titre: "Explorez", desc: "Parcourez des parcelles vérifiées partout au Maroc. Filtrez par région et budget." },
+      { num: "01", titre: "Explorez", desc: "Parcourez des parcelles partout au Maroc, avec leur statut foncier déclaré. Filtrez par région et budget." },
       { num: "02", titre: "Comparez", desc: "Statut foncier, accès à l'eau, prix au m² — comparez les parcelles côte à côte." },
       { num: "03", titre: "Contactez", desc: "Échangez directement avec le vendeur, sans intermédiaire." },
     ],

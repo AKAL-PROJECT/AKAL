@@ -3,7 +3,7 @@ import Image from "next/image";
 import { getParcelles } from "@/data/parcelles";
 import { Reveal } from "@/components/Reveal";
 import CouvertureSection from "@/components/home/CouvertureSection";
-import CommentCaMarcheSection from "@/components/home/CommentCaMarcheSection";
+import CommentCaMarcheTeaser from "@/components/home/CommentCaMarcheTeaser";
 import SelectionTerrainsSlider from "@/components/home/SelectionTerrainsSlider";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
 
@@ -257,7 +257,7 @@ export default async function Home() {
       <CouvertureSection parcelles={parcelles} totalCount={totalCount} />
 
       {/* ═══════════════════════ Fonctionnalités ═══════════════════════ */}
-      <CommentCaMarcheSection />
+      <CommentCaMarcheTeaser />
 
       {/* ═══════════════════════ Mission ═══════════════════════ */}
       <section style={{ maxWidth: "1000px", margin: "0 auto clamp(64px, 10vw, 120px)", padding: "0 24px" }}>
