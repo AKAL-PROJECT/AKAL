@@ -43,7 +43,15 @@ function buildGroupes(a: Parcelle): Groupe[] {
           label: "Superficie",
           valeur: `${a.parcelle.surface} ha · ${surfaceM2} m²`,
         },
-        { type: "badge", icon: <Shield size={13} />, label: "Statut foncier", parcelle: a },
+        // Statut foncier désormais facultatif au dépôt (audit dépôt
+        // d'annonce, correctif optionalité) : item omis plutôt qu'un badge
+        // vide si absent — même traitement que les champs Agronomie
+        // ci-dessous (BadgeStatut renvoie déjà null sur statut=null, mais
+        // laisser l'item inconditionnel affichait quand même la ligne
+        // "Statut foncier" vide de tout badge).
+        ...(a.parcelle.statutFoncier
+          ? [{ type: "badge" as const, icon: <Shield size={13} />, label: "Statut foncier", parcelle: a }]
+          : []),
       ],
     },
     {
@@ -128,7 +136,15 @@ function RowItem({ item }: { item: ItemCarac }) {
 }
 
 export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle }) {
-  const groupes = buildGroupes(parcelle);
+  // Un groupe (ex. "Agronomie") peut n'avoir plus aucun item une fois ses
+  // lignes conditionnelles toutes omises (donnée absente, cf. buildGroupes)
+  // — sur les annonces scrapées, ça arrive. Sans ce filtre, le groupe se
+  // rendait quand même : titre + cadre + conteneur vides, une carte blanche
+  // avec juste "AGRONOMIE" dedans qui ressemble à un module cassé. On ne
+  // remplace jamais une donnée manquante par une valeur inventée (déjà le
+  // principe pour les lignes individuelles) — on retire simplement le
+  // groupe entier plutôt que de l'afficher vide.
+  const groupes = buildGroupes(parcelle).filter((g) => g.items.length > 0);
 
   return (
     <section>
