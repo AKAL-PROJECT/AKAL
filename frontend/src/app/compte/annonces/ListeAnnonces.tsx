@@ -101,157 +101,191 @@ export function ListeAnnonces({ annonces }: { annonces: AnnonceProprietaire[] })
         {items.map((a) => (
           <div
             key={a.id}
-            className="card"
+            className="card akal-annonce-ligne"
             style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px", flexWrap: "wrap" }}
           >
+            {/* Bloc identité (vignette + titre + méta) — regroupé pour
+                pouvoir basculer en rangée pleine largeur sous 768px
+                (correctif P0 mobile, audit /compte/annonces) sans toucher à
+                la géométrie desktop : à ≥768px ce wrapper reproduit
+                exactement l'ancienne disposition à plat (mêmes gaps
+                imbriqués, même flex:1/minWidth:0 porté ici au lieu du
+                titre). */}
             <div
-              style={{
-                position: "relative",
-                width: "72px",
-                height: "72px",
-                flexShrink: 0,
-                borderRadius: "var(--radius-sm)",
-                overflow: "hidden",
-                backgroundColor: "var(--color-menthe)",
-              }}
+              className="akal-annonce-identite"
+              style={{ display: "flex", alignItems: "center", gap: "16px", flex: "1 1 240px", minWidth: 0 }}
             >
-              {a.photoPrincipale && (
-                <Image src={a.photoPrincipale} alt={a.titre} fill sizes="72px" style={{ objectFit: "cover" }} />
-              )}
-            </div>
-
-            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-              <h3
+              <div
+                className="akal-annonce-vignette"
                 style={{
-                  fontSize: "15px",
-                  fontWeight: 500,
-                  color: "var(--color-texte)",
+                  position: "relative",
+                  width: "72px",
+                  height: "72px",
+                  flexShrink: 0,
+                  borderRadius: "var(--radius-sm)",
                   overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  backgroundColor: "var(--color-menthe)",
                 }}
               >
-                {a.titre}
-              </h3>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--color-tertiaire)" }}>
-                <span>{a.surface} ha</span>
-                <span>·</span>
-                <span>Déposée le {formatDate.format(new Date(a.createdAt))}</span>
+                {a.photoPrincipale && (
+                  <Image src={a.photoPrincipale} alt={a.titre} fill sizes="72px" style={{ objectFit: "cover" }} />
+                )}
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
+                {/* Sous 768px : passe d'une ellipse une ligne (qui pouvait
+                    réduire le titre à une seule lettre, cf. audit) à un
+                    clamp deux lignes — le titre garde une vraie largeur au
+                    lieu de se faire écraser par statut/prix/actions sur la
+                    même rangée (cf. globals.css). */}
+                <h3
+                  className="akal-annonce-titre"
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 500,
+                    color: "var(--color-texte)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {a.titre}
+                </h3>
+                <div
+                  className="akal-annonce-meta"
+                  style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--color-tertiaire)" }}
+                >
+                  <span>{a.surface} ha</span>
+                  <span>·</span>
+                  <span>Déposée le {formatDate.format(new Date(a.createdAt))}</span>
+                </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px", flexShrink: 0 }}>
-              <BadgeStatutAnnonce statut={a.statut} />
-              <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)" }}>
-                {formatMAD.format(a.prix)} MAD
-              </span>
-            </div>
-
-            {/* Modification de contenu (titre/description/prix/localisation/
-                photos) autorisée à n'importe quel statut depuis le 2026-08-07
-                — le PATCH backend l'a toujours permis (P1 #4), seul /publier
-                ne savait reprendre qu'un brouillon jusqu'ici, cf.
-                DepotAnnonceWizard.tsx. */}
-            <Link
-              href={`/publier?id=${a.id}`}
-              className="btn-secondary"
-              style={{ flexShrink: 0, padding: "6px 14px", fontSize: "13px", textDecoration: "none" }}
+            {/* Bloc infos/actions (statut + prix + Modifier + actions du
+                cycle de vie) — sous 768px passe en colonne pleine largeur
+                (une rangée par élément) pour ne plus chevaucher le badge de
+                statut, le prix et les boutons (cf. globals.css). */}
+            <div
+              className="akal-annonce-infos-actions"
+              style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0, flexWrap: "wrap" }}
             >
-              Modifier
-            </Link>
-
-            {(a.statut === "en_ligne" || a.statut === "archivee" || a.statut === "vendue") && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
-                {a.statut === "en_ligne" && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      style={ACTION_BTN_STYLE}
-                      disabled={actionsBloquees}
-                      onClick={() =>
-                        demanderConfirmation({
-                          annonceId: a.id,
-                          titreAnnonce: a.titre,
-                          titreDialogue: "Archiver cette annonce ?",
-                          message: `Archiver « ${a.titre} » ? Elle ne sera plus visible dans le catalogue public. Vous pourrez la réactiver plus tard.`,
-                          labelConfirmer: "Archiver",
-                          classeConfirmer: "btn-ghost",
-                          nouveauStatut: "archivee",
-                          runner: archiverAnnonceAction,
-                        })
-                      }
-                    >
-                      Archiver
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-accent"
-                      style={ACTION_BTN_STYLE}
-                      disabled={actionsBloquees}
-                      onClick={() =>
-                        demanderConfirmation({
-                          annonceId: a.id,
-                          titreAnnonce: a.titre,
-                          titreDialogue: "Marquer cette annonce comme vendue ?",
-                          message: `Marquer « ${a.titre} » comme vendue ? Elle ne sera plus visible dans le catalogue public. Vous pourrez la remettre en vente depuis cette page si besoin.`,
-                          labelConfirmer: "Marquer vendue",
-                          classeConfirmer: "btn-accent",
-                          nouveauStatut: "vendue",
-                          runner: marquerVendueAnnonceAction,
-                        })
-                      }
-                    >
-                      Marquer vendue
-                    </button>
-                  </>
-                )}
-                {a.statut === "archivee" && (
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    style={ACTION_BTN_STYLE}
-                    disabled={actionsBloquees}
-                    onClick={() =>
-                      demanderConfirmation({
-                        annonceId: a.id,
-                        titreAnnonce: a.titre,
-                        titreDialogue: "Réactiver cette annonce ?",
-                        message: `Remettre « ${a.titre} » en ligne dans le catalogue public ?`,
-                        labelConfirmer: "Réactiver",
-                        classeConfirmer: "btn-secondary",
-                        nouveauStatut: "en_ligne",
-                        runner: reactiverAnnonceAction,
-                      })
-                    }
-                  >
-                    Réactiver
-                  </button>
-                )}
-                {a.statut === "vendue" && (
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    style={ACTION_BTN_STYLE}
-                    disabled={actionsBloquees}
-                    onClick={() =>
-                      demanderConfirmation({
-                        annonceId: a.id,
-                        titreAnnonce: a.titre,
-                        titreDialogue: "Remettre cette annonce en vente ?",
-                        message: `Remettre « ${a.titre} » en vente ? Confirmez uniquement si la vente n'a pas réellement eu lieu — elle redeviendra visible et contactable dans le catalogue public.`,
-                        labelConfirmer: "Remettre en vente",
-                        classeConfirmer: "btn-secondary",
-                        nouveauStatut: "en_ligne",
-                        runner: reactiverAnnonceAction,
-                      })
-                    }
-                  >
-                    Remettre en vente
-                  </button>
-                )}
+              <div
+                className="akal-annonce-statut-prix"
+                style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px", flexShrink: 0 }}
+              >
+                <BadgeStatutAnnonce statut={a.statut} />
+                <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)" }}>
+                  {formatMAD.format(a.prix)} MAD
+                </span>
               </div>
-            )}
+
+              {/* Modification de contenu (titre/description/prix/localisation/
+                  photos) autorisée à n'importe quel statut depuis le 2026-08-07
+                  — le PATCH backend l'a toujours permis (P1 #4), seul /publier
+                  ne savait reprendre qu'un brouillon jusqu'ici, cf.
+                  DepotAnnonceWizard.tsx. */}
+              <Link
+                href={`/publier?id=${a.id}`}
+                className="btn-secondary akal-annonce-modifier"
+                style={{ flexShrink: 0, padding: "6px 14px", fontSize: "13px", textDecoration: "none" }}
+              >
+                Modifier
+              </Link>
+
+              {(a.statut === "en_ligne" || a.statut === "archivee" || a.statut === "vendue") && (
+                <div className="akal-annonce-actions" style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                  {a.statut === "en_ligne" && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        style={ACTION_BTN_STYLE}
+                        disabled={actionsBloquees}
+                        onClick={() =>
+                          demanderConfirmation({
+                            annonceId: a.id,
+                            titreAnnonce: a.titre,
+                            titreDialogue: "Archiver cette annonce ?",
+                            message: `Archiver « ${a.titre} » ? Elle ne sera plus visible dans le catalogue public. Vous pourrez la réactiver plus tard.`,
+                            labelConfirmer: "Archiver",
+                            classeConfirmer: "btn-ghost",
+                            nouveauStatut: "archivee",
+                            runner: archiverAnnonceAction,
+                          })
+                        }
+                      >
+                        Archiver
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-accent"
+                        style={ACTION_BTN_STYLE}
+                        disabled={actionsBloquees}
+                        onClick={() =>
+                          demanderConfirmation({
+                            annonceId: a.id,
+                            titreAnnonce: a.titre,
+                            titreDialogue: "Marquer cette annonce comme vendue ?",
+                            message: `Marquer « ${a.titre} » comme vendue ? Elle ne sera plus visible dans le catalogue public. Vous pourrez la remettre en vente depuis cette page si besoin.`,
+                            labelConfirmer: "Marquer vendue",
+                            classeConfirmer: "btn-accent",
+                            nouveauStatut: "vendue",
+                            runner: marquerVendueAnnonceAction,
+                          })
+                        }
+                      >
+                        Marquer vendue
+                      </button>
+                    </>
+                  )}
+                  {a.statut === "archivee" && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={ACTION_BTN_STYLE}
+                      disabled={actionsBloquees}
+                      onClick={() =>
+                        demanderConfirmation({
+                          annonceId: a.id,
+                          titreAnnonce: a.titre,
+                          titreDialogue: "Réactiver cette annonce ?",
+                          message: `Remettre « ${a.titre} » en ligne dans le catalogue public ?`,
+                          labelConfirmer: "Réactiver",
+                          classeConfirmer: "btn-secondary",
+                          nouveauStatut: "en_ligne",
+                          runner: reactiverAnnonceAction,
+                        })
+                      }
+                    >
+                      Réactiver
+                    </button>
+                  )}
+                  {a.statut === "vendue" && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={ACTION_BTN_STYLE}
+                      disabled={actionsBloquees}
+                      onClick={() =>
+                        demanderConfirmation({
+                          annonceId: a.id,
+                          titreAnnonce: a.titre,
+                          titreDialogue: "Remettre cette annonce en vente ?",
+                          message: `Remettre « ${a.titre} » en vente ? Confirmez uniquement si la vente n'a pas réellement eu lieu — elle redeviendra visible et contactable dans le catalogue public.`,
+                          labelConfirmer: "Remettre en vente",
+                          classeConfirmer: "btn-secondary",
+                          nouveauStatut: "en_ligne",
+                          runner: reactiverAnnonceAction,
+                        })
+                      }
+                    >
+                      Remettre en vente
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
