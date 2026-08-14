@@ -50,22 +50,46 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
   }, [pathname]);
 
   return (
-    <nav
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-        height: "64px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 clamp(16px, 4vw, 40px)",
-        backgroundColor: scrolled ? "rgba(255,255,255,0.85)" : "#FFFFFF",
-        backdropFilter: scrolled ? "blur(12px)" : "none",
-        boxShadow: scrolled ? "0 1px 0 var(--color-bordure)" : "none",
-        transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out",
-      }}
-    >
+    <>
+      {/* Backdrop du menu mobile — même pattern que le tiroir de filtres du
+          catalogue (FiltresSidebar.tsx : position fixed/inset 0, décalé de
+          la hauteur de la navbar, même couleur/opacité, ferme au clic), pas
+          de deuxième système inventé ici. Avant ce correctif (P1, audit
+          mobile), le menu ouvert n'avait que son propre fond opaque — rien
+          ne couvrait le reste du viewport, donc le contenu de la page
+          restait visible et lisible derrière. Rendu en frère de <nav> (pas
+          dedans) pour réutiliser tel quel le z-index 25 du pattern
+          d'origine : nav (z-index 100) > ce backdrop (25) > contenu de page
+          (aucun z-index, empilement normal). */}
+      {menuOuvert && (
+        <div
+          onClick={() => setMenuOuvert(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            top: "64px",
+            backgroundColor: "rgba(17,26,21,0.4)",
+            zIndex: 25,
+          }}
+          className="hidden-desktop akal-fade-in"
+        />
+      )}
+      <nav
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          height: "64px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 clamp(16px, 4vw, 40px)",
+          backgroundColor: scrolled ? "rgba(255,255,255,0.85)" : "#FFFFFF",
+          backdropFilter: scrolled ? "blur(12px)" : "none",
+          boxShadow: scrolled ? "0 1px 0 var(--color-bordure)" : "none",
+          transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out",
+        }}
+      >
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <button
           type="button"
@@ -250,6 +274,7 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
           )}
         </div>
       )}
-    </nav>
+      </nav>
+    </>
   );
 }
