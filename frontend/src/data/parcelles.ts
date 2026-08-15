@@ -27,7 +27,13 @@ import {
 import type { AccesEau, Parcelle, StatutFoncier } from "@/types/parcelle";
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
-const PAGE_SIZE_DEFAUT = 12;
+export const PAGE_SIZE_DEFAUT = 12;
+
+// P1-02 — tailles de page proposées à l'utilisateur (sélecteur catalogue).
+// 48 ≤ max_page_size côté backend (50, cf. AnnoncePagination,
+// annonces/api_views.py) : aucune des 3 valeurs ne dépasse la borne serveur.
+export const TAILLES_PAGE_DISPONIBLES = [12, 24, 48] as const;
+export type TaillePage = (typeof TAILLES_PAGE_DISPONIBLES)[number];
 
 export const PARCELLES: Parcelle[] = [
   {
