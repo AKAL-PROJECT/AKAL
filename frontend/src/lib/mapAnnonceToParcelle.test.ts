@@ -86,7 +86,10 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
         longitude: -7.5878,
         regionCode: "casablanca-settat",
         regionNom: "Casablanca-Settat",
+        province: null, // absent de la fixture (verbatim contrat v1.2, cf. mapAnnonceToParcelle.ts)
+        commune: null,
         adresseApproximative: "Berrechid, Maroc",
+        contour: null,
       },
       scoreCourant: {
         scoreGlobal: 78,
@@ -170,7 +173,10 @@ describe("mapAnnonceToParcelle (liste — sous-ensemble allégé)", () => {
         longitude: -7.5878,
         regionCode: "casablanca-settat",
         regionNom: "Casablanca-Settat",
+        province: null, // absent en liste
+        commune: null,
         adresseApproximative: null, // absent en liste
+        contour: null,
       },
       scoreCourant: {
         scoreGlobal: 78,

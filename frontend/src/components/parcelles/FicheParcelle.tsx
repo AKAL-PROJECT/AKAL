@@ -22,6 +22,8 @@ import {
   ChevronLeft,
   MessageSquare,
   BarChart,
+  Leaf,
+  ArrowRight,
 } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
 
@@ -212,6 +214,33 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
               </p>
             </div>
           )}
+
+          {/* Passeport Agronomique (P2-01, prototype) — distinct de l'AgriScore
+              ci-dessus (dormant, cf. AGRISCORE_ACTIF) et de la section
+              "Passeport de la parcelle" plus bas (BlocCaracteristiques,
+              données réelles déclaratives) : ici, un rapport de
+              DÉMONSTRATION à 5 dimensions simulées, jamais présenté comme
+              une vraie analyse scientifique — cf. l'avertissement explicite
+              sur l'écran /passeport lui-même. */}
+          <div className="card" style={{ padding: "20px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+            <span style={{ width: "40px", height: "40px", borderRadius: "var(--radius-md)", backgroundColor: "var(--color-menthe)", color: "var(--color-foret)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Leaf size={18} />
+            </span>
+            <div style={{ flex: 1, minWidth: "200px" }}>
+              <div style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-texte)" }}>Passeport Agronomique</div>
+              <p style={{ fontSize: "13px", color: "var(--color-secondaire)", margin: "2px 0 0" }}>
+                Rapport de démonstration — sol, climat, végétation, topographie, accessibilité.
+              </p>
+            </div>
+            <Link
+              href={`/parcelles/${a.slug}/passeport`}
+              className="btn-secondary akal-focusable"
+              style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", whiteSpace: "nowrap" }}
+            >
+              Analyser le potentiel
+              <ArrowRight size={14} />
+            </Link>
+          </div>
 
           <BlocCaracteristiques parcelle={a} />
 
