@@ -82,4 +82,6 @@ export type CommuneGeomRef = {
   typeCommune: "CR" | "MU" | null; // null = non classé à la source, jamais deviné (cf. import_geo_officiel)
   province: { id: number; nom: string };
   region: RegionOfficielleRef;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  geometry?: any;
 };

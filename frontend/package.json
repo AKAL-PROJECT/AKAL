@@ -10,8 +10,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
     "@sentry/nextjs": "^10.69.0",
     "browser-image-compression": "^2.0.2",
+    "firebase": "^12.17.1",
     "leaflet": "^1.9.4",
     "next": "16.2.12",
     "react": "19.2.4",
@@ -23,10 +25,12 @@
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.4",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/testing-library__jest-dom": "^5.14.9",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "jsdom": "^29.1.1",

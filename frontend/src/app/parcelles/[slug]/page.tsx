@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getParcelleBySlug, getParcelles } from "@/data/parcelles";
 import { formatMAD } from "@/lib/format";
+import { getCurrentUser } from "@/lib/auth-api";
 import FicheParcelle from "@/components/parcelles/FicheParcelle";
 
 // Glissement directionnel de la fiche entière : "nav-forward" quand on
@@ -48,9 +49,10 @@ export default async function FichePage({
   const { slug } = await params;
   const parcelle = await getParcelleBySlug(slug);
   if (!parcelle) notFound();
+  const utilisateur = await getCurrentUser();
   return (
     <ViewTransition enter={TRANSITION_DIRECTIONNELLE} exit={TRANSITION_DIRECTIONNELLE} default="none">
-      <FicheParcelle parcelle={parcelle} />
+      <FicheParcelle parcelle={parcelle} estConnecte={!!utilisateur} />
     </ViewTransition>
   );
 }

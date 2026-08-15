@@ -49,9 +49,22 @@ export default function CarteLeaflet({
           cf. app/parcelles/page.tsx). */}
       <LimitesRegions limites={limites} codeActif={regionActive?.code ?? null} onSelectionner={onSelectionnerRegion} />
 
-      {parcelles.map((p) => (
-        <MarqueurParcelle key={p.id} parcelle={p} />
-      ))}
+      {/* AUDIT — conflit de merge, même nature que CarteCouvertureLeaflet.tsx.
+          La version vendeur-auth-contact de ce fichier n'avait NI
+          RecalculTailleCarte, NI VolVersRegion, NI LimitesRegions : elle
+          correspond à une version de ce composant antérieure à P0-02/P0-03
+          (les 12 régions PostGIS réelles + vol animé, déjà sur main) —
+          vraisemblablement une branche divergée avant/sans ce travail,
+          jamais rebasée dessus. La prendre telle quelle aurait régressé
+          P0-02/P0-03 sur cette carte. Gardé la structure HEAD (à jour) +
+          adopté son filtre latitude/longitude != null, requis maintenant
+          que ParcelleTerrain les type nullable — même réserve non vérifiée
+          que dans CarteCouvertureLeaflet.tsx sur MarqueurParcelle lui-même. */}
+      {parcelles
+        .filter((p) => p.parcelle.latitude != null && p.parcelle.longitude != null)
+        .map((p) => (
+          <MarqueurParcelle key={p.id} parcelle={p} />
+        ))}
     </MapContainer>
   );
 }

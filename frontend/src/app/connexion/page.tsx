@@ -19,5 +19,5 @@ export default async function ConnexionPage({
   const utilisateur = await getCurrentUser();
   if (utilisateur) redirect(cheminSuivant);
 
-  return <ConnexionScreen next={cheminSuivant} motDePasseReinitialise={reinitialise === "1"} />;
+  return <ConnexionScreen next={cheminSuivant} />;
 }

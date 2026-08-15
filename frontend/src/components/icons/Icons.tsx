@@ -1,4 +1,4 @@
-// Icônes SVG inline — aucune dépendance externe.
+﻿// IcÃ´nes SVG inline â€” aucune dÃ©pendance externe.
 // Si tu installes lucide-react plus tard, tu peux remplacer ces composants
 // par les imports correspondants (Search, MapPin, Heart, etc.).
 
@@ -9,8 +9,8 @@ type IconProps = {
   strokeWidth?: number;
 };
 
-// Trait 1.75 par défaut (signature graphique du set) — les appels qui
-// précisent déjà strokeWidth (ex. connexion, gros pictos) restent inchangés.
+// Trait 1.75 par dÃ©faut (signature graphique du set) â€” les appels qui
+// prÃ©cisent dÃ©jÃ  strokeWidth (ex. connexion, gros pictos) restent inchangÃ©s.
 function base(size = 16, strokeWidth = 1.75): React.SVGProps<SVGSVGElement> {
   return {
     width: size,
@@ -290,8 +290,8 @@ export function EyeOff({ size, className, style, strokeWidth }: IconProps) {
   );
 }
 
-// Illustration ligne-art (montagne/triangle) — état vide du catalogue.
-// Aucune dépendance externe, cohérente avec le reste des icônes inline.
+// Illustration ligne-art (montagne/triangle) â€” Ã©tat vide du catalogue.
+// Aucune dÃ©pendance externe, cohÃ©rente avec le reste des icÃ´nes inline.
 export function MountainEmpty({ size = 64, className, style }: IconProps) {
   return (
     <svg
@@ -307,8 +307,7 @@ export function MountainEmpty({ size = 64, className, style }: IconProps) {
       style={style}
     >
       <path d="M6 46 22 20l10 14 6-8 20 20" />
-      <circle cx="46" cy="14" r="4" />
-      <path d="M6 46h52" strokeDasharray="2 4" />
     </svg>
   );
 }
+

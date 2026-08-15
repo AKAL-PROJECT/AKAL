@@ -38,10 +38,21 @@ export type ParcelleTerrain = {
   statutFoncier: StatutFoncier | null;
   accesEau: AccesEau | null;
   topographie: Topographie | null;
-  latitude: number;
-  longitude: number;
-  regionCode: string;
-  regionNom: string;
+  // AUDIT — CONFLIT DE FOND, résolu ici en gardant la version la PLUS
+  // PERMISSIVE (celle de vendeur-auth-contact) pour mesurer l'impact réel
+  // via tsc plutôt que de le masquer : cette branche (acheteur-catalogue-
+  // carte) supposait latitude/longitude/regionCode/regionNom TOUJOURS
+  // présents (cohérent avec le catalogue public, qui ne montre que des
+  // annonces en_ligne donc géolocalisées par construction, cf.
+  // can_publish() côté back) ; vendeur-auth-contact les rend nullables
+  // (cohérent avec un brouillon pas encore localisé). Les deux ont raison
+  // dans LEUR contexte respectif — mais c'est le MÊME type Parcelle
+  // partagé par les deux. Voir le rapport d'audit pour la liste des call
+  // sites carte qui supposent le non-null et cassent avec cette version.
+  latitude: number | null;
+  longitude: number | null;
+  regionCode: string | null;
+  regionNom: string | null;
   // Absents en liste (allégée, ParcelleListSerializer) — présents en détail
   // uniquement (ParcelleDetailSerializer expose bien province/commune
   // depuis 2026-08-06, malgré ce qu'indiquait encore ce commentaire —
@@ -75,8 +86,8 @@ export type ScoreCourant = {
 // Ligne d'annonce pour le dashboard propriétaire (GET /api/annonces/mes-annonces/).
 // Volontairement distinct de Parcelle : ne porte aucun champ géo/région
 // (latitude/longitude/region), non garantis tant que l'annonce n'a pas
-// passé l'étape "Localisation" de l'assistant de dépôt — contrairement à
-// Parcelle, qui suppose ces champs toujours présents (cf. mapAnnonceToParcelle).
+// passé l'étape "Localisation" de l'assistant de dépôt. Idem pour les données
+// scrapées : latitude/longitude/region peuvent être null.
 export type AnnonceProprietaire = {
   id: string;
   slug: string;
@@ -106,4 +117,5 @@ export type Parcelle = {
   scoreCourant: ScoreCourant | null;
   photoPrincipale: string | null;
   photos: string[]; // vide en liste, rempli en détail (§4.4 — trié par ordre croissant)
+  proprietaire?: { id: string; telephoneMasque: string | null };
 };

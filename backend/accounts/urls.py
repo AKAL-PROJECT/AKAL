@@ -20,7 +20,12 @@ from .views import (
     PasswordResetRequestView,
     RefreshView,
     SignupView,
+    
+    
+    
 )
+
+from .auth_api_views import PhoneLoginVerifyView, GoogleLoginView
 
 app_name = 'accounts-api'
 
@@ -32,4 +37,8 @@ urlpatterns = [
     path('me/', MeView.as_view(), name='me'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    
+    path('phone/verify/', PhoneLoginVerifyView.as_view(), name='phone-verify'),
+    path('google/', GoogleLoginView.as_view(), name='google-login'),
 ]
+

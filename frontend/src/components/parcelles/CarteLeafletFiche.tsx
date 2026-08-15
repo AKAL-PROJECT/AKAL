@@ -9,7 +9,34 @@ import TuileOSM from "@/components/TuileOSM";
 const RAYON_M = 500;
 
 export default function CarteLeafletFiche({ parcelle }: { parcelle: Parcelle }) {
-  const coords: [number, number] = [parcelle.parcelle.latitude, parcelle.parcelle.longitude];
+  const { latitude, longitude } = parcelle.parcelle;
+
+  if (latitude == null || longitude == null) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          backgroundColor: "var(--color-surface, #f5f5f5)",
+          borderRadius: "var(--radius-card)",
+          color: "var(--color-secondaire, #666)",
+          fontSize: "14px",
+          textAlign: "center",
+          padding: "24px",
+        }}
+      >
+        <span style={{ fontSize: "28px" }}>📍</span>
+        <strong style={{ color: "var(--color-texte, #333)" }}>Localisation non disponible</strong>
+        <span>Les coordonnées de cette parcelle ne sont pas encore renseignées.</span>
+      </div>
+    );
+  }
+
+  const coords: [number, number] = [latitude, longitude];
 
   return (
     <div style={{ position: "relative", height: "100%" }}>

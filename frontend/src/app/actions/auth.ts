@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { ApiError, type FieldErrors } from "@/lib/api";
-import { confirmPasswordReset, login, logout, requestPasswordReset, signup, type SignupInput } from "@/lib/auth-api";
+import { confirmPasswordReset, googleLogin, login, logout, phoneLoginVerify, requestPasswordReset, signup, type SignupInput } from "@/lib/auth-api";
 
 export type AuthFormState = {
   error: string;
@@ -64,6 +64,46 @@ export async function signupAction(_prevState: AuthFormState, formData: FormData
 export async function logoutAction(): Promise<void> {
   await logout();
   redirect("/");
+}
+
+// ─── Google OAuth ───────────────────────────────────────────────────────────
+
+export async function googleLoginAction(
+  _prevState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const token = String(formData.get("token") ?? "");
+  if (!token) return { error: "Jeton Google manquant.", fieldErrors: null };
+
+  try {
+    await googleLogin(token);
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message, fieldErrors: err.fieldErrors };
+    return { error: "Connexion Google échouée. Réessayez.", fieldErrors: null };
+  }
+
+  redirect(cheminSuivant(formData));
+}
+
+// ─── Téléphone / SMS OTP ────────────────────────────────────────────────────
+
+export async function phoneLoginAction(
+  _prevState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const token = String(formData.get("token") ?? "");
+  const prenom = String(formData.get("prenom") ?? "");
+  const nom = String(formData.get("nom") ?? "");
+  if (!token) return { error: "Jeton Firebase manquant.", fieldErrors: null };
+
+  try {
+    await phoneLoginVerify(token, prenom || undefined, nom || undefined);
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message, fieldErrors: err.fieldErrors };
+    return { error: "Vérification OTP échouée. Réessayez.", fieldErrors: null };
+  }
+
+  redirect(cheminSuivant(formData));
 }
 
 export async function passwordResetRequestAction(

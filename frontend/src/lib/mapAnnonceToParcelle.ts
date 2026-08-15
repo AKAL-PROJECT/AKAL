@@ -39,7 +39,7 @@ type ParcelleListDTO = {
   statut_foncier: StatutFoncier;
   acces_eau: AccesEau;
   topographie?: Topographie | null;
-  region: RegionDTO;
+  region: RegionDTO | null;
   localisation: LocalisationListDTO;
 };
 
@@ -100,7 +100,7 @@ export type AnnonceDetailDTO = {
   parcelle: ParcelleDetailDTO;
   score_courant: ScoreCourantDetailDTO;
   photos: PhotoDTO[]; // toujours triées par ordre croissant, [] si vide
-  proprietaire: { id: string }; // anonymisé — RGPD/loi 09-08, §4.5
+  proprietaire: { id: string; telephone_masque: string | null }; // anonymisé - RGPD/loi 09-08, §4.5
   created_at: string;
   updated_at: string;
 };
@@ -153,8 +153,16 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       topographie: dto.parcelle.topographie ?? null,
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
-      regionCode: dto.parcelle.region.code,
-      regionNom: dto.parcelle.region.nom,
+      // AUDIT — conflit de merge résolu littéralement (branche
+      // acheteur-catalogue-carte : region non-optionnelle + province/commune ;
+      // branche vendeur-auth-contact : region?.code ?? null). Gardé l'optional
+      // chaining d'Ibrahim (plus défensif) + mes champs province/commune —
+      // jamais vérifié QUAND region peut réellement être absente côté
+      // vendeur-auth-contact ni si regionCode/regionNom (typés `string` non
+      // nullable dans types/parcelle.ts) tolèrent vraiment `null` en aval —
+      // à valider, cf. rapport d'audit.
+      regionCode: dto.parcelle.region?.code ?? null,
+      regionNom: dto.parcelle.region?.nom ?? null,
       province: null, // absent en liste (ParcelleListSerializer)
       commune: null, // absent en liste
       adresseApproximative: null, // absent en liste
@@ -206,8 +214,10 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       topographie: dto.parcelle.topographie ?? null,
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
-      regionCode: dto.parcelle.region.code,
-      regionNom: dto.parcelle.region.nom,
+      // AUDIT — même conflit que mapAnnonceToParcelle() ci-dessus, résolu à
+      // l'identique.
+      regionCode: dto.parcelle.region?.code ?? null,
+      regionNom: dto.parcelle.region?.nom ?? null,
       province: dto.parcelle.province ?? null,
       commune: dto.parcelle.commune ?? null,
       adresseApproximative: dto.parcelle.localisation.adresse_approximative,
@@ -217,5 +227,9 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
     // photos toujours triées par ordre croissant côté API (§4.4) ; ordre 0 = principale.
     photoPrincipale: dto.photos[0]?.url ?? null,
     photos: dto.photos.map((p) => p.url),
+    proprietaire: {
+      id: dto.proprietaire.id,
+      telephoneMasque: dto.proprietaire.telephone_masque,
+    },
   };
 }

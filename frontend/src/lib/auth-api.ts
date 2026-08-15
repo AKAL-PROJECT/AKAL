@@ -194,3 +194,48 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 export type { FieldErrors };
+
+export async function phoneLoginRequest(telephone: string): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/phone/request/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ telephone }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
+}
+
+export async function phoneLoginVerify(token: string, prenom?: string, nom?: string): Promise<User> {
+  const res = await fetch(`${API_URL}/auth/phone/verify/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, prenom, nom }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
+  await suivreCookies(res);
+  return (await res.json()) as User;
+}
+
+export async function googleLogin(token: string): Promise<User> {
+  const res = await fetch(`${API_URL}/auth/google/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
+  await suivreCookies(res);
+  return (await res.json()) as User;
+}
+
+

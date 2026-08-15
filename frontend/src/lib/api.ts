@@ -81,6 +81,7 @@ function buildUrl(path: string, params?: QueryParams): string {
 export type ApiFetchOptions = Omit<RequestInit, "body"> & {
   params?: QueryParams;
   body?: unknown;
+  timeout?: number;
 };
 
 // Auth : en attendant l'implémentation JWT côté back (cf. audit §4), ce
@@ -88,22 +89,35 @@ export type ApiFetchOptions = Omit<RequestInit, "body"> & {
 // injecter ici `Authorization: Bearer ${accessToken}` une fois le flux login
 // disponible, sans changer la signature d'apiFetch pour les appelants.
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { params, body, headers, ...rest } = options;
+  const { params, body, headers, timeout = 10000, ...rest } = options;
 
-  const res = await fetch(buildUrl(path, params), {
-    ...rest,
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-
-  if (!res.ok) {
-    const { message, fieldErrors } = await lireErreur(res);
-    throw new ApiError(res.status, message, fieldErrors);
+  let signal = rest.signal;
+  if (!signal && typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    signal = AbortSignal.timeout(timeout);
   }
 
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  try {
+    const res = await fetch(buildUrl(path, params), {
+      ...rest,
+      signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+
+    if (!res.ok) {
+      const { message, fieldErrors } = await lireErreur(res);
+      throw new ApiError(res.status, message, fieldErrors);
+    }
+
+    if (res.status === 204) return undefined as T;
+    return (await res.json()) as T;
+  } catch (err) {
+    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+      throw new Error("Le serveur met trop de temps à répondre. Vérifiez votre connexion ou réessayez plus tard.");
+    }
+    throw err;
+  }
 }

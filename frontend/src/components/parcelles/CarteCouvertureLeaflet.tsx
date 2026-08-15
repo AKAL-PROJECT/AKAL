@@ -64,9 +64,30 @@ export default function CarteCouvertureLeaflet({
       <LimitesRegions limites={limites} codeActif={regionActive?.code ?? null} onSelectionner={onSelectionnerRegion} />
 
       <MarkerClusterGroup key={regionActive?.code ?? "tout"} chunkedLoading maxClusterRadius={45}>
-        {visibles.map((p) => (
-          <MarqueurParcelle key={p.id} parcelle={p} />
-        ))}
+        {/* AUDIT — conflit de merge. La branche vendeur-auth-contact
+            réimplémentait ici tout le JSX du marqueur/popup en inline
+            (avec un filtre latitude/longitude != null en amont, cohérent
+            avec son typage nullable de ParcelleTerrain) au lieu de
+            réutiliser <MarqueurParcelle>, le composant partagé extrait de
+            ce même fichier pendant P1-01 précisément pour être réutilisé
+            (cf. CarteRegions.tsx) — vraisemblablement écrit en parallèle,
+            avant/sans connaître cette extraction : son JSX inline
+            référençait Marker/Popup/Link/formatMAD/iconeAkal sans les
+            importer dans ce fichier, donc n'aurait de toute façon pas
+            compilé tel quel. Résolution : on garde le composant partagé
+            (pas de duplication) et on adopte son filtre défensif — devenu
+            nécessaire de toute façon puisque latitude/longitude sont
+            maintenant `number | null` (cf. types/parcelle.ts). Mais
+            MarqueurParcelle lui-même (CarteRegions.tsx:196) fait encore
+            `position={[p.parcelle.latitude, p.parcelle.longitude]}` sans
+            garde — passe-t-il tsc une fois ce filtre appliqué en amont ici
+            mais pas dans SES AUTRES appelants (CarteComparateur,
+            CarteLeafletFiche…) ? Non vérifié — cf. rapport d'audit. */}
+        {visibles
+          .filter((p) => p.parcelle.latitude != null && p.parcelle.longitude != null)
+          .map((p) => (
+            <MarqueurParcelle key={p.id} parcelle={p} />
+          ))}
       </MarkerClusterGroup>
     </MapContainer>
   );

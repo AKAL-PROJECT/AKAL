@@ -105,5 +105,6 @@ export async function fetchCommuneGeomDetail(id: number): Promise<CommuneGeomRef
     typeCommune: feature.properties.type_commune,
     province: feature.properties.province,
     region: feature.properties.region,
+    geometry: feature.geometry,
   };
 }

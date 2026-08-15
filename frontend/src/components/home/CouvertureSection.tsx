@@ -27,10 +27,14 @@ const CarteCouverture = dynamic(() => import("@/components/parcelles/CarteCouver
 function statsParRegion(parcelles: Parcelle[], regions: Region[]) {
   return regions.map((r) => {
     const items = parcelles.filter((p) => p.parcelle.regionNom === r.nom);
-    const centre: [number, number] | null = items.length
+    // On ne retient que les parcelles avec coordonnées valides pour le calcul du centre
+    const avecCoords = items.filter(
+      (p) => p.parcelle.latitude != null && p.parcelle.longitude != null
+    );
+    const centre: [number, number] | null = avecCoords.length
       ? [
-          items.reduce((s, p) => s + p.parcelle.latitude, 0) / items.length,
-          items.reduce((s, p) => s + p.parcelle.longitude, 0) / items.length,
+          avecCoords.reduce((s, p) => s + (p.parcelle.latitude as number), 0) / avecCoords.length,
+          avecCoords.reduce((s, p) => s + (p.parcelle.longitude as number), 0) / avecCoords.length,
         ]
       : null;
     return { code: r.code, nom: r.nom, count: items.length, centre };
