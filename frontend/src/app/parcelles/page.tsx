@@ -333,7 +333,7 @@ function Catalogue() {
           </div>
         ) : resultatsAffiches.length === 0 ? (
           <EtatVide
-            titre="Aucune terre ne correspond à ces critères"
+            titre="Aucun terrain ne correspond à votre recherche"
             description="Essayez d'élargir votre recherche ou de réinitialiser les filtres."
             action={
               <button type="button" className="btn-secondary" onClick={reinitialiser}>

@@ -39,7 +39,7 @@ type ParcelleListDTO = {
   statut_foncier: StatutFoncier;
   acces_eau: AccesEau;
   topographie?: Topographie | null;
-  region: RegionDTO;
+  region: RegionDTO | null;
   localisation: LocalisationListDTO;
 };
 
@@ -89,7 +89,7 @@ export type AnnonceDetailDTO = {
   parcelle: ParcelleDetailDTO;
   score_courant: ScoreCourantDetailDTO;
   photos: PhotoDTO[]; // toujours triées par ordre croissant, [] si vide
-  proprietaire: { id: string }; // anonymisé — RGPD/loi 09-08, §4.5
+  proprietaire: { id: string; telephone_masque: string | null }; // anonymisé - RGPD/loi 09-08, §4.5
   created_at: string;
   updated_at: string;
 };
@@ -142,8 +142,8 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       topographie: dto.parcelle.topographie ?? null,
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
-      regionCode: dto.parcelle.region.code,
-      regionNom: dto.parcelle.region.nom,
+      regionCode: dto.parcelle.region?.code ?? null,
+      regionNom: dto.parcelle.region?.nom ?? null,
       adresseApproximative: null, // absent en liste
     },
     scoreCourant: mapScoreCourant(dto.score_courant),
@@ -192,13 +192,17 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       topographie: dto.parcelle.topographie ?? null,
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
-      regionCode: dto.parcelle.region.code,
-      regionNom: dto.parcelle.region.nom,
+      regionCode: dto.parcelle.region?.code ?? null,
+      regionNom: dto.parcelle.region?.nom ?? null,
       adresseApproximative: dto.parcelle.localisation.adresse_approximative,
     },
     scoreCourant: mapScoreCourant(dto.score_courant),
     // photos toujours triées par ordre croissant côté API (§4.4) ; ordre 0 = principale.
     photoPrincipale: dto.photos[0]?.url ?? null,
     photos: dto.photos.map((p) => p.url),
+    proprietaire: {
+      id: dto.proprietaire.id,
+      telephoneMasque: dto.proprietaire.telephone_masque,
+    },
   };
 }

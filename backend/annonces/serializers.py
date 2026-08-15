@@ -191,10 +191,22 @@ class ProprietaireSerializer(serializers.Serializer):
     """
     Informations du propriétaire pour la vue détail.
 
-    RGPD (loi 09-08) : expose UNIQUEMENT l'UUID, aucune donnée personnelle.
+    RGPD (loi 09-08) : expose l'UUID et le téléphone masqué (jamais en clair).
     """
 
     id = serializers.UUIDField(read_only=True)
+    telephone_masque = serializers.SerializerMethodField()
+
+    def get_telephone_masque(self, obj):
+        if not getattr(obj, 'telephone', None):
+            return None
+            
+        tel = obj.telephone.replace(" ", "")
+        if tel.startswith("+212") and len(tel) >= 5:
+            return f"+212 {tel[4]} ** ** ** **"
+        elif tel.startswith("0") and len(tel) >= 2:
+            return f"{tel[:2]} ** ** ** **"
+        return "***"
 
 
 # ──────────────────────────────────────────────

@@ -51,7 +51,7 @@ function agriScoreLegende(score: number | null): string {
   return "Potentiel limité. Convient à des cultures extensives ou à la pâture.";
 }
 
-export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
+export default function FicheParcelle({ parcelle: a, estConnecte = false }: { parcelle: Parcelle, estConnecte?: boolean }) {
   const { favorisIds, toggleFavori } = useFavorisIds();
   const favori = favorisIds.has(a.id);
   const [lienCopie, setLienCopie] = useState(false);
@@ -248,7 +248,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
             {/* CTAs */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <Link
-                href={`/messages/nouveau?annonce=${a.slug}`}
+                href={estConnecte ? `/messages/nouveau?annonce=${a.slug}` : `/connexion?next=/messages/nouveau?annonce=${a.slug}`}
                 className="btn-primary"
                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", textDecoration: "none" }}
               >
@@ -342,7 +342,7 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
           </div>
         </div>
         <Link
-          href={`/messages/nouveau?annonce=${a.slug}`}
+          href={estConnecte ? `/messages/nouveau?annonce=${a.slug}` : `/connexion?next=/messages/nouveau?annonce=${a.slug}`}
           className="btn-primary"
           style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, textDecoration: "none" }}
         >
@@ -353,3 +353,4 @@ export default function FicheParcelle({ parcelle: a }: { parcelle: Parcelle }) {
     </div>
   );
 }
+

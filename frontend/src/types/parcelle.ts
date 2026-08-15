@@ -40,10 +40,10 @@ export type ParcelleTerrain = {
   statutFoncier: StatutFoncier | null;
   accesEau: AccesEau | null;
   topographie: Topographie | null;
-  latitude: number;
-  longitude: number;
-  regionCode: string;
-  regionNom: string;
+  latitude: number | null;
+  longitude: number | null;
+  regionCode: string | null;
+  regionNom: string | null;
   // Absent en liste (allégé) — présent en détail uniquement.
   adresseApproximative: string | null;
 };
@@ -61,8 +61,8 @@ export type ScoreCourant = {
 // Ligne d'annonce pour le dashboard propriétaire (GET /api/annonces/mes-annonces/).
 // Volontairement distinct de Parcelle : ne porte aucun champ géo/région
 // (latitude/longitude/region), non garantis tant que l'annonce n'a pas
-// passé l'étape "Localisation" de l'assistant de dépôt — contrairement à
-// Parcelle, qui suppose ces champs toujours présents (cf. mapAnnonceToParcelle).
+// passé l'étape "Localisation" de l'assistant de dépôt. Idem pour les données
+// scrapées : latitude/longitude/region peuvent être null.
 export type AnnonceProprietaire = {
   id: string;
   slug: string;
@@ -92,4 +92,5 @@ export type Parcelle = {
   scoreCourant: ScoreCourant | null;
   photoPrincipale: string | null;
   photos: string[]; // vide en liste, rempli en détail (§4.4 — trié par ordre croissant)
+  proprietaire?: { id: string; telephoneMasque: string | null };
 };

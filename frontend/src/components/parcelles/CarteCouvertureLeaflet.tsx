@@ -102,8 +102,10 @@ export default function CarteCouvertureLeaflet({
       <LimiteRegion code={regionActive?.code ?? null} />
 
       <MarkerClusterGroup key={regionActive?.code ?? "tout"} chunkedLoading maxClusterRadius={45}>
-        {visibles.map((p) => (
-          <Marker key={p.id} position={[p.parcelle.latitude, p.parcelle.longitude]} icon={iconeAkal}>
+        {visibles
+          .filter((p) => p.parcelle.latitude != null && p.parcelle.longitude != null)
+          .map((p) => (
+            <Marker key={p.id} position={[p.parcelle.latitude as number, p.parcelle.longitude as number]} icon={iconeAkal}>
             <Popup>
               <div style={{ minWidth: "160px" }}>
                 <strong style={{ fontSize: "13px", color: "#2D6A4F" }}>{p.titre}</strong>

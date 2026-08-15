@@ -73,6 +73,8 @@ export function EtapeLocalisation({
   const [regionSlug, setRegionSlug] = useState("");
   const [provinceId, setProvinceId] = useState("");
   const [communeId, setCommuneId] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [communeGeometry, setCommuneGeometry] = useState<any>(null);
   // Pré-rempli si l'utilisateur revient sur cette étape après avoir déjà
   // placé un repère — la cascade région/province/commune, elle, doit être
   // re-choisie (pas de lookup inverse commune -> région/province côté API).
@@ -116,6 +118,7 @@ export function EtapeLocalisation({
         setRegionSlug(commune.region.slug);
         setProvinceId(String(commune.province.id));
         setCommuneId(String(commune.id));
+        setCommuneGeometry(commune.geometry);
       })
       .catch(() => {
         // Commune supprimée/renumérotée depuis l'enregistrement de l'annonce
@@ -224,7 +227,16 @@ export function EtapeLocalisation({
             className="input select-chevron"
             value={communeId}
             disabled={!provinceId}
-            onChange={(e) => setCommuneId(e.target.value)}
+            onChange={(e) => {
+              setCommuneId(e.target.value);
+              if (e.target.value) {
+                fetchCommuneGeomDetail(Number(e.target.value))
+                  .then(c => setCommuneGeometry(c.geometry))
+                  .catch(() => setCommuneGeometry(null));
+              } else {
+                setCommuneGeometry(null);
+              }
+            }}
           >
             <option value="">Choisir...</option>
             {communes.map((c) => (
@@ -263,6 +275,7 @@ export function EtapeLocalisation({
         >
           <CarteLeafletPicker
             mode={mode}
+            geojsonCommune={communeGeometry}
             position={position}
             onChangePosition={setPosition}
             contour={contour}

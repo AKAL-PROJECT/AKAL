@@ -38,3 +38,12 @@ backend/akal_env/
 # Antigravity/Gemini IDE customization directory
 .agents/
 
+# Secrets & Service Accounts
+*firebase-service-account.json
+*.json.secret
+
+# Temporary files
+media_temp/
+backend/media_temp/
+backend/script.py
+.postman/
