@@ -208,11 +208,11 @@ export async function phoneLoginRequest(telephone: string): Promise<void> {
   }
 }
 
-export async function phoneLoginVerify(token: string): Promise<User> {
+export async function phoneLoginVerify(token: string, prenom?: string, nom?: string): Promise<User> {
   const res = await fetch(`${API_URL}/auth/phone/verify/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ token, prenom, nom }),
     cache: "no-store",
   });
   if (!res.ok) {

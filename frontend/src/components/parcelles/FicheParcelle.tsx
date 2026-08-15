@@ -9,6 +9,9 @@ import ScoreBar from "./ScoreBar";
 import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
 import SimulateurROI from "./SimulateurROI";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { ContactVendeurPanel } from "@/components/messaging/ContactVendeurPanel";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
 import { formatMAD } from "@/lib/format";
 import {
@@ -52,6 +55,27 @@ function agriScoreLegende(score: number | null): string {
 }
 
 export default function FicheParcelle({ parcelle: a, estConnecte = false }: { parcelle: Parcelle, estConnecte?: boolean }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isContactPanelOpen, setIsContactPanelOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("contact") === "1" && estConnecte) {
+      setIsContactPanelOpen(true);
+      // Clean up the URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, [searchParams, estConnecte]);
+
+  const handleContactClick = () => {
+    if (estConnecte) {
+      setIsContactPanelOpen(true);
+    } else {
+      router.push(`/connexion?next=/parcelles/${a.slug}?contact=1`);
+    }
+  };
+
   const { favorisIds, toggleFavori } = useFavorisIds();
   const favori = favorisIds.has(a.id);
   const [lienCopie, setLienCopie] = useState(false);
@@ -247,14 +271,14 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
 
             {/* CTAs */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link
-                href={estConnecte ? `/messages/nouveau?annonce=${a.slug}` : `/connexion?next=/messages/nouveau?annonce=${a.slug}`}
+              <button
+                onClick={handleContactClick}
                 className="btn-primary"
                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", textDecoration: "none" }}
               >
                 <MessageSquare size={15} />
                 Contacter le vendeur
-              </Link>
+              </button>
               <p style={{ fontSize: "12px", color: "var(--color-tertiaire)", textAlign: "center", margin: 0 }}>
                 Échange direct avec le vendeur, sans intermédiaire.
               </p>
@@ -341,15 +365,19 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
             {a.prixM2} MAD/m²
           </div>
         </div>
-        <Link
-          href={estConnecte ? `/messages/nouveau?annonce=${a.slug}` : `/connexion?next=/messages/nouveau?annonce=${a.slug}`}
+        <button
+          onClick={handleContactClick}
           className="btn-primary"
-          style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, textDecoration: "none" }}
+          style={{ flex: 1, textAlign: "center", textDecoration: "none" }}
         >
-          <MessageSquare size={14} />
           Contacter
-        </Link>
+        </button>
       </div>
+      <ContactVendeurPanel 
+        parcelle={a} 
+        isOpen={isContactPanelOpen} 
+        onClose={() => setIsContactPanelOpen(false)} 
+      />
     </div>
   );
 }

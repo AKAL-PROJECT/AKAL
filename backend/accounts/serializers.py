@@ -44,14 +44,12 @@ MAX_AVATAR_OCTETS = 2 * 1024 * 1024
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Édition du profil (PATCH /auth/me, cf. MeView.update()) — page /compte
-    (mission « avatar + téléphone »). Volontairement restreint à ces deux
-    champs : nom/prénom/email/rôle n'ont pas d'UI d'édition prévue par cette
-    mission, donc pas exposés en écriture ici (contrairement à UserSerializer
-    ci-dessus, qui les expose en lecture)."""
+    (mission « avatar + téléphone »). Ajout de prenom et nom pour permettre
+    à la ProfilCompletionGate de remplir les informations manquantes."""
 
     class Meta:
         model = User
-        fields = ['telephone', 'avatar']
+        fields = ['telephone', 'avatar', 'prenom', 'nom']
 
     def validate_avatar(self, value):
         if value and value.size > MAX_AVATAR_OCTETS:

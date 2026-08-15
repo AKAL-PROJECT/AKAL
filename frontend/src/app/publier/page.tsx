@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-api";
 import { getBrouillon } from "@/lib/annonces-api";
 import { DepotAnnonceWizard } from "@/components/depot-annonce/DepotAnnonceWizard";
+import ProfilCompletionGate from "@/components/compte/ProfilCompletionGate";
 import type { AnnonceEcriture } from "@/types/depot-annonce";
 
 export const metadata: Metadata = {
@@ -34,5 +35,10 @@ export default async function PublierPage({
     }
   }
 
-  return <DepotAnnonceWizard annonceInitiale={annonceInitiale} />;
+  return (
+    <ProfilCompletionGate user={utilisateur}>
+      <DepotAnnonceWizard annonceInitiale={annonceInitiale} />
+    </ProfilCompletionGate>
+  );
 }
+

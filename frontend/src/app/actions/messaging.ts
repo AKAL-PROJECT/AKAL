@@ -49,6 +49,20 @@ export async function envoyerReponseAction(
   }
 }
 
+// Action sans redirection, utilisée par le ContactVendeurPanel (Slide-over)
+// pour garder l'acheteur sur la page de l'annonce.
+export async function demarrerConversationPanelAction(
+  annonceId: string,
+  contenu: string,
+): Promise<{ conversation: Conversation | null; error: string | null }> {
+  try {
+    const conversation = await demarrerConversation(annonceId, contenu);
+    return { conversation, error: null };
+  } catch (err) {
+    return { conversation: null, error: etatErreur(err)?.error ?? "Erreur inconnue." };
+  }
+}
+
 // Polling (décision F05 : pas de WebSocket) — appelées à intervalle depuis
 // useEffect côté client. Renvoient null en cas d'échec plutôt que de lever :
 // un poll raté ne doit jamais casser l'affichage, juste être ignoré jusqu'au

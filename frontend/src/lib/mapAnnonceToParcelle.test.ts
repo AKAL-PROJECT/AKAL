@@ -57,7 +57,7 @@ const ANNONCE_DETAIL_DTO: AnnonceDetailDTO = {
       ordre: 0,
     },
   ],
-  proprietaire: { id: "c3e6a9b2-4d7f-4a0c-b5e8-f1b4c7d0e3a6" },
+  proprietaire: { id: "c3e6a9b2-4d7f-4a0c-b5e8-f1b4c7d0e3a6", telephone_masque: null },
   created_at: "2026-05-28T14:12:00Z",
   updated_at: "2026-06-01T09:30:00Z",
 };
