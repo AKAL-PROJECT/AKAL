@@ -151,7 +151,11 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
           </button>
         </Link>
 
-        <Link href="/favoris" className="akal-icon-link akal-focusable" style={{ color: "var(--color-foret)", display: "flex" }} title="Favoris" aria-label="Favoris">
+        {/* Icône cœur conservée (le contenu principal reste vos favoris) —
+            libellé élargi à "Tableau de bord" (P1-03) : la page derrière ce
+            lien montre désormais aussi la carte de la sélection, l'accès au
+            comparateur et l'export PDF. */}
+        <Link href="/favoris" className="akal-icon-link akal-focusable" style={{ color: "var(--color-foret)", display: "flex" }} title="Tableau de bord" aria-label="Tableau de bord">
           <Heart size={24} strokeWidth={1.7} />
         </Link>
         <Link
