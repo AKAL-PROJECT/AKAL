@@ -49,8 +49,11 @@ export default function Footer() {
             <Link href="/publier" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Déposer une annonce
             </Link>
-            <Link href="/#comment-ca-marche" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+            <Link href="/comment-ca-marche" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
               Comment ça marche
+            </Link>
+            <Link href="/financement" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+              Financement
             </Link>
           </div>
         </div>
@@ -58,7 +61,9 @@ export default function Footer() {
         <div>
           <div style={{ fontSize: "13px", fontWeight: 500, color: "white", marginBottom: "14px" }}>À propos</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <span style={{ fontSize: "14px", color: "var(--color-menthe)", opacity: 0.7 }}>Notre mission</span>
+            <Link href="/proposition-de-valeur" className="akal-footer-link" style={{ fontSize: "14px", color: "var(--color-menthe)", textDecoration: "none" }}>
+              Notre mission
+            </Link>
             <span style={{ fontSize: "14px", color: "var(--color-menthe)", opacity: 0.7 }}>Contact</span>
           </div>
         </div>

@@ -655,6 +655,31 @@
   }
   .akal-link-fleche:hover { transform: translateX(3px); color: var(--color-nuit); }
 
+  /* Flèches du slider "Sélection de terrains" (Home) — bouton rond cohérent
+     avec le reste du système (rosée + foret, même logique que la puce
+     Confiance plus haut dans ce fichier). */
+  .akal-slider-fleche {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--color-bordure);
+    background-color: white;
+    color: var(--color-foret);
+    box-shadow: var(--shadow-1);
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+  .akal-slider-fleche:hover:not(:disabled) {
+    background-color: var(--color-rosee);
+    border-color: var(--color-foret);
+  }
+
+  /* Piste du slider — défilement natif, scrollbar masquée (les flèches +
+     le geste tactile suffisent comme contrôle, cf. SelectionTerrainsSlider). */
+  .akal-slider-piste::-webkit-scrollbar { display: none; }
+
   /* Puce région (Home, couverture nationale) — bordure/fond réagissent au
      survol et au clavier (état "border-color transition" jusqu'ici sans
      cible : ajouté ici). */

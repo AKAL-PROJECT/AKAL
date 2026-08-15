@@ -1,0 +1,44 @@
+{
+  "id": "002f319c-cfb9-4175-8feb-20a2723ce4ff",
+  "annonce_ref": null,
+  "genere_le": "2026-08-14T22:18:41Z",
+  "simule": true,
+  "avertissement": "Rapport généré à partir de données SIMULÉES à des fins de démonstration. Ne reflète aucune mesure réelle du terrain.",
+  "localisation": {
+    "region": {
+      "code": "souss-massa",
+      "nom": "Souss-Massa"
+    },
+    "commune": "Oulad Teima",
+    "latitude": 30.8963,
+    "longitude": -4.3318
+  },
+  "acces": {
+    "type_route": "route goudronnée",
+    "distance_ville_km": 12,
+    "acces_eau": "bour"
+  },
+  "pedologie": {
+    "type_sol": "sablo-argileux",
+    "ph_estime": 7.0,
+    "profondeur_sol_cm": 43
+  },
+  "hydrique": {
+    "niveau": "eleve",
+    "pluviometrie_moyenne_mm_an": 494,
+    "nappe_estimee_m": 31
+  },
+  "potentiel_agricole": {
+    "niveau": "faible",
+    "score_indicatif": 19
+  },
+  "cultures_suggerees": [
+    "blé tendre",
+    "olivier en sec",
+    "orge"
+  ],
+  "synthese": {
+    "niveau_global": "faible",
+    "resume": "Profil contraint : plusieurs facteurs limitants, valorisation à étudier au cas par cas."
+  }
+}
