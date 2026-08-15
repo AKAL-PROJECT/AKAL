@@ -424,6 +424,65 @@ class CommuneGeomTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
 
+    def publier_annonce_geolocalisee(self):
+        """Localise (commune_geom), ajoute une photo et publie self.annonce_id — préalable
+        commun aux tests de filtre province/commune ci-dessous."""
+        self.patch_parcelle(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+        self.client.logout()
+
+    def test_filtre_province_catalogue_p0_04(self):
+        """?province=<id ProvinceGeom> (cascade P0-04) — filtre sur commune_geom
+        uniquement, jamais sur la province legacy (self.province, id potentiellement
+        identique à self.province_geom.id sans être le même lieu, cf. commentaire
+        AnnonceAPIFilter.province)."""
+        self.publier_annonce_geolocalisee()
+
+        response = self.client.get(ANNONCES_URL, {'province': self.province_geom.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_province_catalogue_exclut_une_autre_province(self):
+        self.publier_annonce_geolocalisee()
+        autre_province = ProvinceGeom.objects.create(
+            iso='MA-03-999', nom='Autre province', region=self.region_officielle,
+            geom=_polygone_carre(-6.5, 34.5),
+        )
+
+        response = self.client.get(ANNONCES_URL, {'province': autre_province.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_commune_catalogue_p0_04(self):
+        """?commune=<id CommuneGeom> (cascade P0-04)."""
+        self.publier_annonce_geolocalisee()
+
+        response = self.client.get(ANNONCES_URL, {'commune': self.commune_geom.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_commune_catalogue_exclut_une_autre_commune(self):
+        self.publier_annonce_geolocalisee()
+        autre_commune = CommuneGeom.objects.create(
+            source_fid=999, libelle='CR AUTRE', nom_affichage='Autre commune',
+            province=self.province_geom, geom=_polygone_carre(-5.5, 33.5, demi_cote=0.01),
+        )
+
+        response = self.client.get(ANNONCES_URL, {'commune': autre_commune.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
 
 class PhotoUploadTests(AnnoncesTestBase):
     def setUp(self):

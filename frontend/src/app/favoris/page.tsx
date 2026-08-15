@@ -5,8 +5,8 @@ import { getFavoris } from "@/lib/favoris-api";
 import { FavorisScreen } from "@/components/parcelles/FavorisScreen";
 
 export const metadata: Metadata = {
-  title: "Mes favoris • AKAL",
-  description: "Les parcelles que vous avez sauvegardées.",
+  title: "Tableau de bord • AKAL",
+  description: "Vos parcelles sélectionnées : comparez-les et téléchargez votre rapport de prospection.",
 };
 
 export default async function FavorisPage() {

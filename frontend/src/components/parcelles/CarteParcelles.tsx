@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { Parcelle } from "@/types/parcelle";
+import type { RegionActive, RegionRef } from "./CarteRegions";
 
 // Leaflet a besoin de `window`, qui n'existe pas au rendu serveur (SSR).
 // On charge donc la carte uniquement côté client avec ssr: false.
@@ -25,7 +26,17 @@ const CarteLeaflet = dynamic(() => import("./CarteLeaflet"), {
   ),
 });
 
-export default function CarteParcelles({ parcelles }: { parcelles: Parcelle[] }) {
+export default function CarteParcelles({
+  parcelles,
+  regions,
+  regionActive,
+  onSelectionnerRegion,
+}: {
+  parcelles: Parcelle[];
+  regions: RegionRef[];
+  regionActive: RegionActive;
+  onSelectionnerRegion?: (code: string) => void;
+}) {
   return (
     <div
       style={{
@@ -37,7 +48,12 @@ export default function CarteParcelles({ parcelles }: { parcelles: Parcelle[] })
         overflow: "hidden",
       }}
     >
-      <CarteLeaflet parcelles={parcelles} />
+      <CarteLeaflet
+        parcelles={parcelles}
+        regions={regions}
+        regionActive={regionActive}
+        onSelectionnerRegion={onSelectionnerRegion}
+      />
     </div>
   );
 }

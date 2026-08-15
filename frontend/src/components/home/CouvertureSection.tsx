@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { MapPin } from "@/components/icons/Icons";
 import { Reveal } from "@/components/Reveal";
 import type { Parcelle } from "@/types/parcelle";
+import { getRegions, type Region } from "@/data/parcelles";
 import type { RegionActive } from "@/components/parcelles/CarteCouvertureLeaflet";
 
 // Leaflet touche `window`, absent au rendu serveur (SSR) — chargement
@@ -19,20 +20,11 @@ const CarteCouverture = dynamic(() => import("@/components/parcelles/CarteCouver
   ),
 });
 
-// cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés.
-const REGIONS = [
-  { code: "casablanca-settat", nom: "Casablanca-Settat" },
-  { code: "fes-meknes", nom: "Fès-Meknès" },
-  { code: "souss-massa", nom: "Souss-Massa" },
-  { code: "rabat-sale-kenitra", nom: "Rabat-Salé-Kénitra" },
-  { code: "oriental", nom: "Oriental" },
-];
-
 // Compteur + centre par région pour le panneau/la carte de couverture —
 // dérivés des vraies parcelles (moyenne lat/lng), jamais codés en dur.
 // `centre` est null si la région n'a aucune parcelle (le bouton reste
 // cliquable, la carte retombe alors sur la vue Maroc entière).
-function statsParRegion(parcelles: Parcelle[], regions: typeof REGIONS) {
+function statsParRegion(parcelles: Parcelle[], regions: Region[]) {
   return regions.map((r) => {
     const items = parcelles.filter((p) => p.parcelle.regionNom === r.nom);
     const centre: [number, number] | null = items.length
@@ -59,7 +51,16 @@ export default function CouvertureSection({
   totalCount: number;
 }) {
   const [regionCode, setRegionCode] = useState<string | null>(null);
-  const statsRegions = statsParRegion(parcelles, REGIONS);
+  // Les 12 régions officielles, jamais une liste recopiée à la main (audit
+  // P0-03) — même source que le filtre du catalogue (FiltresSidebar).
+  const [regions, setRegions] = useState<Region[]>([]);
+  useEffect(() => {
+    getRegions()
+      .then(setRegions)
+      .catch(() => setRegions([]));
+  }, []);
+
+  const statsRegions = statsParRegion(parcelles, regions);
   const regionActive: RegionActive = regionCode
     ? statsRegions.find((r) => r.code === regionCode) ?? null
     : null;
@@ -187,7 +188,12 @@ export default function CouvertureSection({
               boxShadow: "var(--shadow-2)",
             }}
           >
-            <CarteCouverture parcelles={parcelles} regionActive={regionActive} />
+            <CarteCouverture
+              parcelles={parcelles}
+              regions={regions}
+              regionActive={regionActive}
+              onSelectionnerRegion={(code) => setRegionCode((actuel) => (actuel === code ? null : code))}
+            />
           </div>
         </div>
       </Reveal>

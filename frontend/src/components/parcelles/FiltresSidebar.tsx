@@ -11,6 +11,12 @@ import {
 import { STATUT_FONCIER_LABEL } from "./BadgeStatut";
 import { Search, X, ChevronDown, Check } from "@/components/icons/Icons";
 import { formatMAD } from "@/lib/format";
+// Cascade P0-04 (région → province → commune) — référentiel officiel
+// (2026-08-06), même source et mêmes fonctions que la cascade du dépôt
+// d'annonce (EtapeLocalisation.tsx, territoire d'Ibrahim) : lib/geo-api.ts
+// est un fichier-frontière, consommé ici en lecture seule.
+import { fetchCommunesGeom, fetchProvincesGeom } from "@/lib/geo-api";
+import type { CommuneGeomRef, ProvinceGeomRef } from "@/types/depot-annonce";
 
 type Props = {
   ouverte: boolean;
@@ -25,33 +31,164 @@ type Props = {
   onAppliquer: () => void;
 };
 
-// Parse un input numérique en number | null (champ vide => null, pas de filtre).
-function parseNum(v: string): number | null {
-  if (v.trim() === "") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+// ── Champ plage numérique (min/max) — P1-02 ────────────────────────────────
+// Réutilisé pour Prix et Surface : mêmes règles de validation (nombre
+// positif, min <= max), même comportement d'application différée (cf.
+// ci-dessous), donc un seul composant plutôt que deux quasi-copies.
+//
+// Texte local plutôt que des champs directement contrôlés par `filtres` :
+// l'utilisateur doit pouvoir taper librement (y compris un état transitoire
+// incohérent, ex. max="8" en train de devenir "800000" pendant que min vaut
+// déjà "900000") sans qu'une requête parte à chaque caractère ni qu'une
+// combinaison incohérente atteigne l'API pour rien. L'erreur, elle,
+// s'affiche en direct (dès la frappe) ; l'application réelle (onChangeMin/
+// onChangeMax, donc la requête) n'a lieu qu'à la perte de focus ou sur
+// Entrée, et seulement si le résultat est valide — sinon rien n'est envoyé,
+// le dernier filtre valide reste actif (§7 du ticket : "empêcher
+// l'application du filtre" est explicitly listed comme alternative valable
+// à un blocage dur).
+function ChampPlageNumerique({
+  label,
+  suffixeUnite,
+  formatValeur,
+  min,
+  max,
+  onChangeMin,
+  onChangeMax,
+}: {
+  label: string;
+  suffixeUnite: string;
+  formatValeur: (n: number) => string;
+  min: number | null;
+  max: number | null;
+  onChangeMin: (v: number | null) => void;
+  onChangeMax: (v: number | null) => void;
+}) {
+  const [texteMin, setTexteMin] = useState(min != null ? String(min) : "");
+  const [texteMax, setTexteMax] = useState(max != null ? String(max) : "");
+
+  // Resynchronise si la valeur externe change pour une raison EXTÉRIEURE à
+  // ce champ (Réinitialiser les filtres, restauration depuis l'URL au
+  // montage) — jamais en réaction à notre propre onChangeMin/onChangeMax,
+  // qui ne fait que refléter ce que ce champ vient lui-même de décider.
+  // Ajustement PENDANT le rendu (pas un effet, cf. doc React "Storing
+  // information from previous renders") : un useEffect + setState ici
+  // provoquerait un rendu en cascade inutile (react-hooks/set-state-in-effect
+  // — déjà rencontré et corrigé de la même façon sur CarteRegions.tsx plus
+  // tôt sur ce projet).
+  const [minPrecedent, setMinPrecedent] = useState(min);
+  if (min !== minPrecedent) {
+    setMinPrecedent(min);
+    setTexteMin(min != null ? String(min) : "");
+  }
+  const [maxPrecedent, setMaxPrecedent] = useState(max);
+  if (max !== maxPrecedent) {
+    setMaxPrecedent(max);
+    setTexteMax(max != null ? String(max) : "");
+  }
+
+  // undefined = format invalide (ni vide, ni nombre positif) — distinct de
+  // null (vide, volontairement "pas de borne") pour ne pas confondre les deux.
+  const parseValide = (texte: string): number | null | undefined => {
+    if (texte.trim() === "") return null;
+    const n = Number(texte);
+    if (!Number.isFinite(n) || n < 0) return undefined;
+    return n;
+  };
+
+  const vMin = parseValide(texteMin);
+  const vMax = parseValide(texteMax);
+  const formatInvalide = vMin === undefined || vMax === undefined;
+  const ordreInvalide = !formatInvalide && vMin != null && vMax != null && vMin > vMax;
+  const erreur = formatInvalide
+    ? "Entrez un nombre positif."
+    : ordreInvalide
+      ? "Le minimum doit être inférieur ou égal au maximum."
+      : null;
+
+  const appliquer = () => {
+    const m = parseValide(texteMin);
+    const M = parseValide(texteMax);
+    if (m === undefined || M === undefined) return;
+    if (m != null && M != null && m > M) return;
+    onChangeMin(m);
+    onChangeMax(M);
+  };
+
+  const surEntree = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") e.currentTarget.blur(); // déclenche onBlur -> appliquer()
+  };
+
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <input
+          className="input"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          placeholder="Min"
+          aria-label={`${label} minimum`}
+          aria-invalid={erreur != null}
+          value={texteMin}
+          onChange={(e) => setTexteMin(e.target.value)}
+          onBlur={appliquer}
+          onKeyDown={surEntree}
+          style={{ ...miniInputStyle, width: "100%" }}
+        />
+        <span style={{ color: "var(--color-tertiaire)", fontSize: "13px", flexShrink: 0 }}>—</span>
+        <input
+          className="input"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          placeholder="Max"
+          aria-label={`${label} maximum`}
+          aria-invalid={erreur != null}
+          value={texteMax}
+          onChange={(e) => setTexteMax(e.target.value)}
+          onBlur={appliquer}
+          onKeyDown={surEntree}
+          style={{ ...miniInputStyle, width: "100%" }}
+        />
+      </div>
+      {erreur ? (
+        <p style={{ fontSize: "12px", color: "var(--color-erreur)", marginTop: "6px" }}>{erreur}</p>
+      ) : (
+        (min != null || max != null) && (
+          <p style={{ fontSize: "12px", color: "var(--color-tertiaire)", marginTop: "6px" }}>
+            {min != null && max != null
+              ? `${formatValeur(min)} – ${formatValeur(max)} ${suffixeUnite}`
+              : min != null
+                ? `À partir de ${formatValeur(min)} ${suffixeUnite}`
+                : `Jusqu'à ${formatValeur(max as number)} ${suffixeUnite}`}
+          </p>
+        )
+      )}
+    </div>
+  );
 }
 
-// Bornes indicatives des sliders — le contrat n'expose pas de min/max réel
-// du catalogue (§4.2), ce sont donc des bornes larges et arrondies, pas des
-// valeurs calculées depuis les données. Le champ "min" à côté du slider
-// reste un input libre pour dépasser ces bornes si besoin.
-const PRIX_MAX_BORNE = 5_000_000;
-const SURFACE_MAX_BORNE = 50;
-
-// ── Dropdown Région : liste custom avec cascade d'apparition au clic ──────
-function DropdownRegion({
+// ── Dropdown générique : liste custom avec cascade d'apparition au clic ──
+// Réutilisé pour Région, Province et Commune (P0-04) — un seul jeu de
+// styles/comportement (clic dehors, Échap) plutôt que trois quasi-copies.
+function DropdownCascade({
   value,
-  regions,
+  options,
+  placeholder,
+  disabled,
   onChange,
 }: {
   value: string;
-  regions: Region[];
+  options: { code: string; nom: string }[];
+  placeholder: string;
+  disabled?: boolean;
   onChange: (code: string) => void;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const label = regions.find((r) => r.code === value)?.nom ?? "Toutes les régions";
+  const label = options.find((o) => o.code === value)?.nom ?? placeholder;
 
   useEffect(() => {
     if (!ouvert) return;
@@ -73,9 +210,10 @@ function DropdownRegion({
     <div ref={ref} style={{ position: "relative" }}>
       <button
         type="button"
-        onClick={() => setOuvert((v) => !v)}
+        onClick={() => !disabled && setOuvert((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={ouvert}
+        disabled={disabled}
         className="input"
         style={{
           height: "44px",
@@ -83,7 +221,8 @@ function DropdownRegion({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          cursor: "pointer",
+          cursor: disabled ? "default" : "pointer",
+          opacity: disabled ? 0.55 : 1,
           color: value ? "var(--color-texte)" : "var(--color-tertiaire)",
         }}
       >
@@ -94,7 +233,7 @@ function DropdownRegion({
         />
       </button>
 
-      {ouvert && (
+      {ouvert && !disabled && (
         <div
           role="listbox"
           className="akal-pop-in"
@@ -113,14 +252,14 @@ function DropdownRegion({
             padding: "6px",
           }}
         >
-          {[{ code: "", nom: "Toutes les régions" }, ...regions].map((r, i) => (
+          {[{ code: "", nom: placeholder }, ...options].map((o, i) => (
             <button
-              key={r.code || "toutes"}
+              key={o.code || "toutes"}
               type="button"
               role="option"
-              aria-selected={value === r.code}
+              aria-selected={value === o.code}
               onClick={() => {
-                onChange(r.code);
+                onChange(o.code);
                 setOuvert(false);
               }}
               className="akal-card-cascade"
@@ -133,18 +272,43 @@ function DropdownRegion({
                 borderRadius: "var(--radius-xs)",
                 border: "none",
                 cursor: "pointer",
-                backgroundColor: value === r.code ? "var(--color-rosee)" : "transparent",
-                color: value === r.code ? "var(--color-foret)" : "var(--color-texte)",
+                backgroundColor: value === o.code ? "var(--color-rosee)" : "transparent",
+                color: value === o.code ? "var(--color-foret)" : "var(--color-texte)",
                 animationDelay: `${i * 30}ms`,
                 animationDuration: "220ms",
               }}
             >
-              {r.nom}
+              {o.nom}
             </button>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+// ── Retour ligne+bouton pour un niveau de cascade en échec (province ou
+// commune) : cf. commentaire sur les effets de fetch dans FiltresSidebar. ──
+function ErreurCascade({ message, onReessayer }: { message: string; onReessayer: () => void }) {
+  return (
+    <p style={{ fontSize: 12, color: "var(--color-erreur)", marginTop: 6 }}>
+      {message}{" "}
+      <button
+        type="button"
+        onClick={onReessayer}
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          font: "inherit",
+          color: "inherit",
+          textDecoration: "underline",
+          cursor: "pointer",
+        }}
+      >
+        Réessayer
+      </button>
+    </p>
   );
 }
 
@@ -158,6 +322,56 @@ export default function FiltresSidebar({
   onAppliquer,
 }: Props) {
   const f = filtres;
+
+  // Cascade P0-04 — provinces/communes du référentiel officiel, chargées au
+  // fil de la sélection (jamais tout le référentiel national d'un coup :
+  // 75 provinces/1536 communes, cf. docstring backend geo/api_views.py).
+  // `tentative*` ne sert qu'à redéclencher le fetch depuis le bouton
+  // Réessayer (incrémenté, sans autre effet).
+  const [provinces, setProvinces] = useState<ProvinceGeomRef[]>([]);
+  const [communes, setCommunes] = useState<CommuneGeomRef[]>([]);
+  const [erreurProvinces, setErreurProvinces] = useState(false);
+  const [erreurCommunes, setErreurCommunes] = useState(false);
+  const [tentativeProvinces, setTentativeProvinces] = useState(0);
+  const [tentativeCommunes, setTentativeCommunes] = useState(0);
+
+  useEffect(() => {
+    if (!f.region) return;
+    let annule = false;
+    fetchProvincesGeom(f.region)
+      .then((p) => {
+        if (annule) return;
+        setProvinces(p);
+        setErreurProvinces(false);
+      })
+      .catch(() => {
+        if (annule) return;
+        setProvinces([]);
+        setErreurProvinces(true);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [f.region, tentativeProvinces]);
+
+  useEffect(() => {
+    if (!f.province) return;
+    let annule = false;
+    fetchCommunesGeom({ province: Number(f.province) })
+      .then((c) => {
+        if (annule) return;
+        setCommunes(c);
+        setErreurCommunes(false);
+      })
+      .catch(() => {
+        if (annule) return;
+        setCommunes([]);
+        setErreurCommunes(true);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [f.province, tentativeCommunes]);
 
   return (
     <>
@@ -229,10 +443,56 @@ export default function FiltresSidebar({
             />
           </div>
 
-          {/* Région — dropdown custom avec cascade d'apparition au clic */}
+          {/* Région → Province → Commune (P0-04) — référentiel officiel,
+              chaque niveau vide/désactive les suivants à la sélection.
+              `options` retombe à [] dès que le parent est vide plutôt que
+              de vider `provinces`/`communes` nous-mêmes : évite un flash de
+              données obsolètes si l'utilisateur re-choisit vite la même
+              région (le fetch en cours écrasera de toute façon l'ancien
+              contenu), et rend inutile toute synchronisation d'état dans
+              les gestionnaires onChange ci-dessous. */}
           <div>
             <label style={labelStyle}>Région</label>
-            <DropdownRegion value={f.region} regions={regions} onChange={(code) => onChange({ region: code })} />
+            <DropdownCascade
+              value={f.region}
+              options={regions}
+              placeholder="Toutes les régions"
+              onChange={(code) => onChange({ region: code, province: "", commune: "" })}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Province</label>
+            <DropdownCascade
+              value={f.province}
+              options={f.region ? provinces.map((p) => ({ code: String(p.id), nom: p.nom })) : []}
+              placeholder="Toutes les provinces"
+              disabled={!f.region}
+              onChange={(code) => onChange({ province: code, commune: "" })}
+            />
+            {erreurProvinces && (
+              <ErreurCascade
+                message="Impossible de charger les provinces."
+                onReessayer={() => setTentativeProvinces((n) => n + 1)}
+              />
+            )}
+          </div>
+
+          <div>
+            <label style={labelStyle}>Commune</label>
+            <DropdownCascade
+              value={f.commune}
+              options={f.province ? communes.map((c) => ({ code: String(c.id), nom: c.nomAffichage })) : []}
+              placeholder="Toutes les communes"
+              disabled={!f.province}
+              onChange={(code) => onChange({ commune: code })}
+            />
+            {erreurCommunes && (
+              <ErreurCascade
+                message="Impossible de charger les communes."
+                onReessayer={() => setTentativeCommunes((n) => n + 1)}
+              />
+            )}
           </div>
 
           {/* Statut foncier — rendu en chips façon "checkbox", mais
@@ -286,69 +546,29 @@ export default function FiltresSidebar({
             </div>
           </div>
 
-          {/* Prix — slider Max + input Min pour affiner. */}
-          <div>
-            <label style={labelStyle}>
-              Prix max
-              <span style={{ float: "right", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
-                {f.prixMax != null ? `${formatMAD.format(f.prixMax)} MAD` : "Illimité"}
-              </span>
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={PRIX_MAX_BORNE}
-              step={50_000}
-              value={f.prixMax ?? PRIX_MAX_BORNE}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                onChange({ prixMax: v >= PRIX_MAX_BORNE ? null : v });
-              }}
-              style={{ width: "100%", accentColor: "var(--color-foret)", cursor: "pointer" }}
-              aria-label="Prix maximum en MAD"
-            />
-            <input
-              className="input"
-              type="number"
-              inputMode="numeric"
-              placeholder="Prix min (MAD)"
-              value={f.prixMin ?? ""}
-              onChange={(e) => onChange({ prixMin: parseNum(e.target.value) })}
-              style={{ ...miniInputStyle, width: "100%", marginTop: "8px" }}
-            />
-          </div>
+          {/* Prix et Surface — min/max saisissables directement (P1-02),
+              remplace l'ancien slider (max) + champ libre (min) : les deux
+              bornes sont désormais symétriques, avec validation (nombre
+              positif, min <= max). */}
+          <ChampPlageNumerique
+            label="Prix (MAD)"
+            suffixeUnite="MAD"
+            formatValeur={(n) => formatMAD.format(n)}
+            min={f.prixMin}
+            max={f.prixMax}
+            onChangeMin={(v) => onChange({ prixMin: v })}
+            onChangeMax={(v) => onChange({ prixMax: v })}
+          />
 
-          {/* Surface — slider Max + input Min pour affiner. */}
-          <div>
-            <label style={labelStyle}>
-              Surface max
-              <span style={{ float: "right", fontWeight: 500, color: "var(--color-foret)", fontVariantNumeric: "tabular-nums" }}>
-                {f.surfaceMax != null ? `${f.surfaceMax} ha` : "Illimité"}
-              </span>
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={SURFACE_MAX_BORNE}
-              step={0.5}
-              value={f.surfaceMax ?? SURFACE_MAX_BORNE}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                onChange({ surfaceMax: v >= SURFACE_MAX_BORNE ? null : v });
-              }}
-              style={{ width: "100%", accentColor: "var(--color-foret)", cursor: "pointer" }}
-              aria-label="Surface maximum en hectares"
-            />
-            <input
-              className="input"
-              type="number"
-              inputMode="decimal"
-              placeholder="Surface min (ha)"
-              value={f.surfaceMin ?? ""}
-              onChange={(e) => onChange({ surfaceMin: parseNum(e.target.value) })}
-              style={{ ...miniInputStyle, width: "100%", marginTop: "8px" }}
-            />
-          </div>
+          <ChampPlageNumerique
+            label="Surface (ha)"
+            suffixeUnite="ha"
+            formatValeur={(n) => String(n)}
+            min={f.surfaceMin}
+            max={f.surfaceMax}
+            onChangeMin={(v) => onChange({ surfaceMin: v })}
+            onChangeMax={(v) => onChange({ surfaceMax: v })}
+          />
 
           {/* Eau */}
           <fieldset style={{ border: "none", padding: 0, margin: 0 }}>

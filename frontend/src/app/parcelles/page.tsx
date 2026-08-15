@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FILTRES_INITIAUX,
+  PAGE_SIZE_DEFAUT,
+  TAILLES_PAGE_DISPONIBLES,
   filtresActifs,
   filtresVersParams,
   filtrerRecherche,
@@ -13,14 +15,17 @@ import {
   type FiltresState,
   type ParcellesPage,
   type Region,
+  type TaillePage,
   type Tri,
 } from "@/data/parcelles";
 import CardParcelle from "@/components/parcelles/CardParcelle";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
+import { useComparateur } from "@/hooks/useComparateur";
 import CardParcelleSkeleton from "@/components/parcelles/CardParcelleSkeleton";
 import FiltresSidebar from "@/components/parcelles/FiltresSidebar";
 import BarreComparateur from "@/components/parcelles/BarreComparateur";
 import CarteParcelles from "@/components/parcelles/CarteParcelles";
+import type { RegionActive } from "@/components/parcelles/CarteRegions";
 import { Grid, Map, Filter } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
 
@@ -35,7 +40,6 @@ const GRILLE_STYLE: React.CSSProperties = {
 };
 
 type ModeAffichage = "grille" | "carte";
-const PAGE_SIZE = 12;
 // Vue carte : pas de pagination visible ni de sens à en avoir (on explore
 // géographiquement, pas page par page) — on demande le maximum autorisé par
 // le contrat plutôt que la taille de page grille (12 sur 122 annonces ne
@@ -47,11 +51,20 @@ const TAILLE_CARTE = 50;
 const NB_SKELETONS = 8;
 
 // ── URL ↔ état (persistance des filtres, §M-3 : "URL partageable") ──────────
-function lireDepuisUrl(sp: URLSearchParams): { filtres: FiltresState; tri: Tri; page: number; vue: ModeAffichage } {
+function lireDepuisUrl(sp: URLSearchParams): { filtres: FiltresState; tri: Tri; page: number; vue: ModeAffichage; tailleParPage: TaillePage } {
+  // Valeur arbitraire dans l'URL (lien trafiqué/obsolète) → retombe sur le
+  // défaut plutôt que de propager une taille de page non supportée.
+  const tailleUrl = Number(sp.get("page_size"));
+  const tailleParPage: TaillePage = (TAILLES_PAGE_DISPONIBLES as readonly number[]).includes(tailleUrl)
+    ? (tailleUrl as TaillePage)
+    : PAGE_SIZE_DEFAUT;
+
   return {
     filtres: {
       recherche: sp.get("q") ?? "",
       region: sp.get("region") ?? "",
+      province: sp.get("province") ?? "",
+      commune: sp.get("commune") ?? "",
       statutFoncier: (sp.get("statut_foncier") as FiltresState["statutFoncier"]) ?? "",
       eau: (sp.get("eau") as FiltresState["eau"]) ?? "tous",
       prixMin: sp.has("prix_min") ? Number(sp.get("prix_min")) : null,
@@ -66,13 +79,16 @@ function lireDepuisUrl(sp: URLSearchParams): { filtres: FiltresState; tri: Tri; 
     // rendait ce lien indiscernable de "Explorer" (les deux menaient au
     // même /parcelles en mode grille).
     vue: sp.get("vue") === "carte" ? "carte" : "grille",
+    tailleParPage,
   };
 }
 
-function versUrl(filtres: FiltresState, tri: Tri, page: number, vue: ModeAffichage): string {
+function versUrl(filtres: FiltresState, tri: Tri, page: number, vue: ModeAffichage, tailleParPage: TaillePage): string {
   const sp = new URLSearchParams();
   if (filtres.recherche) sp.set("q", filtres.recherche);
   if (filtres.region) sp.set("region", filtres.region);
+  if (filtres.province) sp.set("province", filtres.province);
+  if (filtres.commune) sp.set("commune", filtres.commune);
   if (filtres.statutFoncier) sp.set("statut_foncier", filtres.statutFoncier);
   if (filtres.eau !== "tous") sp.set("eau", filtres.eau);
   if (filtres.prixMin != null) sp.set("prix_min", String(filtres.prixMin));
@@ -82,6 +98,7 @@ function versUrl(filtres: FiltresState, tri: Tri, page: number, vue: ModeAfficha
   if (tri !== "recent") sp.set("tri", tri);
   if (page !== 1) sp.set("page", String(page));
   if (vue === "carte") sp.set("vue", "carte");
+  if (tailleParPage !== PAGE_SIZE_DEFAUT) sp.set("page_size", String(tailleParPage));
   const qs = sp.toString();
   return qs ? `/parcelles?${qs}` : "/parcelles";
 }
@@ -106,10 +123,11 @@ function Catalogue() {
   const [mode, setMode] = useState<ModeAffichage>(initial.vue);
   const [tri, setTri] = useState<Tri>(initial.tri);
   const [page, setPage] = useState(initial.page);
+  const [tailleParPage, setTailleParPage] = useState<TaillePage>(initial.tailleParPage);
   const [filtres, setFiltres] = useState<FiltresState>(initial.filtres);
   const [sidebarOuverte, setSidebarOuverte] = useState(false);
-  const [comparaison, setComparaison] = useState<string[]>([]);
   const { favorisIds, toggleFavori } = useFavorisIds();
+  const { parcelles: parcellesComparees, basculer: basculerComparaison, estEnComparaison, retirer: retirerComparaison } = useComparateur();
 
   const [regions, setRegions] = useState<Region[]>([]);
   const [donnees, setDonnees] = useState<ParcellesPage | null>(null);
@@ -141,7 +159,7 @@ function Catalogue() {
         if (annule) return undefined;
         setChargement(true);
         setErreur(null);
-        return getParcelles(filtresVersParams(filtres, tri, page, mode === "carte" ? TAILLE_CARTE : PAGE_SIZE));
+        return getParcelles(filtresVersParams(filtres, tri, page, mode === "carte" ? TAILLE_CARTE : tailleParPage));
       })
       .then((res) => {
         if (!annule && res) setDonnees(res);
@@ -156,12 +174,12 @@ function Catalogue() {
     return () => {
       annule = true;
     };
-  }, [filtres, tri, page, mode]);
+  }, [filtres, tri, page, mode, tailleParPage]);
 
   // URL partageable — navigation sans rechargement complet (router.replace shallow).
   useEffect(() => {
-    router.replace(versUrl(filtres, tri, page, mode), { scroll: false });
-  }, [filtres, tri, page, mode, router]);
+    router.replace(versUrl(filtres, tri, page, mode, tailleParPage), { scroll: false });
+  }, [filtres, tri, page, mode, tailleParPage, router]);
 
   const patchFiltres = useCallback((patch: Partial<FiltresState>) => {
     setFiltres((prev) => ({ ...prev, ...patch }));
@@ -170,6 +188,15 @@ function Catalogue() {
 
   const reinitialiser = useCallback(() => {
     setFiltres(FILTRES_INITIAUX);
+    setPage(1);
+  }, []);
+
+  // P1-02 — changer la taille de page ne doit toucher à aucun autre filtre
+  // (§6 du ticket), juste revenir en page 1 pour ne pas atterrir sur une
+  // page qui n'existe plus au nouveau découpage (ex. page 4 à 12/page = au-
+  // delà de la dernière page une fois passé à 48/page).
+  const changerTailleParPage = useCallback((taille: TaillePage) => {
+    setTailleParPage(taille);
     setPage(1);
   }, []);
 
@@ -189,17 +216,40 @@ function Catalogue() {
       .finally(() => setChargement(false));
   };
 
-  const resultats = donnees?.results ?? [];
+  // useMemo (pas juste `donnees?.results ?? []`) : sinon nouvelle référence
+  // de tableau à chaque render, qui invaliderait le useMemo de regionActive
+  // ci-dessous à chaque frappe/interaction sans rapport (react-hooks/
+  // exhaustive-deps).
+  const resultats = useMemo(() => donnees?.results ?? [], [donnees]);
   // Recherche texte : filtre côté client, limité à la page actuellement
   // chargée — voir le commentaire sur FiltresState.recherche (data/parcelles.ts).
   const resultatsAffiches = filtrerRecherche(resultats, filtres.recherche);
 
+  // Région active pour la carte (P0-02/P0-03) : `filtres.region` est déjà
+  // envoyé au serveur (filtresVersParams), donc `resultats` ne contient
+  // déjà que des parcelles de cette région quand elle est sélectionnée —
+  // centre dérivé de leur moyenne réelle, jamais un centroïde inventé côté
+  // front (même principe que statsParRegion, components/home/CouvertureSection.tsx).
+  const regionActive: RegionActive = useMemo(() => {
+    if (!filtres.region) return null;
+    const r = regions.find((rg) => rg.code === filtres.region);
+    if (!r) return null;
+    const centre: [number, number] | null = resultats.length
+      ? [
+          resultats.reduce((s, p) => s + p.parcelle.latitude, 0) / resultats.length,
+          resultats.reduce((s, p) => s + p.parcelle.longitude, 0) / resultats.length,
+        ]
+      : null;
+    return { code: r.code, nom: r.nom, centre };
+  }, [filtres.region, regions, resultats]);
+
+  // basculerComparaison prend une Parcelle complète (useComparateur), alors
+  // que CardParcelle expose un id (cf. sa propre prop onToggleComparaison) —
+  // résolue depuis `resultats`, déjà en mémoire (pas de nouveau fetch).
   const toggleComparaison = (id: string) => {
-    setComparaison((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 3 ? [...prev, id] : prev,
-    );
+    const p = resultats.find((r) => r.id === id);
+    if (p) basculerComparaison(p);
   };
-  const parcellesComparees = resultats.filter((p) => comparaison.includes(p.id));
 
   return (
     <div className="catalogue" style={{ display: "flex", minHeight: "calc(100vh - 64px)", backgroundColor: "var(--color-fond)" }}>
@@ -214,7 +264,7 @@ function Catalogue() {
       />
 
       {/* Zone principale */}
-      <main style={{ flex: 1, minWidth: 0, padding: "20px", paddingBottom: comparaison.length > 0 ? "96px" : "20px" }}>
+      <main style={{ flex: 1, minWidth: 0, padding: "20px", paddingBottom: parcellesComparees.length > 0 ? "96px" : "20px" }}>
         {/* Page sans titre visible jusqu'ici — absence de h1 (revue a11y,
             Phase 3) : la navigation par titres au clavier/lecteur d'écran
             n'avait aucun repère pour cet écran. */}
@@ -280,6 +330,41 @@ function Catalogue() {
               <option value="surface">Superficie</option>
             </select>
 
+            {/* P1-02 — nombre de résultats par page, uniquement en vue
+                grille (la vue carte a sa propre taille fixe, TAILLE_CARTE
+                ci-dessus, pensée pour explorer géographiquement plutôt que
+                page par page). */}
+            {mode === "grille" && (
+              <div
+                role="group"
+                aria-label="Annonces par page"
+                style={{ display: "flex", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-bordure)", overflow: "hidden" }}
+              >
+                {TAILLES_PAGE_DISPONIBLES.map((taille, i) => (
+                  <button
+                    key={taille}
+                    type="button"
+                    onClick={() => changerTailleParPage(taille)}
+                    aria-pressed={tailleParPage === taille}
+                    className="akal-focusable"
+                    style={{
+                      padding: "8px 12px",
+                      border: "none",
+                      borderLeft: i > 0 ? "1px solid var(--color-bordure)" : "none",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      backgroundColor: tailleParPage === taille ? "var(--color-rosee)" : "white",
+                      color: tailleParPage === taille ? "var(--color-foret)" : "var(--color-tertiaire)",
+                      transition: "background-color 150ms ease",
+                    }}
+                  >
+                    {taille}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Toggle grille / carte */}
             <div style={{ display: "flex", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-bordure)", overflow: "hidden" }}>
               <button
@@ -327,7 +412,12 @@ function Catalogue() {
           </div>
         ) : chargement ? (
           <div className="akal-fade-in" style={GRILLE_STYLE}>
-            {Array.from({ length: NB_SKELETONS }).map((_, i) => (
+            {/* P1-02 : autant de squelettes que d'annonces attendues en vue
+                grille (tailleParPage) — évite un décalage visuel entre 8
+                squelettes et, par ex., 48 cartes réelles qui apparaissent
+                d'un coup. Vue carte inchangée (NB_SKELETONS), pas concernée
+                par ce sélecteur. */}
+            {Array.from({ length: mode === "grille" ? tailleParPage : NB_SKELETONS }).map((_, i) => (
               <CardParcelleSkeleton key={i} />
             ))}
           </div>
@@ -350,13 +440,18 @@ function Catalogue() {
                 index={i}
                 favori={favorisIds.has(p.id)}
                 onToggleFavori={toggleFavori}
-                enComparaison={comparaison.includes(p.id)}
+                enComparaison={estEnComparaison(p.id)}
                 onToggleComparaison={toggleComparaison}
               />
             ))}
           </div>
         ) : (
-          <CarteParcelles parcelles={resultatsAffiches} />
+          <CarteParcelles
+            parcelles={resultatsAffiches}
+            regions={regions}
+            regionActive={regionActive}
+            onSelectionnerRegion={(code) => patchFiltres({ region: filtres.region === code ? "" : code })}
+          />
         )}
 
         {!erreur && !chargement && (donnees?.next || donnees?.previous) && (
@@ -387,7 +482,11 @@ function Catalogue() {
         )}
       </main>
 
-      <BarreComparateur parcelles={parcellesComparees} onRetirer={toggleComparaison} />
+      {/* retirerComparaison directement (pas toggleComparaison, qui résout
+          l'id via `resultats` — un ajout suivi d'un changement de page/filtre
+          ferait échouer silencieusement le retrait, la parcelle n'étant plus
+          dans `resultats`). */}
+      <BarreComparateur parcelles={parcellesComparees} onRetirer={retirerComparaison} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Parcelle } from "@/types/parcelle";
 import { X } from "@/components/icons/Icons";
-import { COMPARATEUR_STORAGE_KEY } from "./comparateurStorage";
+import { COMPARATEUR_MAX } from "./comparateurStorage";
 
 type Props = {
   parcelles: Parcelle[];
@@ -16,14 +16,10 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
 
   if (parcelles.length === 0) return null;
 
-  // Les Parcelle complètes sont déjà en mémoire ici (chargées par le
-  // catalogue) — on les transmet telles quelles via sessionStorage plutôt
-  // que de les refaire fetcher par /comparateur (pas de nouvel endpoint,
-  // pas de round-trip réseau superflu pour des données déjà disponibles).
-  const ouvrirComparateur = () => {
-    sessionStorage.setItem(COMPARATEUR_STORAGE_KEY, JSON.stringify(parcelles));
-    router.push("/comparateur");
-  };
+  // `parcelles` est déjà la sélection persistée (useComparateur écrit dans
+  // sessionStorage à chaque ajout/retrait, cf. hooks/useComparateur.ts) —
+  // rien à écrire ici, seulement naviguer.
+  const ouvrirComparateur = () => router.push("/comparateur");
 
   return (
     <div
@@ -44,7 +40,7 @@ export default function BarreComparateur({ parcelles, onRetirer }: Props) {
       }}
     >
       <span style={{ fontSize: "14px", fontWeight: 500, color: "white", whiteSpace: "nowrap" }}>
-        {parcelles.length}/3 sélectionnées
+        {parcelles.length}/{COMPARATEUR_MAX} sélectionnées
       </span>
 
       {/* Miniatures empilées */}

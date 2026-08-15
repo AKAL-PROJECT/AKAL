@@ -27,8 +27,6 @@ export type StatutAnnonce = "brouillon" | "en_attente" | "en_ligne" | "archivee"
 export type Topographie = string;
 
 // Attributs du terrain — reflète le sous-objet `parcelle` de l'API.
-// Pas de commune/province : le DTO v1.2 n'expose que la région (code + nom)
-// et une adresse approximative, jamais aplati (§3.1, §4.4).
 export type ParcelleTerrain = {
   surface: number; // surface_ha
   // Nullable depuis l'import de données scrapées (2026-08-11, cf.
@@ -44,8 +42,24 @@ export type ParcelleTerrain = {
   longitude: number;
   regionCode: string;
   regionNom: string;
-  // Absent en liste (allégé) — présent en détail uniquement.
+  // Absents en liste (allégée, ParcelleListSerializer) — présents en détail
+  // uniquement (ParcelleDetailSerializer expose bien province/commune
+  // depuis 2026-08-06, malgré ce qu'indiquait encore ce commentaire —
+  // corrigé au passage de P2-01 : le nom de la commune était déjà public de
+  // facto via adresseApproximative, "<commune>, Maroc").
+  province: string | null;
+  commune: string | null;
   adresseApproximative: string | null;
+  // Contour polygonal réel (DonneesGeo côté back) — TOUJOURS null ici, par
+  // construction : ParcelleDetailSerializer (fiche publique) omet
+  // volontairement ce champ, même logique de confidentialité que la
+  // position exacte (cf. test_contour_jamais_expose_sur_la_fiche_publique,
+  // backend/annonces/tests.py) — seul le propriétaire y a accès, via le
+  // PATCH d'édition. Le type reste prêt à le recevoir (P2-01, Passeport
+  // Agronomique : "afficher le contour si disponible") si cette décision de
+  // confidentialité est un jour révisée délibérément ; en l'état, ne JAMAIS
+  // le peupler depuis mapAnnonceToParcelle.ts.
+  contour: { latitude: number; longitude: number }[] | null;
 };
 
 // AgriScore courant — nullable tant qu'aucun score n'a été calculé (§3.5).

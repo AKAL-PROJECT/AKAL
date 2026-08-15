@@ -934,4 +934,40 @@
   @media (prefers-reduced-motion: reduce) {
     .akal-heart-burst { animation: none !important; }
   }
+
+  /* ── Impression — rapport de prospection (P1-03, Tableau de bord) ───────
+     Deux utilitaires génériques (pas spécifiques au dashboard) : masquer un
+     bloc à l'impression, ou au contraire ne le montrer QU'à l'impression
+     (le rapport lui-même, cf. RapportProspection.tsx — toujours dans le DOM
+     pour que window.print() le capture, invisible à l'écran). `nav`/`footer`
+     masqués globalement à l'impression : aucune page du site n'a besoin de
+     son chrome de navigation sur une page imprimée/exportée en PDF. */
+  @media print {
+    nav, footer {
+      display: none !important;
+    }
+    .akal-print-masquer {
+      display: none !important;
+    }
+    .akal-print-uniquement {
+      display: block !important;
+    }
+  }
+  @media screen {
+    .akal-print-uniquement {
+      display: none !important;
+    }
+  }
+}
+
+/* Hors de tout @layer, volontairement : en cascade layers (Tailwind v4),
+   une règle non "layered" gagne toujours sur une règle "layered" — même
+   !important — donc `html { background-color: var(--color-fond) }`
+   (@layer base ci-dessus) résistait à un !important placé à l'intérieur de
+   @layer components. Seule règle du fichier hors-layer, seule façon fiable
+   de forcer un fond blanc à l'impression. */
+@media print {
+  html, body {
+    background: white !important;
+  }
 }

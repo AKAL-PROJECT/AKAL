@@ -46,6 +46,17 @@ type ParcelleListDTO = {
 type ParcelleDetailDTO = Omit<ParcelleListDTO, "localisation"> & {
   localisation: LocalisationDetailDTO;
   metadata?: Record<string, unknown>;
+  // Déjà envoyés par ParcelleDetailSerializer, jusque-là jamais mappés côté
+  // front (P2-01 : besoin d'identification réelle pour le Passeport
+  // Agronomique). Optionnels ici (pas seulement nullable) : la fixture de
+  // test mapAnnonceToParcelle.test.ts est un JSON verbatim du contrat
+  // v1.2 §4.4, gelé — absent de ce contrat d'origine, jamais retouché pour
+  // matcher un ajout ultérieur au serializer réel. `contour` volontairement
+  // absent d'ici : la fiche publique ne l'expose pas (confidentialité, cf.
+  // types/parcelle.ts) — n'existe donc pas dans ce DTO, jamais à ajouter
+  // sans une décision explicite qui changerait ce choix côté back.
+  province?: string | null;
+  commune?: string | null;
 };
 
 // Liste : allégé à score_global seul (§4.4).
@@ -144,7 +155,10 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       longitude: dto.parcelle.localisation.longitude,
       regionCode: dto.parcelle.region.code,
       regionNom: dto.parcelle.region.nom,
+      province: null, // absent en liste (ParcelleListSerializer)
+      commune: null, // absent en liste
       adresseApproximative: null, // absent en liste
+      contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
     scoreCourant: mapScoreCourant(dto.score_courant),
     photoPrincipale: dto.photo_principale,
@@ -194,7 +208,10 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       longitude: dto.parcelle.localisation.longitude,
       regionCode: dto.parcelle.region.code,
       regionNom: dto.parcelle.region.nom,
+      province: dto.parcelle.province ?? null,
+      commune: dto.parcelle.commune ?? null,
       adresseApproximative: dto.parcelle.localisation.adresse_approximative,
+      contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
     scoreCourant: mapScoreCourant(dto.score_courant),
     // photos toujours triées par ordre croissant côté API (§4.4) ; ordre 0 = principale.
