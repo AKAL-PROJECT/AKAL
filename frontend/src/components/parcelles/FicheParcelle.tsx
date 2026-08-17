@@ -249,11 +249,12 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
 
           {/* Passeport Agronomique (P2-01, prototype) — distinct de l'AgriScore
               ci-dessus (dormant, cf. AGRISCORE_ACTIF) et de la section
-              "Passeport de la parcelle" plus bas (BlocCaracteristiques,
-              données réelles déclaratives) : ici, un rapport de
-              DÉMONSTRATION à 5 dimensions simulées, jamais présenté comme
-              une vraie analyse scientifique — cf. l'avertissement explicite
-              sur l'écran /passeport lui-même. */}
+              "Caractéristiques de la parcelle" plus bas (BlocCaracteristiques,
+              données réelles déclaratives, renommée le 17/08/2026 pour lever
+              l'ambiguïté avec ce Passeport Agronomique — cf. audit final) :
+              ici, un rapport de DÉMONSTRATION à 5 dimensions simulées,
+              jamais présenté comme une vraie analyse scientifique — cf.
+              l'avertissement explicite sur l'écran /passeport lui-même. */}
           <div className="card" style={{ padding: "20px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
             <span style={{ width: "40px", height: "40px", borderRadius: "var(--radius-md)", backgroundColor: "var(--color-menthe)", color: "var(--color-foret)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Leaf size={18} />

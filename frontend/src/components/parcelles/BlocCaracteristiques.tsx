@@ -148,7 +148,7 @@ export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle 
 
   return (
     <section>
-      <h2 className="fiche-section-titre">Passeport de la parcelle</h2>
+      <h2 className="fiche-section-titre">Caractéristiques de la parcelle</h2>
 
       <div
         style={{
