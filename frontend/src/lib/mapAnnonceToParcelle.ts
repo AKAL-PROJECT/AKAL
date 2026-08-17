@@ -153,16 +153,18 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       topographie: dto.parcelle.topographie ?? null,
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
-      // AUDIT — conflit de merge résolu littéralement (branche
-      // acheteur-catalogue-carte : region non-optionnelle + province/commune ;
-      // branche vendeur-auth-contact : region?.code ?? null). Gardé l'optional
-      // chaining d'Ibrahim (plus défensif) + mes champs province/commune —
-      // jamais vérifié QUAND region peut réellement être absente côté
-      // vendeur-auth-contact ni si regionCode/regionNom (typés `string` non
-      // nullable dans types/parcelle.ts) tolèrent vraiment `null` en aval —
-      // à valider, cf. rapport d'audit.
-      regionCode: dto.parcelle.region?.code ?? null,
-      regionNom: dto.parcelle.region?.nom ?? null,
+      // `region` est typé nullable côté DTO (RegionDTO | null — reflète
+      // get_region(), un SerializerMethodField qui peut techniquement
+      // renvoyer null) mais garanti non-null en pratique pour toute annonce
+      // en_ligne : get_region() ne renvoie null que si ni commune_geom ni le
+      // commune legacy ne résolvent, un cas qu'Annonce.can_publish() /
+      // Parcelle.is_geolocated() rendent impossible pour une annonce
+      // en_ligne (vérifié empiriquement, cf. types/parcelle.ts et le
+      // rapport d'audit du 2026-08-15 — 0/147 annonces en_ligne concernées).
+      // Assertion non-null délibérée : un vrai null ici trahirait un bug
+      // backend à corriger, pas un état normal à absorber en silence.
+      regionCode: dto.parcelle.region!.code,
+      regionNom: dto.parcelle.region!.nom,
       province: null, // absent en liste (ParcelleListSerializer)
       commune: null, // absent en liste
       adresseApproximative: null, // absent en liste
@@ -214,10 +216,9 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       topographie: dto.parcelle.topographie ?? null,
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
-      // AUDIT — même conflit que mapAnnonceToParcelle() ci-dessus, résolu à
-      // l'identique.
-      regionCode: dto.parcelle.region?.code ?? null,
-      regionNom: dto.parcelle.region?.nom ?? null,
+      // Même raisonnement que mapAnnonceToParcelle() ci-dessus.
+      regionCode: dto.parcelle.region!.code,
+      regionNom: dto.parcelle.region!.nom,
       province: dto.parcelle.province ?? null,
       commune: dto.parcelle.commune ?? null,
       adresseApproximative: dto.parcelle.localisation.adresse_approximative,

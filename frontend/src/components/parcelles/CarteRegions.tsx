@@ -192,6 +192,15 @@ export function VolVersRegion({ centre }: { centre: [number, number] | null }) {
 // Centralisé ici pour que les 3 restent visuellement identiques par
 // construction plutôt que par discipline de copier-coller.
 export function MarqueurParcelle({ parcelle: p }: { parcelle: Parcelle }) {
+  // latitude/longitude sont non-null par contrat (garanti par
+  // can_publish()/is_geolocated() côté back pour toute annonce en_ligne,
+  // cf. types/parcelle.ts) — mais Leaflet plante toute la carte, pas
+  // seulement ce marqueur, sur une valeur non-finie. Filet de sécurité bon
+  // marché contre une régression du contrat, pas contre un null attendu.
+  if (!Number.isFinite(p.parcelle.latitude) || !Number.isFinite(p.parcelle.longitude)) {
+    return null;
+  }
+
   return (
     <Marker position={[p.parcelle.latitude, p.parcelle.longitude]} icon={iconeAkal}>
       <Popup>

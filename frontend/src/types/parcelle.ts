@@ -38,21 +38,24 @@ export type ParcelleTerrain = {
   statutFoncier: StatutFoncier | null;
   accesEau: AccesEau | null;
   topographie: Topographie | null;
-  // AUDIT — CONFLIT DE FOND, résolu ici en gardant la version la PLUS
-  // PERMISSIVE (celle de vendeur-auth-contact) pour mesurer l'impact réel
-  // via tsc plutôt que de le masquer : cette branche (acheteur-catalogue-
-  // carte) supposait latitude/longitude/regionCode/regionNom TOUJOURS
-  // présents (cohérent avec le catalogue public, qui ne montre que des
-  // annonces en_ligne donc géolocalisées par construction, cf.
-  // can_publish() côté back) ; vendeur-auth-contact les rend nullables
-  // (cohérent avec un brouillon pas encore localisé). Les deux ont raison
-  // dans LEUR contexte respectif — mais c'est le MÊME type Parcelle
-  // partagé par les deux. Voir le rapport d'audit pour la liste des call
-  // sites carte qui supposent le non-null et cassent avec cette version.
-  latitude: number | null;
-  longitude: number | null;
-  regionCode: string | null;
-  regionNom: string | null;
+  // AUDIT — conflit de fond entre les deux branches, tranché en équipe le
+  // 2026-08-15 (cf. rapport d'audit, bloquants #3/#4) : NON-null, pas
+  // nullable. Vérifié empiriquement plutôt que supposé — Annonce.can_publish()
+  // / Parcelle.is_geolocated() (backend/annonces/models.py) exigent
+  // commune_geom + latitude + longitude + geom pour TOUTE transition
+  // entrante vers en_ligne (brouillon, en_attente, réactivation, remise en
+  // vente — cf. transitions.py), et AnnonceDetailAPIView (qui alimente ce
+  // type via mapAnnonceToParcelle/mapAnnonceDetailToParcelle) est filtré en
+  // dur sur .en_ligne(). Sur les 147 annonces en_ligne réelles au moment de
+  // l'audit : 0 avec latitude/longitude null, et les 22 sans commune_geom
+  // (legacy pré-2026-08-06) ont toutes un `commune` legacy qui fait
+  // résoudre region sans exception. Le vrai besoin de nullabilité
+  // (brouillon pas encore localisé) est déjà couvert ailleurs — par
+  // AnnonceProprietaire et le type de depot-annonce.ts — pas ici.
+  latitude: number;
+  longitude: number;
+  regionCode: string;
+  regionNom: string;
   // Absents en liste (allégée, ParcelleListSerializer) — présents en détail
   // uniquement (ParcelleDetailSerializer expose bien province/commune
   // depuis 2026-08-06, malgré ce qu'indiquait encore ce commentaire —
