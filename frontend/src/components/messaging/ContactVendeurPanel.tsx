@@ -148,7 +148,7 @@ export function ContactVendeurPanel({
                 Message envoyé !
               </h3>
               <p style={{ fontSize: 14, color: "var(--color-tertiaire)", marginBottom: 32 }}>
-                Le vendeur a été notifié. Vous recevrez une notification lorsqu'il vous répondra.
+                Le vendeur a été notifié. Vous recevrez une notification lorsqu&apos;il vous répondra.
               </p>
               
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -156,7 +156,7 @@ export function ContactVendeurPanel({
                   Aller à mes messages
                 </Link>
                 <button type="button" className="btn-secondary" onClick={onClose}>
-                  Continuer d'explorer
+                  Continuer d&apos;explorer
                 </button>
               </div>
             </div>

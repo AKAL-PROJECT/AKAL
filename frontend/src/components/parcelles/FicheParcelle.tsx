@@ -62,16 +62,23 @@ function agriScoreLegende(score: number | null): string {
 export default function FicheParcelle({ parcelle: a, estConnecte = false }: { parcelle: Parcelle, estConnecte?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isContactPanelOpen, setIsContactPanelOpen] = useState(false);
+  // `estConnecte` est déterminé côté serveur (page.tsx : `!!utilisateur`) et
+  // ne change jamais après l'hydratation — l'initialiseur paresseux suffit
+  // donc à lire `?contact=1` une seule fois, sans passer par un effect qui
+  // appelle setState (react-hooks/set-state-in-effect). L'effect ci-dessous
+  // ne fait plus que le nettoyage d'URL, un vrai effet de bord (API
+  // navigateur), jamais un setState.
+  const [isContactPanelOpen, setIsContactPanelOpen] = useState(
+    () => searchParams.get("contact") === "1" && estConnecte
+  );
 
   useEffect(() => {
-    if (searchParams.get("contact") === "1" && estConnecte) {
-      setIsContactPanelOpen(true);
-      // Clean up the URL
+    if (searchParams.get("contact") === "1") {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
     }
-  }, [searchParams, estConnecte]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nettoyage one-shot au montage, jamais à rejouer si searchParams change ensuite
+  }, []);
 
   const handleContactClick = () => {
     if (estConnecte) {
