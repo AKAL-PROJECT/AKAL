@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, ViewTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft } from "@/components/icons/Icons";
@@ -132,7 +132,9 @@ export function ThreadScreen({
           }}
         >
           {conversation.annonce.photo_principale && (
-            <Image src={conversation.annonce.photo_principale} alt="" fill style={{ objectFit: "cover" }} sizes="40px" />
+            <ViewTransition name={`parcelle-photo-${conversation.annonce.id}`} share="morph">
+              <Image src={conversation.annonce.photo_principale} alt="" fill style={{ objectFit: "cover" }} sizes="40px" />
+            </ViewTransition>
           )}
         </div>
         <div style={{ minWidth: 0 }}>

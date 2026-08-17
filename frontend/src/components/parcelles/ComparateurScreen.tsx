@@ -1,5 +1,6 @@
 "use client";
 
+import { ViewTransition } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
@@ -174,7 +175,11 @@ export default function ComparateurScreen() {
                             marginBottom: "8px",
                           }}
                         >
-                          {image && <Image src={image} alt={p.titre} fill sizes="220px" style={{ objectFit: "cover" }} />}
+                          {image && (
+                            <ViewTransition name={`parcelle-photo-${p.id}`} share="morph">
+                              <Image src={image} alt={p.titre} fill sizes="220px" style={{ objectFit: "cover" }} />
+                            </ViewTransition>
+                          )}
                         </div>
                         <div style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)", lineHeight: 1.3 }}>
                           {p.titre}
