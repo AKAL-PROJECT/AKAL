@@ -16,7 +16,10 @@ import {
   type ConfirmationResult,
   type ApplicationVerifier,
 } from "firebase/auth";
-import { auth } from "./firebase";
+// getFirebaseAuth() plutôt qu'un `auth` importé directement : l'init
+// Firebase ne doit avoir lieu qu'ici, au moment d'une action réelle
+// (jamais à l'import de ce module) — cf. firebase.ts.
+import { getFirebaseAuth } from "./firebase";
 
 export type { ConfirmationResult };
 
@@ -35,7 +38,7 @@ export function initPhoneRecaptcha(containerId: string): ApplicationVerifier {
   if (!container) throw new Error("reCAPTCHA container not found");
 
   if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+    window.recaptchaVerifier = new RecaptchaVerifier(getFirebaseAuth(), containerId, {
       size: "invisible",
       callback: () => {
         // reCAPTCHA résolu automatiquement
@@ -45,7 +48,7 @@ export function initPhoneRecaptcha(containerId: string): ApplicationVerifier {
     // Si la page a été re-rendue et que le container a été recréé (DOM vidé)
     if (container.innerHTML === "") {
       window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+      window.recaptchaVerifier = new RecaptchaVerifier(getFirebaseAuth(), containerId, {
         size: "invisible",
       });
     }
@@ -66,7 +69,7 @@ export async function sendPhoneSms(
   containerId: string
 ): Promise<ConfirmationResult> {
   const verifier = initPhoneRecaptcha(containerId);
-  const result = await signInWithPhoneNumber(auth, phoneNumber, verifier);
+  const result = await signInWithPhoneNumber(getFirebaseAuth(), phoneNumber, verifier);
   return result;
 }
 

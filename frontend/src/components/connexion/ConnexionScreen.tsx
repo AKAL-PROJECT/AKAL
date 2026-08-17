@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition, useRef } from "react";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { ChevronDown, ChevronLeft } from "@/components/icons/Icons";
 import {
   googleLoginAction,
@@ -51,10 +51,14 @@ export default function ConnexionScreen({
   const fullPhone = `${countryCode}${localNumber.replace(/^0/, "").replace(/\s/g, "")}`;
 
   // ─── Connexion Google ───────────────────────────────────────────────────────
-  const handleGoogleSuccess = (credentialResponse: any) => {
+  const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setGoogleError("Connexion Google échouée. Réessayez.");
+      return;
+    }
     setGoogleError(null);
     startGoogleTransition(() => {
-      if (googleTokenRef.current) googleTokenRef.current.value = credentialResponse.credential;
+      if (googleTokenRef.current) googleTokenRef.current.value = credentialResponse.credential!;
       googleFormRef.current?.requestSubmit();
     });
   };
@@ -255,22 +259,34 @@ export default function ConnexionScreen({
               {smsPending ? "Envoi du SMS…" : "Continuer"}
             </button>
 
-            <div style={{ display: "flex", alignItems: "center", margin: "32px 0" }}>
-              <div style={{ flex: 1, height: 1, background: "#eee" }} />
-              <span style={{ margin: "0 16px", color: "#888", fontSize: 14 }}>Ou avec</span>
-              <div style={{ flex: 1, height: 1, background: "#eee" }} />
-            </div>
+            {/* AUDIT — <GoogleLogin> exige d'être monté sous <GoogleOAuthProvider>,
+                or GoogleAuthProviderWrapper (layout racine) omet ce provider en
+                silence quand NEXT_PUBLIC_GOOGLE_CLIENT_ID est absent (repli
+                volontaire, cf. src/components/GoogleAuthProvider.tsx). Rendre
+                <GoogleLogin> quand même levait "Google OAuth components must
+                be used within GoogleOAuthProvider", plantant toute la page
+                /connexion — même symptôme (500), cause distincte du bloqueur
+                Firebase. Même repli ici : pas de client ID, pas de bouton. */}
+            {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", margin: "32px 0" }}>
+                  <div style={{ flex: 1, height: 1, background: "#eee" }} />
+                  <span style={{ margin: "0 16px", color: "#888", fontSize: 14 }}>Ou avec</span>
+                  <div style={{ flex: 1, height: 1, background: "#eee" }} />
+                </div>
 
-            {/* Google Login via @react-oauth/google */}
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                shape="rectangular"
-                theme="outline"
-                text="signin_with"
-              />
-            </div>
+                {/* Google Login via @react-oauth/google */}
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    shape="rectangular"
+                    theme="outline"
+                    text="signin_with"
+                  />
+                </div>
+              </>
+            )}
             {(googleError || googleState?.error) && (
               <p style={{ fontSize: 13, color: "var(--color-erreur)", textAlign: "center", marginTop: "12px" }}>
                 {googleError ?? googleState?.error}
