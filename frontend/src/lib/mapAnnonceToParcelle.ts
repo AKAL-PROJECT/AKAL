@@ -101,6 +101,13 @@ export type AnnonceDetailDTO = {
   score_courant: ScoreCourantDetailDTO;
   photos: PhotoDTO[]; // toujours triées par ordre croissant, [] si vide
   proprietaire: { id: string; telephone_masque: string | null }; // anonymisé - RGPD/loi 09-08, §4.5
+  // Lien https://wa.me/... déjà entièrement construit par le back (numéro +
+  // message prérempli dans l'URL), ou null si le propriétaire n'a pas de
+  // numéro exploitable — JAMAIS le numéro seul (cf. annonces/serializers.py,
+  // get_whatsapp_lien()). Optionnel (pas seulement nullable) : la fixture de
+  // test mapAnnonceToParcelle.test.ts est un JSON verbatim du contrat v1.2
+  // §4.4, gelé, antérieur à ce champ.
+  whatsapp_lien?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -232,5 +239,6 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       id: dto.proprietaire.id,
       telephoneMasque: dto.proprietaire.telephone_masque,
     },
+    whatsappLien: dto.whatsapp_lien ?? null,
   };
 }

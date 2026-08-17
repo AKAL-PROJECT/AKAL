@@ -105,6 +105,7 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
       photoPrincipale: "https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp",
       photos: ["https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp"],
       proprietaire: { id: "c3e6a9b2-4d7f-4a0c-b5e8-f1b4c7d0e3a6", telephoneMasque: null },
+      whatsappLien: null, // absent de la fixture (verbatim contrat v1.2, cf. mapAnnonceToParcelle.ts)
     });
   });
 

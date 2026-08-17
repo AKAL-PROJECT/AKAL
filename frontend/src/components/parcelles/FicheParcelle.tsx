@@ -27,6 +27,7 @@ import {
   BarChart,
   Leaf,
   ArrowRight,
+  WhatsAppIcon,
 } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
 
@@ -327,6 +328,73 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
               <p style={{ fontSize: "12px", color: "var(--color-tertiaire)", textAlign: "center", margin: 0 }}>
                 Échange direct avec le vendeur, sans intermédiaire.
               </p>
+
+              {/* Contact WhatsApp (MVP) — second canal, en plus de la
+                  messagerie interne ci-dessus, jamais à sa place. Le numéro
+                  n'existe nulle part côté front : `whatsappLien` est un
+                  https://wa.me/... déjà entièrement construit par le back
+                  (cf. annonces/serializers.py::get_whatsapp_lien()), ou null
+                  si le vendeur n'a pas de numéro exploitable — dans ce cas
+                  le bouton reste visible mais désactivé, avec un message
+                  explicite, plutôt que de disparaître silencieusement. */}
+              {a.whatsappLien ? (
+                <a
+                  href={a.whatsappLien}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="akal-focusable"
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    padding: "10px",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid #25D366",
+                    backgroundColor: "#25D366",
+                    color: "white",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    textDecoration: "none",
+                    transition: "opacity 200ms ease",
+                  }}
+                >
+                  <WhatsAppIcon size={16} />
+                  Contacter via WhatsApp
+                </a>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    title="Ce vendeur n'a pas renseigné de numéro WhatsApp"
+                    className="akal-focusable"
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      padding: "10px",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--color-bordure)",
+                      backgroundColor: "transparent",
+                      color: "var(--color-tertiaire)",
+                      fontSize: "14px",
+                      cursor: "not-allowed",
+                      opacity: 0.55,
+                    }}
+                  >
+                    <WhatsAppIcon size={16} />
+                    Contacter via WhatsApp
+                  </button>
+                  <p style={{ fontSize: "12px", color: "var(--color-tertiaire)", textAlign: "center", margin: "6px 0 0" }}>
+                    Ce vendeur n&apos;a pas renseigné de numéro WhatsApp.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div style={{ height: "1px", backgroundColor: "var(--color-bordure)" }} />
@@ -457,6 +525,59 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
         >
           Contacter
         </button>
+        {/* Version compacte (icône seule) du bouton WhatsApp — même
+            `whatsappLien`/désactivation que la colonne desktop ci-dessus,
+            juste une largeur fixe plutôt que flex:1 pour laisser la priorité
+            visuelle à "Contacter" (messagerie interne) dans une barre déjà
+            à l'étroit sur mobile. */}
+        {a.whatsappLien ? (
+          <a
+            href={a.whatsappLien}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Contacter via WhatsApp"
+            title="Contacter via WhatsApp"
+            className="akal-focusable"
+            style={{
+              flexShrink: 0,
+              width: "44px",
+              height: "44px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--radius-sm)",
+              backgroundColor: "#25D366",
+              color: "white",
+            }}
+          >
+            <WhatsAppIcon size={20} />
+          </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            aria-label="Contacter via WhatsApp"
+            title="Ce vendeur n'a pas renseigné de numéro WhatsApp"
+            className="akal-focusable"
+            style={{
+              flexShrink: 0,
+              width: "44px",
+              height: "44px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--color-bordure)",
+              backgroundColor: "transparent",
+              color: "var(--color-tertiaire)",
+              cursor: "not-allowed",
+              opacity: 0.55,
+            }}
+          >
+            <WhatsAppIcon size={20} />
+          </button>
+        )}
       </div>
       <ContactVendeurPanel 
         parcelle={a} 

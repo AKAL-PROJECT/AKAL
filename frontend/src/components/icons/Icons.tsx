@@ -124,6 +124,19 @@ export function MessageSquare({ size, className, style, strokeWidth }: IconProps
   );
 }
 
+// Marque WhatsApp (contact externe, P?-MVP) — seul pictogramme du fichier en
+// plein plutôt qu'au trait : contrairement aux icônes d'interface ci-dessus,
+// c'est une marque reconnaissable, pas un glyphe UI générique. `size`/
+// `className`/`style` gardent la même signature que les autres pour un usage
+// interchangeable ; `strokeWidth` accepté mais sans effet (rempli, sans trait).
+export function WhatsAppIcon({ size = 16, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className} style={style}>
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.87 9.87 0 0 0 12.04 2m0 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23a8.2 8.2 0 0 1-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.15 8.15 0 0 1-1.25-4.36c0-4.54 3.7-8.24 8.24-8.24m-3.51 2.98c-.16 0-.43.06-.66.31s-.87.85-.87 2.05c0 1.21.89 2.38 1.02 2.54.13.16 1.71 2.57 4.13 3.55 2.05.86 2.72.79 3.19.75.6-.05 1.24-.53 1.42-1.09.18-.55.18-1.02.13-1.11-.05-.09-.18-.14-.38-.25-.2-.1-1.19-.59-1.38-.65-.18-.07-.32-.1-.45.1-.13.2-.52.65-.64.79-.12.13-.24.15-.44.05-.2-.1-.85-.31-1.62-1s-1.3-1.53-1.45-1.79c-.15-.25-.02-.39.11-.5.11-.11.25-.28.37-.42.13-.14.17-.24.25-.4.08-.16.04-.3-.02-.42-.06-.11-.6-1.5-.83-2.05-.22-.53-.44-.46-.6-.47l-.5-.01" />
+    </svg>
+  );
+}
+
 export function Phone({ size, className, style, strokeWidth }: IconProps) {
   return (
     <svg {...base(size, strokeWidth)} className={className} style={style}>

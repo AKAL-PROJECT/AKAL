@@ -14,6 +14,8 @@ Sous-serializers :
     - ProprietaireSerializer     → {id} (UUID uniquement, RGPD loi 09-08)
 """
 
+from urllib.parse import quote
+
 # pyrefly: ignore [missing-import]
 from django.contrib.gis.geos import Point, Polygon
 from django.db import transaction
@@ -187,6 +189,74 @@ class ParcelleDetailSerializer(serializers.ModelSerializer):
         }).data
 
 
+# ──────────────────────────────────────────────
+# Contact WhatsApp (MVP) — voir get_whatsapp_lien() sur AnnonceDetailSerializer.
+#
+# Ne JAMAIS exposer le numéro brut comme un champ à part : la seule sortie
+# possible est un lien https://wa.me/... déjà entièrement construit
+# (numéro + message préremplis dans l'URL, mécanisme officiel WhatsApp),
+# jamais un champ "numero_whatsapp" séparé — même contrainte RGPD que
+# ProprietaireSerializer.telephone_masque juste en dessous, qui reste
+# inchangé et continue de ne jamais renvoyer le numéro en clair.
+# ──────────────────────────────────────────────
+
+def _numero_whatsapp(telephone):
+    """Normalise un numéro stocké vers le format exigé par wa.me : indicatif
+    pays + numéro, chiffres seuls, sans '+' ni espaces. Mêmes deux formats
+    déjà supposés partout ailleurs dans ce fichier (get_telephone_masque
+    ci-dessous) — Maroc uniquement pour l'instant : '+212...' déjà
+    international, ou '0...' national à préfixer. None si le numéro est
+    absent ou ne correspond à aucun des deux (jamais un lien construit sur
+    une donnée dont la forme n'est pas reconnue)."""
+    if not telephone:
+        return None
+    tel = telephone.replace(" ", "")
+    if tel.startswith("+212"):
+        chiffres = tel[1:]
+    elif tel.startswith("0"):
+        chiffres = "212" + tel[1:]
+    else:
+        return None
+    return chiffres if chiffres.isdigit() else None
+
+
+def _message_whatsapp(annonce):
+    """Message prérempli (référence, localisation, surface, prix) — chaque
+    ligne omise si la donnée correspondante est indisponible plutôt
+    qu'affichée vide/"None" (contrat MVP explicite : "si disponible")."""
+    reference = f"AKAL-{str(annonce.id)[:8].upper()}"
+    parcelle = annonce.parcelle
+    # Réutilise get_commune()/get_province() de ParcelleDetailSerializer
+    # (arbitrage commune_geom vs commune legacy déjà résolu là-bas) plutôt
+    # que de dupliquer cette logique ici.
+    parcelle_serializer = ParcelleDetailSerializer()
+    commune = parcelle_serializer.get_commune(parcelle)
+    province = parcelle_serializer.get_province(parcelle)
+    localisation = ", ".join(p for p in (commune, province) if p) or None
+
+    lignes = [
+        "Bonjour,",
+        "",
+        "Je suis intéressé(e) par votre annonce sur AKAL.",
+        "",
+        f"Référence : {reference}",
+    ]
+    if localisation:
+        lignes.append(f"Localisation : {localisation}")
+    if parcelle.surface_ha:
+        lignes.append(f"Surface : {parcelle.surface_ha} ha")
+    if annonce.prix_mad:
+        prix_affiche = f"{int(annonce.prix_mad):,}".replace(",", " ")
+        lignes.append(f"Prix : {prix_affiche} MAD")
+    lignes += [
+        "",
+        "Je souhaiterais avoir plus d'informations concernant cette parcelle.",
+        "",
+        "Merci.",
+    ]
+    return "\n".join(lignes)
+
+
 class ProprietaireSerializer(serializers.Serializer):
     """
     Informations du propriétaire pour la vue détail.
@@ -286,6 +356,9 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
         - photos triées par ordre
         - score_courant complet (score_global + sous_scores + indice_confiance)
         - informations du propriétaire (UUID uniquement, RGPD)
+        - whatsapp_lien : lien wa.me préconstruit vers le propriétaire, ou
+          null s'il n'a pas de numéro exploitable (jamais le numéro brut,
+          cf. get_whatsapp_lien() et _numero_whatsapp() ci-dessus)
     """
 
     parcelle = ParcelleDetailSerializer(read_only=True)
@@ -293,6 +366,7 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
     score_courant = serializers.SerializerMethodField()
     proprietaire = ProprietaireSerializer(read_only=True)
     photo_principale = serializers.SerializerMethodField()
+    whatsapp_lien = serializers.SerializerMethodField()
 
     class Meta:
         model = Annonce
@@ -301,8 +375,16 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
             'statut', 'loc_confidentielle', 'source',
             'date_publication', 'created_at', 'updated_at',
             'parcelle', 'photos', 'score_courant', 'proprietaire',
-            'photo_principale',
+            'photo_principale', 'whatsapp_lien',
         ]
+
+    def get_whatsapp_lien(self, obj):
+        """https://wa.me/<numero>?text=<message prérempli>, ou None si le
+        propriétaire n'a pas de numéro exploitable — jamais le numéro seul."""
+        numero = _numero_whatsapp(getattr(obj.proprietaire, 'telephone', None))
+        if not numero:
+            return None
+        return f"https://wa.me/{numero}?text={quote(_message_whatsapp(obj))}"
 
     def get_score_courant(self, obj):
         """

@@ -121,4 +121,9 @@ export type Parcelle = {
   photoPrincipale: string | null;
   photos: string[]; // vide en liste, rempli en détail (§4.4 — trié par ordre croissant)
   proprietaire?: { id: string; telephoneMasque: string | null };
+  // Lien https://wa.me/... déjà entièrement construit côté back (numéro +
+  // message prérempli dans l'URL) — null si le propriétaire n'a pas de
+  // numéro exploitable. Absent en liste (comme proprietaire), jamais le
+  // numéro seul : voir annonces/serializers.py::get_whatsapp_lien().
+  whatsappLien?: string | null;
 };
