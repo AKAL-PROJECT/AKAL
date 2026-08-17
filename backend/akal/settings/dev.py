@@ -23,8 +23,15 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 # hors du catalogue public) sans aucun rapport avec le confort de dev local
 # visÃ© ici. ConstatÃ© en CI : ce changement, appliquÃ© sans cette garde,
 # faisait Ã©chouer test_publication_reussie_definit_date_publication_et_apparait_publiquement.
+# 2026-08-17 (audit final) : défaut local passé de 'scraped' à 'all' —
+# 'scraped' seul cachait les annonces 'interne' (réellement publiées via
+# /publier) derrière un 404 public alors qu'elles étaient correctement
+# en_ligne en base ; piège concret pour toute démo publier→consulter la
+# fiche. 'all' montre les deux jeux à la fois (cf. SOURCES_PAR_DATASET,
+# annonces/managers.py) ; reste surchargeable via .env/variable d'env pour
+# revenir ponctuellement à 'simulated' ou 'scraped' seul en local.
 if 'test' not in sys.argv:
-    AKAL_DATASET = env('AKAL_DATASET', default='scraped')
+    AKAL_DATASET = env('AKAL_DATASET', default='all')
 
 # En dÃ©veloppement, autoriser toutes les origines CORS
 CORS_ALLOW_ALL_ORIGINS = True

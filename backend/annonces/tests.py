@@ -1557,6 +1557,16 @@ class DatasetActifTests(TestCase):
         self.assertNotIn(self.annonce_interne, resultat)
         self.assertIn(self.annonce_avito, resultat)
 
+    @override_settings(AKAL_DATASET='all')
+    def test_dataset_all_montre_les_deux_jeux(self):
+        """Défaut local depuis le 2026-08-17 (audit final) — cf. dev.py :
+        évite qu'une annonce 'interne' fraîchement publiée en local
+        retourne 404 sur sa propre fiche publique."""
+        resultat = list(Annonce.objects.en_ligne().dataset_actif())
+
+        self.assertIn(self.annonce_interne, resultat)
+        self.assertIn(self.annonce_avito, resultat)
+
     def test_valeur_inconnue_replie_silencieusement_sur_simulated(self):
         with override_settings(AKAL_DATASET='n_importe_quoi'):
             resultat = list(Annonce.objects.en_ligne().dataset_actif())
