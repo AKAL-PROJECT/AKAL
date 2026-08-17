@@ -80,6 +80,31 @@ AWS_S3_ENDPOINT_URL=http://localhost:9000
 
 > **Attention** : Assurez-vous d'avoir créé la base de données `akal_db` et d'y avoir activé l'extension PostGIS (`CREATE EXTENSION postgis;`).
 
+#### Firebase (authentification Google / téléphone)
+
+`PhoneLoginVerifyView` (SMS OTP) a besoin de `firebase_admin`, initialisé
+paresseusement au premier appel réel de cette vue à partir d'un fichier de
+credentials — **jamais au démarrage du serveur** : son absence n'empêche ni
+`manage.py runserver`, ni `check`, ni `test` de fonctionner ; seule cette
+vue répond alors `503 Connexion par téléphone temporairement indisponible`
+(`GoogleLoginView`, elle, n'utilise pas `firebase_admin` et n'est pas
+concernée).
+
+- **En local** : générer une clé de compte de service depuis la [console
+  Firebase](https://console.firebase.google.com/) → Paramètres du projet →
+  Comptes de service → Générer une nouvelle clé privée, puis déposer le
+  fichier téléchargé à la racine de `backend/` sous le nom
+  `firebase-service-account.json` (déjà exclu par `.gitignore` — ne jamais
+  le committer).
+- **Sur Render** : utiliser la fonctionnalité *Secret Files* du service
+  (Dashboard → service `akal-backend` → Environment → Secret Files) pour
+  monter un fichier à `/app/firebase-service-account.json` (le service
+  tourne dans `/app`, cf. `Dockerfile`) — aucune modification de code ou de
+  `render.yaml` requise.
+- **Avec Docker (hors Render)** : monter le fichier en volume au démarrage
+  du conteneur, par exemple `-v ./firebase-service-account.json:/app/firebase-service-account.json:ro`
+  (ou l'équivalent `volumes:` dans un `docker-compose.yml` de déploiement).
+
 ### 5. Application des migrations
 
 Générez la structure de la base de données :

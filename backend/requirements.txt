@@ -11,6 +11,8 @@ djangorestframework-gis>=1.2.0
 djangorestframework-simplejwt>=5.5.1
 drf-spectacular>=0.28.0
 Faker>=37.0.0
+firebase-admin>=7.0.0
+google-auth>=2.35.0
 gunicorn==22.0.0
 locust>=2.29.0
 Pillow>=11.0.0

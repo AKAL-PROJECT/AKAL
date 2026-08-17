@@ -28,3 +28,11 @@ services:
         
       - key: PYTHONUNBUFFERED
         value: "1"
+
+    # Authentification par téléphone (SMS OTP) : nécessite un secret
+    # firebase-service-account.json monté via l'onglet Secret Files de ce
+    # service (Dashboard → akal-backend → Environment → Secret Files) à
+    # /app/firebase-service-account.json — pas une envVar, non configurable
+    # ici. Voir README.md, section "Firebase (authentification Google /
+    # téléphone)". Sans ce fichier, le reste du service tourne normalement ;
+    # seul l'endpoint de connexion par téléphone répond 503.

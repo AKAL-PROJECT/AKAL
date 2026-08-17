@@ -12,14 +12,38 @@ import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
 import os
 from django.conf import settings
-
-if not firebase_admin._apps:
-    cred = credentials.Certificate(os.path.join(settings.BASE_DIR, 'firebase-service-account.json'))
-    firebase_admin.initialize_app(cred)
-from django.conf import settings
 from .models import User
 from .serializers import UserSerializer
 from .views import _set_auth_cookies
+
+# Paresseux à dessein (audit d'intégration du 2026-08-15, bloquant #2) :
+# initialiser Firebase Admin ici, au niveau module, faisait planter TOUT
+# `manage.py` (check/test/runserver/migrate…) dès que
+# firebase-service-account.json était absent — pas seulement les vues
+# d'authentification Google/téléphone qui en ont réellement besoin. Le
+# secret reste hors dépôt (.gitignore) ; pour le provisionner en local ou en
+# déploiement (Render/Docker), voir backend/README.md, section Firebase.
+_firebase_init_error: Exception | None = None
+
+
+def _get_firebase_auth():
+    """Initialise firebase_admin au premier besoin réel et renvoie le module
+    `firebase_admin.auth` prêt à l'emploi. Lève la même erreur (mise en
+    cache) à chaque appel tant que le secret n'est pas fourni, plutôt que de
+    retenter — et surtout jamais à l'import de ce fichier."""
+    global _firebase_init_error
+    if firebase_admin._apps:
+        return firebase_auth
+    if _firebase_init_error is not None:
+        raise _firebase_init_error
+    try:
+        cred = credentials.Certificate(os.path.join(settings.BASE_DIR, 'firebase-service-account.json'))
+        firebase_admin.initialize_app(cred)
+    except Exception as exc:
+        _firebase_init_error = exc
+        raise
+    return firebase_auth
+
 
 class PhoneLoginVerifyView(APIView):
     """Vérifie le jeton Firebase (SMS) et connecte l'utilisateur."""
@@ -37,7 +61,16 @@ class PhoneLoginVerifyView(APIView):
             return Response({'error': 'Le jeton est requis.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            decoded_token = firebase_auth.verify_id_token(token)
+            firebase_auth_module = _get_firebase_auth()
+        except Exception as e:
+            print("Firebase indisponible (secret non provisionné ?):", e)
+            return Response(
+                {'error': "Connexion par téléphone temporairement indisponible."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            decoded_token = firebase_auth_module.verify_id_token(token)
             telephone = decoded_token.get('phone_number')
 
             if not telephone:
