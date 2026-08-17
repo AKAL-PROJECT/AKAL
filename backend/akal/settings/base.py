@@ -272,7 +272,15 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_COOKIE_ACCESS': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token',
-    'AUTH_COOKIE_REFRESH_PATH': '/api/auth/',
+    # '/' et non '/api/auth/' (audit du 16/08) : frontend/src/proxy.ts lit ce
+    # cookie sur CHAQUE navigation de page (config.matcher y couvre tout le
+    # site) pour rafraîchir la session en silence — avec Path='/api/auth/',
+    # le navigateur ne l'attachait jamais à une requête vers /publier,
+    # /favoris, etc., et le refresh échouait systématiquement (401 côté
+    # /api/auth/refresh/, faute de cookie transmis), pas seulement lors d'une
+    # requête ponctuelle. Reproduit et confirmé par inspection directe des
+    # cookies du navigateur, pas supposé.
+    'AUTH_COOKIE_REFRESH_PATH': '/',
     # Défauts sûrs pour la prod (frontend et backend sur des sites
     # différents, cf. prod.py) ; dev.py les assouplit pour localhost en HTTP.
     'AUTH_COOKIE_SECURE': True,

@@ -133,11 +133,19 @@ export function EtapeInfosGenerales({
           scrapées/importées : souvent aucune de ces données structurées).
           Ni required ni astérisque : le backend accepte déjà l'absence
           (Parcelle.statut_foncier/acces_eau/topographie/acces_routier sont
-          null=True/blank=True, can_publish() ne les vérifie pas) — seul le
-          `required` HTML ci-dessous bloquait réellement la saisie/publication. */}
-      <p style={{ fontSize: 13, color: "var(--color-secondaire)", margin: "-8px 0 0" }}>
-        Facultatif — vous pourrez compléter ces informations plus tard.
-      </p>
+          null=True/blank=True, can_publish() ne les vérifie pas).
+          Regroupées visuellement (bordure + titre dédié, audit du 16/08) :
+          la mention "Facultatif" flottait auparavant juste sous Prix/Surface
+          — au premier coup d'œil, rien ne l'empêchait d'être lue comme
+          s'appliquant à CES champs (qui restent, eux, réellement requis),
+          plutôt qu'au groupe ci-dessous auquel elle est destinée. */}
+      <div style={{ borderTop: "1px solid var(--color-bordure)", paddingTop: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <p style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>Caractéristiques du terrain</p>
+          <p style={{ fontSize: 13, color: "var(--color-secondaire)", margin: "2px 0 0" }}>
+            Facultatif — vous pourrez compléter ces informations plus tard.
+          </p>
+        </div>
 
       <div style={{ display: "flex", gap: 16 }}>
         <div style={{ flex: 1 }}>
@@ -199,6 +207,7 @@ export function EtapeInfosGenerales({
             ))}
           </select>
         </div>
+      </div>
       </div>
 
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>

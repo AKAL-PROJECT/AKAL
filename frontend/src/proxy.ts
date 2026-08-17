@@ -139,6 +139,18 @@ async function tenterRefreshEdge(
   return cookiesAAppliquer;
 }
 
+// Reconstruit l'en-tête Cookie de la requête EN COURS en y substituant les
+// valeurs rafraîchies — préserve tous les autres cookies (csrftoken...).
+function construireEnteteCookieRafraichi(
+  request: NextRequest,
+  rafraichis: Array<{ name: string; value: string }>,
+): string {
+  const valeurs = new Map<string, string>();
+  for (const c of request.cookies.getAll()) valeurs.set(c.name, c.value);
+  for (const { name, value } of rafraichis) valeurs.set(name, value);
+  return Array.from(valeurs, ([name, value]) => `${name}=${value}`).join("; ");
+}
+
 export async function proxy(request: NextRequest) {
   const protegee = estRouteProtegee(request.nextUrl.pathname);
   const accessToken = request.cookies.get("access_token")?.value;
@@ -156,7 +168,17 @@ export async function proxy(request: NextRequest) {
     return protegee ? rediriger(request) : NextResponse.next();
   }
 
-  const response = NextResponse.next();
+  // Propage les cookies rafraîchis à LA REQUÊTE EN COURS, pas seulement à la
+  // réponse (donc aux requêtes futures) — sans ça, un Server Action déclenché
+  // sur cette même requête (ex. upload de photo à l'étape 3 du dépôt
+  // d'annonce) relit l'ancien cookie expiré via next/headers::cookies() et
+  // redirige vers /connexion avec un message trompeur, alors que la session
+  // vient pourtant d'être rafraîchie avec succès juste au-dessus — reproduit
+  // deux fois, cf. audit du 16/08.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("cookie", construireEnteteCookieRafraichi(request, cookiesRafraichis));
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   for (const { name, value, options } of cookiesRafraichis) {
     response.cookies.set(name, value, options);
   }
