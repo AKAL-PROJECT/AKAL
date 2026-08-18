@@ -26,3 +26,10 @@ npm install
 npm run dev
 # → http://localhost:3000
 ```
+
+## Variables d'environnement & secrets
+
+`backend/.env.example` et `frontend/.env.example` documentent les variables
+attendues ; aucune vraie valeur n'est commitée (voir `.gitignore`). Pour
+savoir comment récupérer ces valeurs en tant que nouveau collaborateur :
+[docs/ONBOARDING_SECRETS.md](docs/ONBOARDING_SECRETS.md).
