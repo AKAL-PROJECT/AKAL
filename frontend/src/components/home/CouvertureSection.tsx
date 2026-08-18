@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { MapPin } from "@/components/icons/Icons";
 import { Reveal } from "@/components/Reveal";
 import type { Parcelle } from "@/types/parcelle";
-import { getRegions, getStatsParRegion, type Region, type StatRegion } from "@/data/parcelles";
+import { getParcelles, getRegions, getStatsParRegion, type Region, type StatRegion } from "@/data/parcelles";
 import type { RegionActive } from "@/components/parcelles/CarteCouvertureLeaflet";
 
 // Leaflet touche `window`, absent au rendu serveur (SSR) — chargement
@@ -79,13 +79,71 @@ export default function CouvertureSection({
       .catch(() => setCounts([]));
   }, []);
 
-  const centres = centresParRegion(parcelles, regions);
-  const statsRegions = centres.map((c) => ({
+  // Parcelles réelles de la région sélectionnée (jusqu'à 50, même limite
+  // que TAILLE_CARTE côté catalogue) — bug du 18/08 : la carte filtrait
+  // jusque-là `parcelles` (l'échantillon générique des 50 plus récentes,
+  // toutes régions confondues), qui ne contient quasiment jamais toutes les
+  // annonces réelles d'une région donnée. Le compteur affiché (getStatsParRegion
+  // ci-dessus) est déjà correct depuis le précédent correctif ; la carte, elle,
+  // montrait donc nettement moins de pins que ce chiffre. `null` = pas encore
+  // chargé (aucune région sélectionnée, ou requête en cours).
+  const [parcellesRegion, setParcellesRegion] = useState<Parcelle[] | null>(null);
+  useEffect(() => {
+    let annule = false;
+    if (!regionCode) {
+      // Différé d'un micro-tick — même convention qu'ailleurs dans le
+      // projet (ex. app/parcelles/page.tsx) : un setState synchrone en tête
+      // d'effet déclenche un rendu en cascade avant même que React n'ait
+      // fini de committer celui-ci (react-hooks/set-state-in-effect).
+      Promise.resolve().then(() => {
+        if (!annule) setParcellesRegion(null);
+      });
+      return () => {
+        annule = true;
+      };
+    }
+    getParcelles({ region: regionCode, page_size: 50 })
+      .then((res) => {
+        if (!annule) setParcellesRegion(res.results);
+      })
+      .catch(() => {
+        if (!annule) setParcellesRegion([]);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [regionCode]);
+
+  // Parcelles réellement passées à la carte : l'échantillon générique pour
+  // "Tout le Maroc", les vraies parcelles de la région le temps qu'elles
+  // chargent sinon (jamais un mélange des deux, pour ne pas laisser
+  // apparaître un instant des pins hors-région).
+  const parcellesCarte = regionCode ? (parcellesRegion ?? []) : parcelles;
+
+  // Centres approximatifs (échantillon générique, cf. centresParRegion) —
+  // toujours utilisés pour `nom`/`code` de chaque région et comme repli tant
+  // que `parcellesRegion` n'a pas chargé. Une fois chargée, le centre de la
+  // région ACTIVE est affiné avec ses vraies parcelles (moyenne plus fidèle
+  // qu'une approximation sur l'échantillon générique, qui peut n'en
+  // contenir que très peu, voire aucune, pour une région donnée).
+  const centresApprox = centresParRegion(parcelles, regions);
+  const statsRegions = centresApprox.map((c) => ({
     ...c,
     count: counts.find((s) => s.code === c.code)?.count ?? 0,
   }));
+  const centreActifAffine: [number, number] | null = useMemo(() => {
+    if (!parcellesRegion || parcellesRegion.length === 0) return null;
+    return [
+      parcellesRegion.reduce((s, p) => s + p.parcelle.latitude, 0) / parcellesRegion.length,
+      parcellesRegion.reduce((s, p) => s + p.parcelle.longitude, 0) / parcellesRegion.length,
+    ];
+  }, [parcellesRegion]);
   const regionActive: RegionActive = regionCode
-    ? centres.find((r) => r.code === regionCode) ?? null
+    ? (() => {
+        const approx = centresApprox.find((r) => r.code === regionCode);
+        if (!approx) return null;
+        return { ...approx, centre: centreActifAffine ?? approx.centre };
+      })()
     : null;
 
   return (
@@ -212,7 +270,7 @@ export default function CouvertureSection({
             }}
           >
             <CarteCouverture
-              parcelles={parcelles}
+              parcelles={parcellesCarte}
               regions={regions}
               regionActive={regionActive}
               onSelectionnerRegion={(code) => setRegionCode((actuel) => (actuel === code ? null : code))}

@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
 import { MapContainer } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Parcelle } from "@/types/parcelle";
 import TuileOSM from "@/components/TuileOSM";
-import { CENTRE_MAROC } from "@/lib/leaflet";
+import { LIMITES_MAROC } from "@/lib/leaflet";
 import {
   useLimitesRegions,
   LimitesRegions,
@@ -35,6 +34,13 @@ export default function CarteCouvertureLeaflet({
   regionActive,
   onSelectionnerRegion,
 }: {
+  // Déjà le bon jeu de parcelles à afficher — l'échantillon générique quand
+  // aucune région n'est sélectionnée, sinon les vraies parcelles de la
+  // région active (jusqu'à 50, cf. CouvertureSection.tsx) : plus de
+  // filtrage par nom de région ici (retiré le 18/08 — filtrer l'échantillon
+  // générique par région ne montrait quasiment jamais toutes les annonces
+  // réelles d'une région donnée, contrairement au compteur affiché à côté,
+  // lui déjà correct).
   parcelles: Parcelle[];
   // Les 12 régions officielles (jamais une liste recopiée à la main —
   // audit P0-03) — chargées par l'appelant (CouvertureSection.tsx) depuis
@@ -46,13 +52,9 @@ export default function CarteCouvertureLeaflet({
   onSelectionnerRegion?: (code: string) => void;
 }) {
   const limites = useLimitesRegions(regions);
-  const visibles = useMemo(
-    () => (regionActive ? parcelles.filter((p) => p.parcelle.regionNom === regionActive.nom) : parcelles),
-    [parcelles, regionActive]
-  );
 
   return (
-    <MapContainer center={CENTRE_MAROC} zoom={6} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }}>
+    <MapContainer bounds={LIMITES_MAROC} boundsOptions={{ padding: [16, 16] }} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }}>
       <TuileOSM />
 
       <RecalculTailleCarte />
@@ -67,7 +69,7 @@ export default function CarteCouvertureLeaflet({
         {/* latitude/longitude non-null par contrat (cf. types/parcelle.ts,
             décision d'équipe du 2026-08-15) — pas de filtre ici, la garde
             vit dans MarqueurParcelle lui-même (source unique, CarteRegions.tsx). */}
-        {visibles.map((p) => (
+        {parcelles.map((p) => (
           <MarqueurParcelle key={p.id} parcelle={p} />
         ))}
       </MarkerClusterGroup>
