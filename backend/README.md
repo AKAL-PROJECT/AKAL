@@ -80,7 +80,7 @@ AWS_S3_ENDPOINT_URL=http://localhost:9000
 
 > **Attention** : Assurez-vous d'avoir créé la base de données `akal_db` et d'y avoir activé l'extension PostGIS (`CREATE EXTENSION postgis;`).
 
-#### Firebase (authentification Google / téléphone)
+#### Firebase (authentification téléphone) & Google OAuth
 
 `PhoneLoginVerifyView` (SMS OTP) a besoin de `firebase_admin`, initialisé
 paresseusement au premier appel réel de cette vue à partir d'un fichier de

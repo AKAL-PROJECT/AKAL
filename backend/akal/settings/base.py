@@ -320,6 +320,20 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
 
 
 # ──────────────────────────────────────────────
+# GOOGLE OAUTH — connexion Google (GoogleLoginView, accounts/auth_api_views.py)
+# ──────────────────────────────────────────────
+#
+# Client ID OAuth 2.0 (Google Cloud Console → APIs et services →
+# Identifiants), distinct de Firebase : GoogleLoginView vérifie le jeton
+# directement via google-auth (id_token.verify_oauth2_token), sans passer par
+# firebase_admin (cf. section Firebase du README backend). Vide par défaut
+# pour ne pas faire planter manage.py check/test/runserver tant que la
+# variable n'est pas provisionnée — GoogleLoginView répond alors 503 plutôt
+# que de vérifier les jetons contre un client ID codé en dur.
+GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
+
+
+# ──────────────────────────────────────────────
 # DATASET — simulated / scraped (2026-08-11)
 # ──────────────────────────────────────────────
 #

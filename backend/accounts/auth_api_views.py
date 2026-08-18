@@ -117,9 +117,16 @@ class GoogleLoginView(APIView):
         if not token:
             return Response({'error': 'Le jeton est requis.'}, status=status.HTTP_400_BAD_REQUEST)
             
+        client_id = settings.GOOGLE_CLIENT_ID
+        if not client_id:
+            print("GOOGLE_CLIENT_ID absent — connexion Google non configurée.")
+            return Response(
+                {'error': "Connexion Google temporairement indisponible."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
         try:
             # Verify token
-            client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '624927598987-bnta3tnqp5dpon11kug599hq9m198o02.apps.googleusercontent.com')
             idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
             
             email = idinfo.get('email')
