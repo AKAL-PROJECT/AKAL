@@ -8,7 +8,6 @@ import BadgeStatut from "./BadgeStatut";
 import ScoreBar from "./ScoreBar";
 import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
-import SimulateurROI from "./SimulateurROI";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { ContactVendeurPanel } from "@/components/messaging/ContactVendeurPanel";
@@ -284,8 +283,6 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
               {a.description}
             </p>
           </section>
-
-          <SimulateurROI prix={a.prix} />
 
           {/* Localisation */}
           <section>

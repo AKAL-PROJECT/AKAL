@@ -296,6 +296,7 @@ export const ACCES_EAU_OPTIONS: { value: AccesEau; label: string }[] = [
 // ---------------------------------------------------------------------------
 
 export type ParcellesQueryParams = {
+  q?: string; // recherche texte (titre + description, AnnonceAPIFilter.q)
   region?: string; // code
   // Cascade P0-04 — id ProvinceGeom / CommuneGeom (référentiel officiel,
   // cf. lib/geo-api.ts), jamais les id du référentiel legacy (backend
@@ -308,6 +309,14 @@ export type ParcellesQueryParams = {
   prix_max?: number;
   surface_min?: number;
   surface_max?: number;
+  // Bbox carte ("Rechercher cette zone", 2026-08-17, CarteLeaflet.tsx) —
+  // pas géré en mode mock (filtrerParcellesParams), même limite déjà
+  // assumée pour province/commune ci-dessus : le mock n'a jamais couvert
+  // les filtres géographiques avancés, réservé au dev sans backend.
+  lat_min?: number;
+  lat_max?: number;
+  lng_min?: number;
+  lng_max?: number;
   ordering?: string; // "date_publication" | "prix_mad" | "surface_ha", préfixe "-" pour desc
   page?: number;
   page_size?: number; // défaut 12, max 50 (borné côté back)
@@ -336,6 +345,7 @@ function paramsVersRecherche(params: ParcellesQueryParams): URLSearchParams {
 
 function rechercheVersParams(sp: URLSearchParams): ParcellesQueryParams {
   const params: ParcellesQueryParams = {};
+  if (sp.has("q")) params.q = sp.get("q")!;
   if (sp.has("region")) params.region = sp.get("region")!;
   if (sp.has("province")) params.province = Number(sp.get("province"));
   if (sp.has("commune")) params.commune = Number(sp.get("commune"));
@@ -356,7 +366,7 @@ function filtrerParcellesParams(liste: Parcelle[], params: ParcellesQueryParams)
   // (jeu de mock) ne porte que regionCode, pas d'id province/commune du
   // référentiel officiel — mode mock de toute façon réservé au dev sans
   // backend (NEXT_PUBLIC_USE_MOCKS), jamais le chemin par défaut.
-  return liste.filter((p) => {
+  const filtrees = liste.filter((p) => {
     if (params.region && p.parcelle.regionCode !== params.region) return false;
     if (params.statut_foncier && p.parcelle.statutFoncier !== params.statut_foncier) return false;
     if (params.acces_eau && p.parcelle.accesEau !== params.acces_eau) return false;
@@ -366,6 +376,10 @@ function filtrerParcellesParams(liste: Parcelle[], params: ParcellesQueryParams)
     if (params.surface_max != null && p.parcelle.surface > params.surface_max) return false;
     return true;
   });
+  // `q` : même logique de correspondance que le `?q=` réel (titre —
+  // + description non disponible dans le jeu de mock, cf. filtrerRecherche),
+  // réutilisée telle quelle plutôt que dupliquée.
+  return filtrerRecherche(filtrees, params.q ?? "");
 }
 
 function trierParcellesParOrdering(liste: Parcelle[], ordering?: string): Parcelle[] {
@@ -445,9 +459,14 @@ export async function getParcelleBySlug(slug: string): Promise<Parcelle | null> 
 export type AccesEauFiltre = "tous" | AccesEau;
 
 export type FiltresState = {
-  // Recherche texte : aucun paramètre `q=` documenté côté API (§4.2). Filtre
-  // donc UNIQUEMENT la page actuellement chargée, pas l'ensemble du catalogue
-  // — limitation connue, suivi proposé côté back (issue api-mismatch).
+  // Recherche texte — envoyée au backend via `q=` (AnnonceAPIFilter.q,
+  // annonces/api_views.py : recherche sur titre + description, toute la
+  // base). Corrigé le 2026-08-18 : jusque-là filtrée UNIQUEMENT côté client
+  // sur la page déjà chargée (filtrerRecherche, toujours utilisée en mode
+  // mock ci-dessous) — une annonce absente de cette page (ex. au-delà des
+  // 12 premières résultats triés par défaut) restait introuvable même en
+  // tapant son titre exact, alors qu'elle apparaissait bien sur la carte
+  // (page de 50 résultats, cf. TAILLE_CARTE dans app/parcelles/page.tsx).
   recherche: string;
   region: string; // "" = pas de filtre, sinon code (ex. "casablanca-settat")
   // Cascade P0-04 — id ProvinceGeom/CommuneGeom (référentiel officiel) en
@@ -500,13 +519,19 @@ export function triVersOrdering(tri: Tri): string {
   }
 }
 
+// Zone visible de la carte au moment du clic "Rechercher cette zone" —
+// cf. CarteLeaflet.tsx (BoutonRechercherZone) et app/parcelles/page.tsx.
+export type BboxCarte = { latMin: number; latMax: number; lngMin: number; lngMax: number };
+
 export function filtresVersParams(
   f: FiltresState,
   tri: Tri,
   page: number,
   pageSize: number = PAGE_SIZE_DEFAUT,
+  bbox: BboxCarte | null = null,
 ): ParcellesQueryParams {
   return {
+    q: f.recherche.trim() || undefined,
     region: f.region || undefined,
     province: f.province ? Number(f.province) : undefined,
     commune: f.commune ? Number(f.commune) : undefined,
@@ -516,6 +541,10 @@ export function filtresVersParams(
     prix_max: f.prixMax ?? undefined,
     surface_min: f.surfaceMin ?? undefined,
     surface_max: f.surfaceMax ?? undefined,
+    lat_min: bbox?.latMin,
+    lat_max: bbox?.latMax,
+    lng_min: bbox?.lngMin,
+    lng_max: bbox?.lngMax,
     ordering: triVersOrdering(tri),
     page,
     page_size: pageSize,
@@ -545,8 +574,12 @@ function normaliser(s: string): string {
     .replace(/[̀-ͯ]/g, "");
 }
 
-// Recherche texte côté client — voir le commentaire sur FiltresState.recherche.
-export function filtrerRecherche(liste: Parcelle[], recherche: string): Parcelle[] {
+// Recherche texte — équivalent mock du `?q=` réel (AnnonceAPIFilter.q, cf.
+// FiltresState.recherche), utilisée uniquement par filtrerParcellesParams
+// ci-dessus (NEXT_PUBLIC_USE_MOCKS). Plus utilisée côté page.tsx depuis le
+// câblage du `q=` serveur (2026-08-18) — l'API réelle fait déjà cette
+// recherche sur l'ensemble du catalogue, pas seulement la page chargée.
+function filtrerRecherche(liste: Parcelle[], recherche: string): Parcelle[] {
   if (!recherche.trim()) return liste;
   const q = normaliser(recherche.trim());
   return liste.filter((p) => normaliser(`${p.titre} ${p.parcelle.regionNom}`).includes(q));

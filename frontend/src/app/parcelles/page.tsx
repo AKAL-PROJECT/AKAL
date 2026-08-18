@@ -8,10 +8,10 @@ import {
   TAILLES_PAGE_DISPONIBLES,
   filtresActifs,
   filtresVersParams,
-  filtrerRecherche,
   getParcelles,
   getParcellesPage,
   getRegions,
+  type BboxCarte,
   type FiltresState,
   type ParcellesPage,
   type Region,
@@ -125,6 +125,13 @@ function Catalogue() {
   const [page, setPage] = useState(initial.page);
   const [tailleParPage, setTailleParPage] = useState<TaillePage>(initial.tailleParPage);
   const [filtres, setFiltres] = useState<FiltresState>(initial.filtres);
+  // "Rechercher cette zone" (2026-08-17, à la Airbnb — cf. CarteLeaflet.tsx)
+  // — pas dans FiltresState/l'URL comme les autres filtres : c'est une
+  // action ponctuelle sur la vue carte, pas un critère qu'on s'attend à
+  // retrouver en partageant le lien. Effacée dès qu'un autre filtre change
+  // (patchFiltres/reinitialiser ci-dessous) : les deux façons de restreindre
+  // la recherche (filtres explicites vs zone de la carte) ne se cumulent pas.
+  const [bbox, setBbox] = useState<BboxCarte | null>(null);
   const [sidebarOuverte, setSidebarOuverte] = useState(false);
   const { favorisIds, toggleFavori } = useFavorisIds();
   const { parcelles: parcellesComparees, basculer: basculerComparaison, estEnComparaison, retirer: retirerComparaison } = useComparateur();
@@ -159,7 +166,7 @@ function Catalogue() {
         if (annule) return undefined;
         setChargement(true);
         setErreur(null);
-        return getParcelles(filtresVersParams(filtres, tri, page, mode === "carte" ? TAILLE_CARTE : tailleParPage));
+        return getParcelles(filtresVersParams(filtres, tri, page, mode === "carte" ? TAILLE_CARTE : tailleParPage, bbox));
       })
       .then((res) => {
         if (!annule && res) setDonnees(res);
@@ -174,20 +181,53 @@ function Catalogue() {
     return () => {
       annule = true;
     };
-  }, [filtres, tri, page, mode, tailleParPage]);
+  }, [filtres, tri, page, mode, tailleParPage, bbox]);
 
   // URL partageable — navigation sans rechargement complet (router.replace shallow).
   useEffect(() => {
     router.replace(versUrl(filtres, tri, page, mode, tailleParPage), { scroll: false });
   }, [filtres, tri, page, mode, tailleParPage, router]);
 
+  // Synchronise `mode` avec `?vue=` quand l'URL change de l'EXTÉRIEUR de ce
+  // composant (bug confirmé 2026-08-18 : liens "Explorer"/"Carte" du Navbar,
+  // qui pointent tous deux vers /parcelles avec un `?vue=` différent). Next.js
+  // App Router ne démonte pas ce composant pour une navigation qui ne change
+  // que les search params sur la même route — `initial` (lu une seule fois
+  // au montage, cf. useMemo ci-dessus) ne voit donc jamais ce changement.
+  // Sans cet effet : clic sur "Carte" depuis Explorer → l'URL passe un
+  // instant à ?vue=carte, puis l'effet de synchro URL ci-dessus la réécrit
+  // aussitôt d'après `mode`, resté "grille" côté état — impossible de
+  // basculer d'une vue à l'autre en restant sur /parcelles, dans les deux
+  // sens. Le `setMode` fonctionnel (comparaison avant écriture) évite un
+  // aller-retour avec l'effet ci-dessus quand les deux sont déjà d'accord.
+  useEffect(() => {
+    // setMode différé d'un micro-tick (même pattern que l'effet de
+    // chargement plus haut) : un setState synchrone en tête d'effet
+    // déclenche un rendu en cascade avant même que React n'ait fini de
+    // committer celui-ci (react-hooks/set-state-in-effect).
+    Promise.resolve().then(() => {
+      const vueUrl: ModeAffichage = searchParams.get("vue") === "carte" ? "carte" : "grille";
+      setMode((m) => (m === vueUrl ? m : vueUrl));
+    });
+  }, [searchParams]);
+
   const patchFiltres = useCallback((patch: Partial<FiltresState>) => {
     setFiltres((prev) => ({ ...prev, ...patch }));
     setPage(1);
+    setBbox(null);
   }, []);
 
   const reinitialiser = useCallback(() => {
     setFiltres(FILTRES_INITIAUX);
+    setPage(1);
+    setBbox(null);
+  }, []);
+
+  // "Rechercher cette zone" (CarteLeaflet.tsx, BoutonRechercherZone) —
+  // remet aussi la page à 1 : la bbox change entièrement le jeu de
+  // résultats, rester sur une page 3 par exemple n'aurait aucun sens.
+  const rechercherZone = useCallback((zone: BboxCarte) => {
+    setBbox(zone);
     setPage(1);
   }, []);
 
@@ -221,9 +261,14 @@ function Catalogue() {
   // ci-dessous à chaque frappe/interaction sans rapport (react-hooks/
   // exhaustive-deps).
   const resultats = useMemo(() => donnees?.results ?? [], [donnees]);
-  // Recherche texte : filtre côté client, limité à la page actuellement
-  // chargée — voir le commentaire sur FiltresState.recherche (data/parcelles.ts).
-  const resultatsAffiches = filtrerRecherche(resultats, filtres.recherche);
+  // `resultats` est déjà filtré par le backend sur `filtres.recherche`
+  // (envoyé en `q=`, cf. filtresVersParams/data/parcelles.ts) — plus de
+  // second filtrage côté client ici. Un filtrage client par-dessus un
+  // `resultats` déjà filtré serveur aurait en plus été FAUX depuis ce
+  // câblage : le serveur matche sur titre + description, l'ancien filtre
+  // client sur titre + région seulement, donc un résultat retourné par le
+  // serveur via la description aurait pu être éliminé à tort ici.
+  const resultatsAffiches = resultats;
 
   // Région active pour la carte (P0-02/P0-03) : `filtres.region` est déjà
   // envoyé au serveur (filtresVersParams), donc `resultats` ne contient
@@ -451,6 +496,7 @@ function Catalogue() {
             regions={regions}
             regionActive={regionActive}
             onSelectionnerRegion={(code) => patchFiltres({ region: filtres.region === code ? "" : code })}
+            onRechercherZone={rechercherZone}
           />
         )}
 

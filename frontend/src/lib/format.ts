@@ -4,7 +4,7 @@
 // un Intl.NumberFormat a un coût (résolution des données de locale) et
 // l'objet est sans état, donc sûr à partager.
 //
-// Ne fixe pas le suffixe ("MAD", "MAD/ha", "MAD/m²", ou l'abréviation "k"
-// dans SimulateurROI.tsx) — les appelants continuent de l'ajouter eux-mêmes,
-// l'usage réel est trop varié pour un seul format figé.
+// Ne fixe pas le suffixe ("MAD", "MAD/ha", "MAD/m²", ou une abréviation "k"
+// ponctuelle) — les appelants continuent de l'ajouter eux-mêmes, l'usage
+// réel est trop varié pour un seul format figé.
 export const formatMAD = new Intl.NumberFormat("fr-MA");

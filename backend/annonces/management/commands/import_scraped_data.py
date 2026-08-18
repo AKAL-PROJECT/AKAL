@@ -17,11 +17,28 @@ N'invente jamais de donnée absente :
     - qualité du terrain (statut foncier précis, accès eau, topographie,
       accès routier) : aucun signal fiable dans les sources scrapées =>
       laissé NULL (Parcelle, nullable depuis la migration 0008) ;
-    - géolocalisation : uniquement si le nom de localité extrait de l'URL
-      Avito correspond exactement (normalisé) à une commune du référentiel
-      officiel déjà en base (CommuneGeom) — aucun géocodage réseau, aucune
-      coordonnée approximée. Mubawab n'a aucun champ de localité structuré
-      dans l'export fourni : jamais géolocalisé par cette commande.
+    - géolocalisation, deux précisions selon ce qu'on peut réellement
+      identifier dans les données de la source (jamais de géocodage réseau,
+      jamais de coordonnée sans ancrage textuel — décision produit du
+      2026-08-18, cf. docs/plans) :
+        * COMMUNE (précis) : nom de localité — extrait de l'URL Avito, ou
+          trouvé tel quel dans le titre/la description (les deux sources) —
+          correspondant exactement (normalisé, à limites de mots) à une
+          commune du référentiel officiel (CommuneGeom). Centroïde de la
+          commune. `Parcelle.commune_geom` renseigné : ces annonces sont
+          géolocalisées au même titre qu'un dépôt réel (is_geolocated()),
+          donc potentiellement publiables si le reste de can_publish() est
+          satisfait — comme avant.
+        * RÉGION (approximatif) : à défaut de commune reconnue, nom de
+          région trouvé tel quel dans le titre/la description. Centroïde de
+          la région — nettement moins précis qu'une vraie parcelle, jamais
+          présenté comme tel. `Parcelle.commune_geom` volontairement laissé
+          NULL : is_geolocated() reste donc False et can_publish() continue
+          de bloquer ces annonces (toujours en brouillon) — seul le pin sur
+          la carte du catalogue les utilise (cf. CarteParcelles.tsx), jamais
+          la fiche annonce ni l'éligibilité à la publication.
+      Aucune commune ni région identifiable dans le texte => aucune
+      coordonnée, comme avant (pas de pin sur la carte).
 
 Téléchargement des photos : requests.get() en premier (rapide, marche pour
 la plupart des CDN). Repli navigateur headless (Playwright/Chromium) quand
@@ -43,6 +60,7 @@ Usage:
 """
 
 import json
+import re
 import unicodedata
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
@@ -50,6 +68,8 @@ from pathlib import Path
 
 import requests
 from django.conf import settings
+from django.contrib.gis.db.models import Union as UnionGeom
+from django.contrib.gis.geos import Point
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -58,7 +78,7 @@ from django.utils import timezone
 from accounts.models import User
 from annonces.api_views import MAX_PHOTO_OCTETS
 from annonces.models import Annonce, Parcelle, Photo
-from geo.models import CommuneGeom
+from geo.models import CommuneGeom, ProvinceGeom, RegionOfficielle
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / 'data' / 'scraped'
 
@@ -97,6 +117,49 @@ def _normaliser(texte: str) -> str:
     insensible à la casse/accentuation, jamais de correspondance approchée."""
     sans_accents = unicodedata.normalize('NFKD', texte).encode('ascii', 'ignore').decode('ascii')
     return ' '.join(sans_accents.lower().split())
+
+
+def _normaliser_pour_recherche(texte: str) -> str:
+    """Comme _normaliser, en remplaçant en plus toute ponctuation par des
+    espaces — pour chercher un nom de lieu à l'intérieur d'un texte libre
+    (titre/description), jamais pour la comparaison d'égalité stricte
+    ci-dessus (URL Avito vs nom de commune)."""
+    return re.sub(r'[^a-z0-9]+', ' ', _normaliser(texte)).strip()
+
+
+def _contient_lieu(texte_normalise: str, nom_lieu_normalise: str) -> bool:
+    """Vrai si `nom_lieu_normalise` apparaît dans `texte_normalise` à limites
+    de mots (jamais une correspondance partielle à l'intérieur d'un autre
+    mot, ex. la commune "Ain" ne doit pas matcher dans "certain") — les deux
+    arguments déjà passés par _normaliser_pour_recherche."""
+    return re.search(rf'(?:^| ){re.escape(nom_lieu_normalise)}(?:$| )', texte_normalise) is not None
+
+
+def _chercher_lieu_dans_texte(texte_normalise, lieux_tries_par_longueur):
+    """Premier lieu de `lieux_tries_par_longueur` (liste de (nom_normalisé,
+    objet), triée par longueur de nom décroissante) trouvé dans le texte.
+    Le tri privilégie une correspondance plus longue donc plus spécifique
+    (ex. "sidi bennour" avant un éventuel nom plus court qui y serait inclus)
+    plutôt qu'un ordre arbitraire de dict."""
+    for nom_normalise, obj in lieux_tries_par_longueur:
+        if _contient_lieu(texte_normalise, nom_normalise):
+            return obj
+    return None
+
+
+def _index_pour_recherche_texte(objets, nom_attribut):
+    """Liste de (nom_normalisé, objet) triée par longueur de nom décroissante,
+    prête pour _chercher_lieu_dans_texte — `nom_attribut` normalisé via
+    _normaliser_pour_recherche (PAS _normaliser : les clés doivent subir la
+    même normalisation que le texte scanné, notamment le retrait de la
+    ponctuation — un nom de région comme "Fès-Meknès" doit pouvoir matcher
+    "région de Fès-Meknès" une fois le tiret réduit à un espace des deux
+    côtés). Distinct des dicts *_normalisees (comparaison d'égalité stricte,
+    ex. segment d'URL Avito), qui gardent _normaliser tel quel."""
+    return sorted(
+        ((_normaliser_pour_recherche(getattr(o, nom_attribut)), o) for o in objets),
+        key=lambda kv: -len(kv[0]),
+    )
 
 
 class Command(BaseCommand):
@@ -148,9 +211,25 @@ class Command(BaseCommand):
 
         sources = ['avito', 'mubawab'] if source_arg == 'all' else [source_arg]
 
-        self._communes_normalisees = {
-            _normaliser(c.nom_affichage): c for c in CommuneGeom.objects.all()
-        }
+        communes = list(CommuneGeom.objects.all())
+        self._communes_normalisees = {_normaliser(c.nom_affichage): c for c in communes}
+        # Index séparé pour la recherche dans un texte libre (titre/
+        # description) : cf. _index_pour_recherche_texte — normalisation
+        # différente de self._communes_normalisees ci-dessus (égalité stricte
+        # sur le segment d'URL Avito, inchangée).
+        self._communes_tries = _index_pour_recherche_texte(communes, 'nom_affichage')
+
+        # Repli RÉGION (approximatif, décision produit du 2026-08-18 — cf.
+        # docstring du module) : uniquement quand aucune commune n'a pu être
+        # identifiée. self._region_centroides calculé une seule fois ici (12
+        # régions, coût négligeable) plutôt qu'à chaque annonce.
+        regions = list(RegionOfficielle.objects.all())
+        self._regions_tries = _index_pour_recherche_texte(regions, 'nom')
+        self._region_centroides = {}
+        for region in regions:
+            union = ProvinceGeom.objects.filter(region=region).aggregate(u=UnionGeom('geom'))['u']
+            if union is not None:
+                self._region_centroides[region.pk] = union.centroid
 
         # État du repli navigateur headless (cf. _telecharger_via_navigateur) :
         # None = jamais tenté, False = tenté et indisponible (désactivé pour
@@ -175,6 +254,7 @@ class Command(BaseCommand):
                 f"{b['source']:>8} | lues: {b['lues']:>4} | importees: {b['importees']:>4} | "
                 f"deja_importees: {b['deja_importees']:>4} | rejetees: {b['rejetees']:>4} | "
                 f"publiees: {b['publiees']:>4} | geolocalisees: {b['geolocalisees']:>4} | "
+                f"geolocalisees_approx: {b['geolocalisees_approx']:>4} | "
                 f"photos_ok: {b['photos_ok']:>4} | photos_echec: {b['photos_echec']:>4}"
             )
             if b['raisons_rejet']:
@@ -206,7 +286,8 @@ class Command(BaseCommand):
         bilan = {
             'source': source, 'lues': len(entrees), 'importees': 0,
             'deja_importees': 0, 'rejetees': 0, 'publiees': 0,
-            'geolocalisees': 0, 'photos_ok': 0, 'photos_echec': 0,
+            'geolocalisees': 0, 'geolocalisees_approx': 0,
+            'photos_ok': 0, 'photos_echec': 0,
             'raisons_rejet': {},
         }
 
@@ -270,20 +351,51 @@ class Command(BaseCommand):
             self._rejeter(bilan, 'surface trop petite après conversion en ha')
             return
 
-        commune_geom = None
+        description = (entree.get('description') or '').strip()
+
+        # ── Géolocalisation : COMMUNE (précis) puis, à défaut, RÉGION
+        # (approximatif) — cf. docstring du module pour la distinction et
+        # ses conséquences (is_geolocated()/can_publish()).
+        ville_brute = _ville_brute_depuis_url_avito(entree.get('url', '')) if source == 'avito' else None
+        commune_geom = self._communes_normalisees.get(_normaliser(ville_brute)) if ville_brute else None
+
+        # Texte libre passé au crible si l'URL n'a rien donné (Avito) ou pour
+        # toute la donnée disponible (Mubawab, qui n'a pas de segment d'URL
+        # exploitable) — titre + description + segment d'URL brut le cas
+        # échéant (un intitulé d'URL Avito non reconnu comme commune, ex.
+        # "region-de-fes", peut tout de même matcher une région).
+        texte_recherche = _normaliser_pour_recherche(
+            f"{titre} {description} {ville_brute or ''}"
+        )
+        if commune_geom is None:
+            commune_geom = _chercher_lieu_dans_texte(texte_recherche, self._communes_tries)
+
+        region_approx = None
+        if commune_geom is None:
+            region_approx = _chercher_lieu_dans_texte(texte_recherche, self._regions_tries)
+
         latitude = longitude = geom = None
-        if source == 'avito':
-            ville_brute = _ville_brute_depuis_url_avito(entree.get('url', ''))
-            if ville_brute:
-                commune_geom = self._communes_normalisees.get(_normaliser(ville_brute))
         if commune_geom is not None:
-            from django.contrib.gis.geos import Point
             centroide = commune_geom.geom.centroid
             latitude, longitude = centroide.y, centroide.x
             geom = Point(longitude, latitude, srid=4326)
             bilan['geolocalisees'] += 1
+        elif region_approx is not None:
+            centroide = self._region_centroides.get(region_approx.pk)
+            if centroide is not None:
+                latitude, longitude = centroide.y, centroide.x
+                geom = Point(longitude, latitude, srid=4326)
+                bilan['geolocalisees_approx'] += 1
 
         parcelle = Parcelle.objects.create(
+            # `commune_geom` jamais renseigné pour un repli RÉGION (seul le
+            # cas COMMUNE ci-dessus le fait) : is_geolocated() (annonces/
+            # models.py) exige commune_geom_id + lat/lng, donc ces annonces
+            # approximatives restent non "géolocalisées" au sens strict —
+            # can_publish() continue de les bloquer, seule la carte du
+            # catalogue affiche leur pin (lat/lng suffisent à
+            # CarteParcelles.tsx, cf. AnnonceAPIFilter.lat_min/max/lng_min/max
+            # côté API qui filtrent déjà directement sur ces deux champs).
             commune_geom=commune_geom,
             surface_ha=surface_ha,
             latitude=latitude,
@@ -296,10 +408,13 @@ class Command(BaseCommand):
                 'categorie_source': entree.get('categorie'),
                 'titre_foncier_source': entree.get('titre_foncier'),
                 'date_scraping_source': entree.get('date_scraping'),
+                # Traçabilité de la précision — jamais consommé par le
+                # frontend (le champ n'existe nulle part côté DTO/API), utile
+                # seulement pour un audit ultérieur en base ou en admin.
+                'geoloc_precision': 'commune' if commune_geom is not None else ('region' if region_approx is not None else None),
             },
         )
 
-        description = (entree.get('description') or '').strip()
         annonce = Annonce.objects.create(
             parcelle=parcelle,
             proprietaire=bot,

@@ -427,8 +427,8 @@ export default function FiltresSidebar({
             </div>
           </div>
 
-          {/* Recherche textuelle — limitée à la page actuellement chargée
-              (pas de paramètre `q=` documenté côté API, cf. lib/parcelles.ts). */}
+          {/* Recherche textuelle — envoyée au backend en `q=` (titre +
+              description, sur tout le catalogue), cf. data/parcelles.ts. */}
           <div style={{ position: "relative" }}>
             <Search
               size={14}
@@ -436,7 +436,7 @@ export default function FiltresSidebar({
             />
             <input
               className="input"
-              placeholder="Rechercher dans cette page…"
+              placeholder="Rechercher un titre, un lieu…"
               value={f.recherche}
               onChange={(e) => onChange({ recherche: e.target.value })}
               style={{ height: "44px", paddingLeft: "36px", fontSize: "14px" }}

@@ -483,6 +483,30 @@ class CommuneGeomTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
 
+    def test_filtre_bbox_carte_inclut_annonce_dans_la_zone(self):
+        """?lat_min=/lat_max=/lng_min=/lng_max= ("Rechercher cette zone",
+        2026-08-17) — self.annonce_id est publiée à (33.5, -5.5), cf.
+        publier_annonce_geolocalisee()."""
+        self.publier_annonce_geolocalisee()
+
+        response = self.client.get(ANNONCES_URL, {
+            'lat_min': 33.0, 'lat_max': 34.0, 'lng_min': -6.0, 'lng_max': -5.0,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_bbox_carte_exclut_annonce_hors_zone(self):
+        self.publier_annonce_geolocalisee()
+
+        response = self.client.get(ANNONCES_URL, {
+            # Une zone au sud, ne recouvrant pas (33.5, -5.5).
+            'lat_min': 20.0, 'lat_max': 21.0, 'lng_min': -17.0, 'lng_max': -16.0,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
 
 class PhotoUploadTests(AnnoncesTestBase):
     def setUp(self):
@@ -1257,22 +1281,42 @@ class ImportMubawabTests(ImportScrapedDataTestBase):
         self.assertEqual(annonce.titre, 'Terrain Mubawab')
         self.assertEqual(annonce.proprietaire.email, 'scraper.mubawab@akal.ma')
 
-    def test_mubawab_jamais_geolocalise_aucun_champ_localite_fiable(self):
-        """Contrairement à Avito (segment d'URL), Mubawab n'a aucun champ
-        structuré de localité dans l'export fourni — jamais de résolution
-        de commune tentée, quel que soit le contenu du titre/description."""
+    def test_mubawab_geolocalise_via_commune_nommee_dans_le_titre(self):
+        """Contrairement à Avito (segment d'URL dédié), Mubawab n'a aucun
+        champ structuré de localité dans l'export fourni — mais depuis le
+        2026-08-18 (décision produit, cf. docstring import_scraped_data),
+        le titre/la description sont passés au crible pour y reconnaître un
+        nom de commune officielle, pour les deux sources."""
         self.importer(
             [_entree(
                 id_annonce='223', source='mubawab',
                 url='https://www.mubawab.ma/fr/a/223/terrain-a-meknes-ville',
-                titre='Terrain agricole à Meknès Ville',  # la ville EST dans le titre...
+                titre='Terrain agricole à Meknès Ville',  # la ville EST dans le titre
             )],
             source='mubawab',
         )
 
-        annonce = Annonce.objects.get(source_id='223')
-        self.assertIsNone(annonce.parcelle.commune_geom)
-        self.assertIsNone(annonce.parcelle.latitude)
+        parcelle = Annonce.objects.get(source_id='223').parcelle
+        self.assertEqual(parcelle.commune_geom_id, self.commune_geom.pk)
+        self.assertIsNotNone(parcelle.latitude)
+        self.assertIsNotNone(parcelle.longitude)
+
+    def test_mubawab_sans_aucun_lieu_reconnaissable_reste_non_geolocalisee(self):
+        """Ni le titre ni la description ne nomment une commune ou une
+        région connue — toujours aucune coordonnée inventée."""
+        self.importer(
+            [_entree(
+                id_annonce='224', source='mubawab',
+                url='https://www.mubawab.ma/fr/a/224/terrain-agricole',
+                titre='Terrain agricole à vendre',
+                description='Beau terrain, prix négociable.',
+            )],
+            source='mubawab',
+        )
+
+        parcelle = Annonce.objects.get(source_id='224').parcelle
+        self.assertIsNone(parcelle.commune_geom)
+        self.assertIsNone(parcelle.latitude)
 
 
 class ImportIdempotenceTests(ImportScrapedDataTestBase):
@@ -1411,8 +1455,10 @@ class ImportGeolocalisationTests(ImportScrapedDataTestBase):
         self.assertIsNotNone(parcelle.geom)
 
     def test_localite_sans_correspondance_reste_non_geolocalisee(self):
-        """"autre_secteur", "route_de_fes"... ne matchent aucune commune —
-        jamais de coordonnée approximée par défaut."""
+        """"autre_secteur", "route_de_fes"... ne matchent aucune commune, et
+        le titre/la description par défaut (_entree) ne nomment aucune
+        commune ni région connue — jamais de coordonnée approximée par
+        défaut, quel que soit le palier (commune ou région)."""
         self.importer([_entree(
             id_annonce='602',
             url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_602.htm',
@@ -1424,6 +1470,63 @@ class ImportGeolocalisationTests(ImportScrapedDataTestBase):
         self.assertIsNone(parcelle.longitude)
         self.assertIsNone(parcelle.geom)
         self.assertFalse(parcelle.is_geolocated())
+
+    def test_commune_reconnue_dans_le_titre_quand_lurl_ne_matche_pas(self):
+        """L'URL Avito ("autre_secteur") ne donne rien, mais le titre nomme
+        une commune du référentiel officiel — résolue tout de même (même
+        palier de précision qu'une résolution par URL : commune_geom
+        renseigné)."""
+        self.importer([_entree(
+            id_annonce='603',
+            url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_603.htm',
+            titre='Beau terrain agricole à Meknès Ville, proche axes routiers',
+        )])
+
+        parcelle = Annonce.objects.get(source_id='603').parcelle
+        self.assertEqual(parcelle.commune_geom_id, self.commune_geom.pk)
+        self.assertIsNotNone(parcelle.latitude)
+        self.assertTrue(parcelle.is_geolocated())
+
+    def test_repli_region_quand_aucune_commune_mais_la_region_est_nommee(self):
+        """Ni l'URL ni le titre/la description ne nomment une commune
+        connue, mais la région ("Fès-Meknès") apparaît dans la description
+        — repli approximatif au centroïde de la région : coordonnées
+        renseignées, mais `commune_geom` volontairement laissé NULL (décision
+        produit du 2026-08-18) donc `is_geolocated()` reste False et
+        can_publish() continue de bloquer la publication de cette annonce."""
+        self.importer([_entree(
+            id_annonce='604',
+            url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_604.htm',
+            titre='Terrain agricole à vendre',
+            description='Beau terrain situé dans la région de Fès-Meknès, proche de la ville.',
+        )])
+
+        parcelle = Annonce.objects.get(source_id='604').parcelle
+        self.assertIsNone(parcelle.commune_geom)
+        self.assertIsNotNone(parcelle.latitude)
+        self.assertIsNotNone(parcelle.longitude)
+        self.assertIsNotNone(parcelle.geom)
+        self.assertFalse(parcelle.is_geolocated())
+        peut_publier, raisons = Annonce.objects.get(source_id='604').can_publish()
+        self.assertFalse(peut_publier)
+        self.assertIn(
+            "La localisation de la parcelle doit être renseignée avant publication.",
+            raisons,
+        )
+
+    def test_commune_prioritaire_sur_region_quand_les_deux_sont_nommees(self):
+        """Le titre nomme à la fois la commune ET, via la description, sa
+        région — la commune (plus précise) l'emporte, jamais le repli région
+        alors qu'une résolution précise est possible."""
+        self.importer([_entree(
+            id_annonce='605',
+            url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_605.htm',
+            titre='Terrain à Meknès Ville',
+            description='Située dans la région de Fès-Meknès.',
+        )])
+
+        parcelle = Annonce.objects.get(source_id='605').parcelle
+        self.assertEqual(parcelle.commune_geom_id, self.commune_geom.pk)
 
 
 class ImportPhotosEtPublicationTests(ImportScrapedDataTestBase):
