@@ -277,6 +277,30 @@ export async function getRegions(): Promise<Region[]> {
   return regions.map((r) => ({ code: r.slug, nom: r.nom }));
 }
 
+export type StatRegion = { code: string; count: number };
+
+type StatsRegionDTO = { region: string; count: number };
+
+// GET /api/annonces/stats/regions/ (ajouté le 2026-08-18) — nombre réel
+// d'annonces en_ligne par région, sur tout le catalogue. Distinct des
+// compteurs dérivés d'un échantillon de parcelles déjà chargées (ex.
+// l'ancien statsParRegion de CouvertureSection.tsx, qui ne portait que sur
+// les 50 premières résultats et ne pouvait donc jamais sommer au vrai total
+// dès que le catalogue dépassait 50 annonces) : à utiliser pour tout
+// compteur/somme affiché comme un total, jamais un centre de carte (qui,
+// lui, reste dérivé des parcelles réellement chargées — cf.
+// CouvertureSection.tsx).
+export async function getStatsParRegion(): Promise<StatRegion[]> {
+  if (USE_MOCKS) {
+    return REGIONS_MOCK.map((r) => ({
+      code: r.code,
+      count: PARCELLES.filter((p) => p.parcelle.regionCode === r.code).length,
+    }));
+  }
+  const stats = await apiFetch<StatsRegionDTO[]>("/annonces/stats/regions/");
+  return stats.map((s) => ({ code: s.region, count: s.count }));
+}
+
 export const STATUTS: StatutFoncier[] = [
   "immatricule",
   "melkia",

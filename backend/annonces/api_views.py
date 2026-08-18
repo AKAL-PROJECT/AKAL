@@ -51,6 +51,12 @@ from rest_framework.views import APIView
 # annonces.Annonce sont déjà en référence string ('annonces.Annonce').
 from messaging.models import Conversation, Favori, Message
 
+# Import cross-app annonces -> geo (même sens que l'existant annonces ->
+# geo dans import_scraped_data.py/AnnonceAPIFilter, jamais l'inverse) —
+# uniquement pour AnnonceStatsRegionAPIView ci-dessous (liste des régions à
+# compter), aucune dépendance de geo vers annonces en retour.
+from geo.models import RegionOfficielle
+
 from .models import Annonce, Parcelle, Photo, StatistiqueAnnonce
 from .serializers import (
     AnnonceListSerializer,
@@ -292,6 +298,48 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
             self.request.user.role = self.request.user.Role.VENDEUR
             self.request.user.save(update_fields=['role'])
         return annonce
+
+
+class AnnonceStatsRegionAPIView(APIView):
+    """
+    GET /api/annonces/stats/regions/
+
+    Nombre d'annonces publiques (en_ligne, dataset_actif()) par région
+    officielle, sur l'ENSEMBLE du catalogue — jamais un échantillon paginé.
+
+    Ajouté le 2026-08-18 : la section "Couverture nationale" de la Home
+    (CouvertureSection.tsx) calculait jusque-là ses compteurs par région à
+    partir du même échantillon de 50 annonces que la vue carte/vedettes — la
+    somme des régions ne pouvait donc jamais correspondre au vrai total dès
+    que le catalogue dépassait 50 annonces (constaté à 147, puis 203).
+
+    Réponse : [{"region": "<slug RegionOfficielle>", "count": <int>}, ...],
+    une entrée par région (y compris à 0, jamais un résultat manquant) —
+    ordonnées comme RegionOfficielleListAPIView (/api/geo/limites/regions/),
+    pour un appariement direct côté front par index si besoin (le slug
+    suffit de toute façon à apparier explicitement).
+
+    Même définition d'appartenance qu'AnnonceAPIFilter.filter_region (OR
+    entre le référentiel legacy `commune` et l'officiel `commune_geom`, cf.
+    ce filtre pour le pourquoi des deux chaînes) — appliquée ici région par
+    région plutôt qu'à un seul `?region=` demandé par l'appelant.
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        queryset = Annonce.objects.en_ligne().dataset_actif()
+        resultats = [
+            {
+                'region': region.slug,
+                'count': queryset.filter(
+                    Q(parcelle__commune__province__region__code=region.slug)
+                    | Q(parcelle__commune_geom__province__region_id=region.pk)
+                ).count(),
+            }
+            for region in RegionOfficielle.objects.all().order_by('code')
+        ]
+        return Response(resultats)
 
 
 class AnnonceDetailAPIView(generics.RetrieveAPIView):

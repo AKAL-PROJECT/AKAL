@@ -6,7 +6,7 @@ import Link from "next/link";
 import { MapPin } from "@/components/icons/Icons";
 import { Reveal } from "@/components/Reveal";
 import type { Parcelle } from "@/types/parcelle";
-import { getRegions, type Region } from "@/data/parcelles";
+import { getRegions, getStatsParRegion, type Region, type StatRegion } from "@/data/parcelles";
 import type { RegionActive } from "@/components/parcelles/CarteCouvertureLeaflet";
 
 // Leaflet touche `window`, absent au rendu serveur (SSR) — chargement
@@ -20,16 +20,20 @@ const CarteCouverture = dynamic(() => import("@/components/parcelles/CarteCouver
   ),
 });
 
-// Compteur + centre par région pour le panneau/la carte de couverture —
-// dérivés des vraies parcelles (moyenne lat/lng), jamais codés en dur.
-// `centre` est null si la région n'a aucune parcelle (le bouton reste
-// cliquable, la carte retombe alors sur la vue Maroc entière).
-function statsParRegion(parcelles: Parcelle[], regions: Region[]) {
+// Centre par région pour la carte de couverture — dérivé des vraies
+// parcelles CHARGÉES (moyenne lat/lng), jamais codé en dur. `centre` est
+// null si la région n'a aucune parcelle dans l'échantillon (le bouton reste
+// cliquable, la carte retombe alors sur la vue Maroc entière). Une
+// approximation sur l'échantillon reste correcte ici : ce n'est qu'un point
+// de recentrage visuel, pas un total affiché — contrairement au COMPTEUR
+// (cf. `counts`/getStatsParRegion plus bas), qui doit lui porter sur tout
+// le catalogue (bug corrigé le 2026-08-18 : la somme des compteurs par
+// région, jusque-là calculée sur ce même échantillon de 50, ne pouvait
+// jamais atteindre le vrai total dès que le catalogue dépassait 50 annonces).
+function centresParRegion(parcelles: Parcelle[], regions: Region[]) {
   return regions.map((r) => {
-    const items = parcelles.filter((p) => p.parcelle.regionNom === r.nom);
-    // On ne retient que les parcelles avec coordonnées valides pour le calcul du centre
-    const avecCoords = items.filter(
-      (p) => p.parcelle.latitude != null && p.parcelle.longitude != null
+    const avecCoords = parcelles.filter(
+      (p) => p.parcelle.regionNom === r.nom && p.parcelle.latitude != null && p.parcelle.longitude != null
     );
     const centre: [number, number] | null = avecCoords.length
       ? [
@@ -37,7 +41,7 @@ function statsParRegion(parcelles: Parcelle[], regions: Region[]) {
           avecCoords.reduce((s, p) => s + (p.parcelle.longitude as number), 0) / avecCoords.length,
         ]
       : null;
-    return { code: r.code, nom: r.nom, count: items.length, centre };
+    return { code: r.code, nom: r.nom, centre };
   });
 }
 
@@ -64,9 +68,24 @@ export default function CouvertureSection({
       .catch(() => setRegions([]));
   }, []);
 
-  const statsRegions = statsParRegion(parcelles, regions);
+  // Compteurs réels (tout le catalogue, cf. getStatsParRegion) — jamais
+  // dérivés de `parcelles` (échantillon de 50, cf. centresParRegion
+  // ci-dessus pour le centre de carte, qui lui reste une approximation
+  // acceptable sur ce même échantillon).
+  const [counts, setCounts] = useState<StatRegion[]>([]);
+  useEffect(() => {
+    getStatsParRegion()
+      .then(setCounts)
+      .catch(() => setCounts([]));
+  }, []);
+
+  const centres = centresParRegion(parcelles, regions);
+  const statsRegions = centres.map((c) => ({
+    ...c,
+    count: counts.find((s) => s.code === c.code)?.count ?? 0,
+  }));
   const regionActive: RegionActive = regionCode
-    ? statsRegions.find((r) => r.code === regionCode) ?? null
+    ? centres.find((r) => r.code === regionCode) ?? null
     : null;
 
   return (
@@ -86,7 +105,8 @@ export default function CouvertureSection({
 
       <Reveal delayMs={80}>
         <div className="akal-couverture-grid" style={{ display: "grid", gridTemplateColumns: "minmax(240px, 300px) minmax(0, 1fr)", gap: "20px", alignItems: "stretch" }}>
-          {/* Panneau régions — compteurs dérivés de statsParRegion (jamais codés en dur). */}
+          {/* Panneau régions — centres dérivés de centresParRegion, compteurs de
+              getStatsParRegion (jamais codés en dur, ni l'un ni l'autre). */}
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <button
               type="button"
@@ -173,11 +193,10 @@ export default function CouvertureSection({
               );
             })}
 
-            {/* CTA vers l'onglet Carte de la Navbar — même route ("/parcelles"),
-                pas de paramètre dédié pour présélectionner la vue carte :
-                le catalogue n'a pas de mode piloté par l'URL (mode local,
-                cf. app/parcelles/page.tsx), atterrit donc en vue grille. */}
-            <Link href="/parcelles" className="akal-link-fleche" style={{ marginTop: "8px" }}>
+            {/* Même route que le lien "Carte" du Navbar (/parcelles?vue=carte,
+                cf. app/parcelles/page.tsx) — ouvre directement en vue carte
+                plutôt qu'en grille, cohérent avec "Voir la carte complète". */}
+            <Link href="/parcelles?vue=carte" className="akal-link-fleche" style={{ marginTop: "8px" }}>
               Voir la carte complète →
             </Link>
           </div>
