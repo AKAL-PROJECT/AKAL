@@ -289,9 +289,12 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
           - "Déposer une annonce" retiré de cette liste — le CTA du header
             (bouton "Déposer") reste désormais visible sur mobile aussi
             (cf. plus haut), cette entrée y devient redondante.
-          - Anonyme : Explorer/Carte/Comment ça marche, puis "Se connecter"
-            et "S'inscrire" séparément (routes /connexion et /inscription
-            distinctes) plutôt qu'une seule entrée "Connexion" ambiguë.
+          - Anonyme : Explorer/Carte/Comment ça marche, puis une seule
+            entrée "Connexion" (retour sur "Se connecter"/"S'inscrire"
+            séparés, audit UX du 19/08 : connexion et inscription sont
+            unifiées sur /connexion — style Avito, cf. app/inscription/
+            page.tsx — donc les deux boutons menaient déjà au même écran,
+            juste avec un aller-retour de route en plus pour le second).
           - Connecté : Tableau de bord/Mes annonces/Messages, puis Mon
             compte (avatar) en bas du tiroir juste au-dessus de Déconnexion
             — Mes annonces n'a pas d'icône dédiée dans la barre du haut,
@@ -388,22 +391,13 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
               </form>
             </>
           ) : (
-            <>
-              <Link
-                href="/connexion"
-                role="menuitem"
-                style={{ padding: "12px 14px", fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", borderRadius: "var(--radius-sm)" }}
-              >
-                Se connecter
-              </Link>
-              <Link
-                href="/inscription"
-                role="menuitem"
-                style={{ padding: "12px 14px", fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", borderRadius: "var(--radius-sm)" }}
-              >
-                S&apos;inscrire
-              </Link>
-            </>
+            <Link
+              href="/connexion"
+              role="menuitem"
+              style={{ padding: "12px 14px", fontSize: "15px", fontWeight: 600, color: "var(--color-foret)", textDecoration: "none", borderRadius: "var(--radius-sm)" }}
+            >
+              Connexion
+            </Link>
           )}
         </div>
       )}

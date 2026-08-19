@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Check } from "@/components/icons/Icons";
 import MoroccoMap from "@/components/connexion/MoroccoMap";
+import { getRegions, getStatsParRegion, type Region, type StatRegion } from "@/data/parcelles";
 
 // Panneau carte des écrans d'authentification — identique entre Connexion
 // et Inscription (extrait de la duplication relevée par l'audit qualité
@@ -15,7 +17,33 @@ import MoroccoMap from "@/components/connexion/MoroccoMap";
 // panneau sous 820px (variante `mobile`, régions sans libellés) a été
 // retiré plutôt que rétréci encore : sur mobile, l'utilisateur veut
 // saisir son numéro et entrer, pas un rappel de marque.
+//
+// Sur desktop en revanche (audit du 19/08, volet 2) : traitement
+// "premium" du panneau — dégradé plus profond, carte en légère élévation
+// (halo), cartes d'arguments en verre dépoli, compteur réel par région au
+// survol (regionCounts, cf. plus bas) plutôt qu'un simple rappel visuel.
 export default function AuthMapPanel() {
+  // Compteurs réels par région (nom → count), pour le survol de
+  // MoroccoMap.tsx — même source que CouvertureSection.tsx (Home) :
+  // getRegions() donne le nom officiel par code, getStatsParRegion() le
+  // vrai total du catalogue par code (jamais un sous-échantillon paginé,
+  // cf. bug corrigé le 18/08 sur ce même calcul). Échec silencieux
+  // (.catch → tableau vide) délibéré : cette carte est un panneau
+  // décoratif d'un écran d'authentification, jamais un point bloquant —
+  // sans données, le survol reste simplement muet sur le chiffre (cf.
+  // MoroccoMap.tsx), aucun repli inventé.
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [stats, setStats] = useState<StatRegion[]>([]);
+  useEffect(() => {
+    getRegions().then(setRegions).catch(() => setRegions([]));
+    getStatsParRegion().then(setStats).catch(() => setStats([]));
+  }, []);
+  const regionCounts: Record<string, number> = {};
+  for (const r of regions) {
+    const stat = stats.find((s) => s.code === r.code);
+    if (stat) regionCounts[r.nom] = stat.count;
+  }
+
   return (
     <div
       className="connexion-map-col"
@@ -31,16 +59,20 @@ export default function AuthMapPanel() {
         boxSizing: "border-box",
         overflow: "hidden",
         borderLeft: "1px solid rgba(45,106,79,0.12)",
-        background: "radial-gradient(115% 85% at 68% 32%, #EDF4EC 0%, #F6F2EB 52%, #F2ECE3 100%)",
+        // Dégradé approfondi (audit desktop du 19/08) — ancré vert-nuit en
+        // haut à gauche plutôt qu'un simple radial beige plat, pour un rendu
+        // plus "premium" tout en restant assez clair en zone centrale pour
+        // que la carte et son texte de région restent lisibles.
+        background: "radial-gradient(140% 100% at -10% -10%, rgba(27,58,45,0.85) 0%, rgba(45,106,79,0.35) 22%, #F6F2EB 50%, #F2ECE3 100%)",
       }}
     >
       <svg
         viewBox="0 0 600 760"
         preserveAspectRatio="xMidYMid slice"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.45, pointerEvents: "none" }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.5, pointerEvents: "none" }}
         fill="none"
         stroke="#2D6A4F"
-        strokeOpacity={0.14}
+        strokeOpacity={0.16}
         strokeWidth={1.2}
       >
         <path d="M-40 210 C120 160 240 250 360 200 S560 130 660 190" />
@@ -55,7 +87,27 @@ export default function AuthMapPanel() {
         <ellipse cx="410" cy="300" rx="62" ry="44" />
       </svg>
 
-      <MoroccoMap />
+      {/* Halo d'élévation derrière la carte (audit desktop du 19/08) — un
+          radial-gradient flouté plutôt qu'un simple box-shadow autour de
+          MoroccoMap : celui-ci n'a pas de fond opaque (le SVG des régions
+          laisse transparaître le dégradé du panneau), un box-shadow porté
+          par son conteneur n'aurait donc rien eu à "border". */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          width: "min(70%, 420px)",
+          aspectRatio: "1 / 1",
+          transform: "translate(-50%,-50%)",
+          background: "radial-gradient(circle, rgba(27,58,45,0.18) 0%, rgba(27,58,45,0) 68%)",
+          filter: "blur(6px)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <MoroccoMap regionCounts={regionCounts} />
 
       <div
         style={{
@@ -69,7 +121,11 @@ export default function AuthMapPanel() {
         className="akal-stat-in"
       >
         {/* Mêmes affirmations que la Home (app/page.tsx) — délibérément pas de
-            chiffre ni de capacité IA/satellite non disponible dans le MVP. */}
+            chiffre ni de capacité IA/satellite non disponible dans le MVP.
+            Verre dépoli (backdrop-filter, audit desktop du 19/08) plutôt que
+            le fond blanc quasi-opaque précédent : laisse transparaître le
+            dégradé/la trame topo du panneau derrière chaque carte, cohérent
+            avec le halo d'élévation de la carte ci-dessus. */}
         {["Statut foncier vérifié", "Sans intermédiaire", "Couverture nationale"].map((texte) => (
           <div
             key={texte}
@@ -77,11 +133,13 @@ export default function AuthMapPanel() {
               display: "flex",
               alignItems: "center",
               gap: 9,
-              background: "rgba(255,255,255,0.7)",
-              border: "1px solid rgba(45,106,79,0.16)",
+              background: "rgba(255,255,255,0.55)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              border: "1px solid rgba(255,255,255,0.6)",
               borderRadius: 12,
               padding: "12px 16px",
-              boxShadow: "0 2px 10px rgba(27,58,45,0.05)",
+              boxShadow: "0 8px 24px rgba(27,58,45,0.10)",
             }}
           >
             <span style={{ display: "flex", flexShrink: 0, color: "#2D6A4F" }}>

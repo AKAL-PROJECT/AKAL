@@ -34,10 +34,9 @@ type Methode = "telephone" | "email";
 // bascule manuelle plutôt qu'une redirection automatique fragile.
 type ModeEmail = "connexion" | "creation";
 
-// Même style que InscriptionScreen.tsx (champErreurStyle) — erreur de champ
-// individuelle sous l'input concerné, distincte du message générique
-// `state.error` affiché en bas de formulaire (les deux coexistent : voir
-// commentaire au-dessus des <input name="email"/"password"> ci-dessous).
+// Erreur de champ individuelle sous l'input concerné, distincte du message
+// générique `state.error` affiché en bas de formulaire (les deux coexistent :
+// voir commentaire au-dessus des <input name="email"/"password"> ci-dessous).
 const champErreurStyle: React.CSSProperties = { fontSize: 13, color: "var(--color-erreur)", margin: "6px 0 0" };
 
 // ─── Composant principal ──────────────────────────────────────────────────────
