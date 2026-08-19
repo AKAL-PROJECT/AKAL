@@ -33,6 +33,7 @@ export default function CarteCouvertureLeaflet({
   regions,
   regionActive,
   onSelectionnerRegion,
+  regionSurvolee,
 }: {
   // Déjà le bon jeu de parcelles à afficher — l'échantillon générique quand
   // aucune région n'est sélectionnée, sinon les vraies parcelles de la
@@ -50,20 +51,38 @@ export default function CarteCouvertureLeaflet({
   // Optionnel : clic direct sur une région de la carte, en plus du panneau
   // de gauche (CouvertureSection.tsx) — même sélection, deux points d'entrée.
   onSelectionnerRegion?: (code: string) => void;
+  // Code de la région survolée dans le panneau de gauche (audit desktop du
+  // 19/08) — surligne le polygone correspondant sur la carte pendant le
+  // survol, cf. LimitesRegions (CarteRegions.tsx) pour le détail visuel.
+  regionSurvolee?: string | null;
 }) {
   const limites = useLimitesRegions(regions);
 
   return (
-    <MapContainer bounds={LIMITES_MAROC} boundsOptions={{ padding: [16, 16] }} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }}>
+    <MapContainer
+      bounds={LIMITES_MAROC}
+      boundsOptions={{ padding: [16, 16] }}
+      scrollWheelZoom={false}
+      // Cf. le même réglage sur CarteLeaflet.tsx (audit cartographie du
+      // 19/08) — filet de sécurité, scrollWheelZoom étant déjà désactivé
+      // ici le dézoom ne peut de toute façon venir que des boutons +/-.
+      minZoom={5}
+      style={{ height: "100%", width: "100%" }}
+    >
       <TuileOSM />
 
       <RecalculTailleCarte />
-      <VolVersRegion centre={regionActive?.centre ?? null} />
+      <VolVersRegion centre={regionActive?.centre ?? null} parcelles={parcelles} />
 
       {/* Les 12 limites régionales (union des provinces, référentiel
           géométrique officiel) — toujours affichées, même sans annonce
           (P0-03) ; celle active se distingue par un contour plus marqué. */}
-      <LimitesRegions limites={limites} codeActif={regionActive?.code ?? null} onSelectionner={onSelectionnerRegion} />
+      <LimitesRegions
+        limites={limites}
+        codeActif={regionActive?.code ?? null}
+        codeSurvole={regionSurvolee}
+        onSelectionner={onSelectionnerRegion}
+      />
 
       <MarkerClusterGroup key={regionActive?.code ?? "tout"} chunkedLoading maxClusterRadius={45}>
         {/* latitude/longitude non-null par contrat (cf. types/parcelle.ts,

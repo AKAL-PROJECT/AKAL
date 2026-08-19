@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MapContainer, useMap, useMapEvents } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import type { Parcelle } from "@/types/parcelle";
 import type { BboxCarte } from "@/data/parcelles";
@@ -18,6 +19,14 @@ import {
   type RegionRef,
 } from "./CarteRegions";
 import "leaflet/dist/leaflet.css";
+// Regroupement des marqueurs proches en bulles chiffrées (audit
+// cartographie du 19/08) — jusque-là seule CarteCouvertureLeaflet.tsx
+// (mini-carte de la Home) en bénéficiait ; cette carte-ci (catalogue +
+// /carte plein écran) affichait chaque parcelle comme un pin séparé, une
+// masse verte illisible dès qu'une même zone comptait plusieurs dizaines
+// d'annonces (ex. Casablanca-Settat). Même bibliothèque, mêmes réglages.
+import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
+import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
 
 // Bouton flottant "Rechercher cette zone" (2026-08-17, à la Airbnb) —
 // apparaît quand la vue de la carte diverge des parcelles actuellement
@@ -167,12 +176,18 @@ export default function CarteLeaflet({
       bounds={LIMITES_MAROC}
       boundsOptions={{ padding: [24, 24] }}
       scrollWheelZoom
+      // Empêche de dézoomer jusqu'à l'Europe/l'Afrique subsaharienne au
+      // scroll (audit cartographie du 19/08) — 5 correspond au zoom qui
+      // fait déjà tenir tout le Maroc à l'écran (cf. LIMITES_MAROC), donc
+      // aucune perte : impossible de dézoomer plus loin que "voir tout le
+      // pays" de toute façon utile ici.
+      minZoom={5}
       style={{ height: "100%", width: "100%", borderRadius: "var(--radius-card)" }}
     >
       <TuileOSM />
 
       <RecalculTailleCarte />
-      <VolVersRegion centre={regionActive?.centre ?? null} />
+      <VolVersRegion centre={regionActive?.centre ?? null} parcelles={parcelles} />
       <BoutonRechercherZone parcelles={parcelles} onRechercherZone={onRechercherZone} />
 
       {/* Les 12 limites régionales, toujours affichées (P0-03) — cliquer
@@ -181,12 +196,20 @@ export default function CarteLeaflet({
           cf. app/parcelles/page.tsx). */}
       <LimitesRegions limites={limites} codeActif={regionActive?.code ?? null} onSelectionner={onSelectionnerRegion} />
 
-      {/* latitude/longitude non-null par contrat (cf. types/parcelle.ts,
-          décision d'équipe du 2026-08-15) — pas de filtre ici, la garde vit
-          dans MarqueurParcelle lui-même (source unique, CarteRegions.tsx). */}
-      {parcelles.map((p) => (
-        <MarqueurParcelle key={p.id} parcelle={p} />
-      ))}
+      {/* Regroupement en bulles chiffrées dès que plusieurs parcelles sont
+          proches (audit cartographie du 19/08) — même réglage que la
+          mini-carte de couverture (CarteCouvertureLeaflet.tsx). `key` forcé
+          au code de région : react-leaflet-cluster ne re-indexe pas ses
+          clusters tout seul quand le jeu de marqueurs change de région,
+          remonter le groupe entier est la façon documentée de le forcer. */}
+      <MarkerClusterGroup key={regionActive?.code ?? "tout"} chunkedLoading maxClusterRadius={45}>
+        {/* latitude/longitude non-null par contrat (cf. types/parcelle.ts,
+            décision d'équipe du 2026-08-15) — pas de filtre ici, la garde vit
+            dans MarqueurParcelle lui-même (source unique, CarteRegions.tsx). */}
+        {parcelles.map((p) => (
+          <MarqueurParcelle key={p.id} parcelle={p} />
+        ))}
+      </MarkerClusterGroup>
     </MapContainer>
   );
 }

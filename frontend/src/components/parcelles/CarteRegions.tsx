@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GeoJSON, Marker, Popup, useMap } from "react-leaflet";
+import type { LatLngBoundsExpression } from "leaflet";
 import Link from "next/link";
 import type * as GJ from "geojson";
 import { apiFetch } from "@/lib/api";
-import { CENTRE_MAROC, iconeAkal } from "@/lib/leaflet";
+import { LIMITES_MAROC, iconeAkal } from "@/lib/leaflet";
 import { formatMAD } from "@/lib/format";
 import type { Parcelle } from "@/types/parcelle";
 
@@ -65,29 +66,36 @@ export function useLimitesRegions(regions: RegionRef[]) {
 // Les 12 limites régionales, en permanence affichées (même sans annonce,
 // cf. P0-03) — pas seulement celle sélectionnée. La région active se
 // distingue par un contour plus marqué ; cliquer sur une région (active ou
-// non) la sélectionne/désélectionne via `onSelectionner`.
+// non) la sélectionne/désélectionne via `onSelectionner`. `codeSurvole`
+// (optionnel, audit desktop du 19/08) : survol du panneau de gauche sur
+// CouvertureSection.tsx — un palier visuel intermédiaire entre "au repos"
+// et "actif", jamais aussi marqué qu'une vraie sélection (sinon survoler
+// une région efface visuellement la sélection réelle le temps du survol).
 export function LimitesRegions({
   limites,
   codeActif,
+  codeSurvole,
   onSelectionner,
 }: {
   limites: Record<string, FeatureCollectionProvinces>;
   codeActif: string | null;
+  codeSurvole?: string | null;
   onSelectionner?: (code: string) => void;
 }) {
   return (
     <>
       {Object.entries(limites).map(([code, donnees]) => {
         const active = code === codeActif;
+        const survolee = !active && code === codeSurvole;
         return (
           <GeoJSON
             key={code}
             data={donnees as GJ.FeatureCollection}
             style={{
               color: "#2D6A4F",
-              weight: active ? 2.5 : 1,
+              weight: active ? 2.5 : survolee ? 2 : 1,
               fillColor: "#52B788",
-              fillOpacity: active ? 0.18 : 0.06,
+              fillOpacity: active ? 0.18 : survolee ? 0.13 : 0.06,
             }}
             eventHandlers={onSelectionner ? { click: () => onSelectionner(code) } : undefined}
           />
@@ -148,18 +156,71 @@ export function RecalculTailleCarte() {
   return null;
 }
 
-// Recentre la carte sur la région active (ou vue Maroc entière si aucune
-// sélection / région sans parcelle donc sans centre calculable).
-export function VolVersRegion({ centre }: { centre: [number, number] | null }) {
+// Étendue réelle d'un jeu de parcelles (min/max lat/lng) — bbox "vivante"
+// dérivée des vraies annonces affichées, jamais codée en dur. `undefined`
+// pour ignorer une carte qui n'a pas de liste de parcelles à cadrer (aucun
+// appelant actuel dans ce cas, mais `parcelles` reste optionnel pour ne
+// pas casser une future réutilisation de VolVersRegion sans ce contexte).
+function bboxDe(parcelles: Parcelle[] | undefined): LatLngBoundsExpression | null {
+  if (!parcelles || parcelles.length === 0) return null;
+  let latMin = Infinity, latMax = -Infinity, lngMin = Infinity, lngMax = -Infinity;
+  for (const p of parcelles) {
+    const { latitude, longitude } = p.parcelle;
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+    latMin = Math.min(latMin, latitude);
+    latMax = Math.max(latMax, latitude);
+    lngMin = Math.min(lngMin, longitude);
+    lngMax = Math.max(lngMax, longitude);
+  }
+  if (!Number.isFinite(latMin)) return null;
+  return [[latMin, lngMin], [latMax, lngMax]];
+}
+
+// Recentre la carte sur la région active, ou sur l'étendue réelle des
+// parcelles affichées si aucune région n'est sélectionnée (`parcelles`) —
+// repli sur LIMITES_MAROC (bbox administrative des 12 régions) si cette
+// étendue n'est pas calculable (aucune parcelle chargée pour l'instant, ou
+// aucun résultat).
+//
+// Pourquoi pas systématiquement LIMITES_MAROC (comme avant le 19/08) :
+// constaté sur la carte plein écran (app/carte/page.tsx, conteneur large -
+// 16:9 ou plus) — LIMITES_MAROC est presque aussi haute que large (le
+// Maroc est un pays tout en longueur, nord-sud), alors qu'un écran large
+// est justement l'inverse. `fitBounds` doit alors dézoomer fortement pour
+// ne rien rogner en HAUTEUR, ce qui laisse l'essentiel de la LARGEUR
+// occupée par l'Espagne/l'Algérie/l'océan — mathématiquement correct (rien
+// n'est coupé) mais inutilisable (tous les pins entassés au centre,
+// vérifié : zoom 5 sur un conteneur 1280×736, alors que Casablanca et Fès
+// tiennent déjà largement dans un cadrage bien plus serré). L'étendue
+// réelle des annonces affichées est nettement moins étirée verticalement
+// que la bbox administrative complète (peu d'annonces à l'extrême sud/
+// nord) — un cadrage sur cette étendue reste correct (rien de coupé) tout
+// en zoomant sensiblement plus près.
+export function VolVersRegion({ centre, parcelles }: { centre: [number, number] | null; parcelles?: Parcelle[] }) {
   const map = useMap();
   const precedent = useRef(centre);
-  const monte = useRef(false);
+  // Distinct du montage lui-même (cf. commentaire ci-dessous) : reste false
+  // tant qu'il n'y a ni région active ni parcelles chargées à cadrer.
+  const cadrageInitialFait = useRef(false);
+  // Recalculé à chaque nouveau `parcelles` (nouvelle page/nouveau filtre) —
+  // coût négligeable (une boucle sur au plus 50 éléments) ; ne redéclenche
+  // PAS de re-cadrage à chaque fois pour autant, cf. la garde
+  // `precedent.current === centre` plus bas dans l'effet.
+  const bbox = useMemo(() => bboxDe(parcelles), [parcelles]);
+
   useEffect(() => {
-    if (!monte.current) {
-      monte.current = true;
+    if (!cadrageInitialFait.current) {
+      // Tant qu'il n'y a ni région active ni parcelle chargée, rien de
+      // pertinent à cadrer — attendre le prochain rendu (le fetch initial
+      // des parcelles est généralement quasi instantané, cf. plus haut)
+      // plutôt que de figer immédiatement un repli LIMITES_MAROC qu'on ne
+      // recalculera plus jamais ensuite (le cadrage initial ne s'arme
+      // qu'une fois).
+      if (!centre && !bbox) return;
+      cadrageInitialFait.current = true;
       precedent.current = centre;
-      // <MapContainer> est toujours créé à CENTRE_MAROC/zoom 6 (ses props
-      // center/zoom ne servent qu'à cette création initiale, cf. doc
+      // <MapContainer> est toujours créé cadré sur LIMITES_MAROC (ses props
+      // bounds/center/zoom ne servent qu'à cette création initiale, cf. doc
       // react-leaflet) — si `centre` est déjà non nul dès ce premier rendu
       // (ex. la carte remonte alors qu'une région est déjà sélectionnée : la
       // carte du catalogue remonte entièrement à chaque changement de
@@ -169,7 +230,14 @@ export function VolVersRegion({ centre }: { centre: [number, number] | null }) {
       // d'apparaître, et surtout pas de fenêtre d'animation ouverte pendant
       // que RecalculTailleCarte peut, lui aussi, s'exécuter au même instant
       // sur ce montage.
-      if (centre) map.setView(centre, 8);
+      if (centre) {
+        map.setView(centre, 8);
+        return;
+      }
+      // maxZoom : filet de sécurité si les parcelles affichées sont toutes
+      // très proches (ex. région filtrée sur une seule ville) — sans lui,
+      // une bbox minuscule zoomerait par défaut jusqu'au niveau rue.
+      map.fitBounds(bbox ?? LIMITES_MAROC, { padding: [32, 32], maxZoom: 10 });
       return;
     }
     // Une vraie mise à jour (pas un montage) : ne pas relancer un flyTo si
@@ -181,8 +249,8 @@ export function VolVersRegion({ centre }: { centre: [number, number] | null }) {
     if (precedent.current === centre) return;
     precedent.current = centre;
     if (centre) map.flyTo(centre, 8, { duration: 0.8 });
-    else map.flyTo(CENTRE_MAROC, 6, { duration: 0.8 });
-  }, [centre, map]);
+    else map.flyToBounds(bbox ?? LIMITES_MAROC, { duration: 0.8, padding: [32, 32], maxZoom: 10 });
+  }, [centre, map, bbox]);
   return null;
 }
 

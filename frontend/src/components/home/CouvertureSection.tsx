@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { MapPin } from "@/components/icons/Icons";
+import { ChevronRight, MapPin } from "@/components/icons/Icons";
 import { Reveal } from "@/components/Reveal";
 import type { Parcelle } from "@/types/parcelle";
 import { getParcelles, getRegions, getStatsParRegion, type Region, type StatRegion } from "@/data/parcelles";
@@ -59,6 +59,11 @@ export default function CouvertureSection({
   totalCount: number;
 }) {
   const [regionCode, setRegionCode] = useState<string | null>(null);
+  // Survol du panneau de gauche (audit desktop du 19/08) — distinct de
+  // `regionCode` (la vraie sélection, par clic) : purement visuel, illumine
+  // le polygone correspondant sur la carte le temps du survol sans changer
+  // les parcelles affichées ni le filtre actif.
+  const [regionSurvolee, setRegionSurvolee] = useState<string | null>(null);
   // Les 12 régions officielles, jamais une liste recopiée à la main (audit
   // P0-03) — même source que le filtre du catalogue (FiltresSidebar).
   const [regions, setRegions] = useState<Region[]>([]);
@@ -164,8 +169,23 @@ export default function CouvertureSection({
       <Reveal delayMs={80}>
         <div className="akal-couverture-grid" style={{ display: "grid", gridTemplateColumns: "minmax(240px, 300px) minmax(0, 1fr)", gap: "20px", alignItems: "stretch" }}>
           {/* Panneau régions — centres dérivés de centresParRegion, compteurs de
-              getStatsParRegion (jamais codés en dur, ni l'un ni l'autre). */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              getStatsParRegion (jamais codés en dur, ni l'un ni l'autre).
+              Carte blanche englobante (audit desktop du 19/08) — même
+              radius/ombre que le conteneur de la carte ci-dessous, pour que
+              les deux blocs se lisent comme une seule unité plutôt qu'une
+              liste flottant à côté d'une carte, sur le fond beige de la
+              section. */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              backgroundColor: "white",
+              borderRadius: "var(--radius-xl)",
+              boxShadow: "var(--shadow-2)",
+              padding: "16px",
+            }}
+          >
             <button
               type="button"
               onClick={() => setRegionCode(null)}
@@ -206,11 +226,14 @@ export default function CouvertureSection({
 
             {statsRegions.map((r) => {
               const active = regionCode === r.code;
+              const survolee = !active && regionSurvolee === r.code;
               return (
                 <button
                   key={r.code}
                   type="button"
                   onClick={() => setRegionCode(active ? null : r.code)}
+                  onMouseEnter={() => setRegionSurvolee(r.code)}
+                  onMouseLeave={() => setRegionSurvolee((v) => (v === r.code ? null : v))}
                   aria-pressed={active}
                   className="akal-region-btn akal-focusable"
                   style={{
@@ -224,28 +247,39 @@ export default function CouvertureSection({
                     fontSize: "14px",
                     fontWeight: 500,
                     cursor: "pointer",
-                    backgroundColor: active ? "var(--color-foret)" : "white",
+                    backgroundColor: active ? "var(--color-foret)" : survolee ? "var(--color-rosee)" : "white",
                     color: active ? "white" : "var(--color-texte)",
                     border: active ? "none" : "1px solid var(--color-bordure)",
+                    transition: "background-color 150ms ease",
                   }}
                 >
                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <MapPin size={14} style={{ color: active ? "var(--color-ble)" : "var(--color-foret)", opacity: active ? 1 : 0.6, flexShrink: 0 }} />
                     {r.nom}
                   </span>
-                  <span
-                    style={{
-                      minWidth: "24px",
-                      padding: "2px 8px",
-                      borderRadius: "var(--radius-full)",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      textAlign: "center",
-                      backgroundColor: active ? "rgba(255,255,255,0.2)" : "var(--color-rosee)",
-                      color: active ? "white" : "var(--color-foret)",
-                    }}
-                  >
-                    {r.count}
+                  {/* Compteur + chevron groupés à droite (audit desktop du
+                      19/08) — le chevron signale explicitement que la ligne
+                      est cliquable (filtre la carte + le catalogue), pas
+                      qu'un simple affichage de compteur. */}
+                  <span style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                    <span
+                      style={{
+                        minWidth: "24px",
+                        padding: "2px 8px",
+                        borderRadius: "var(--radius-full)",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        textAlign: "center",
+                        backgroundColor: active ? "rgba(255,255,255,0.2)" : "var(--color-rosee)",
+                        color: active ? "white" : "var(--color-foret)",
+                      }}
+                    >
+                      {r.count}
+                    </span>
+                    <ChevronRight
+                      size={15}
+                      style={{ color: active ? "white" : "var(--color-secondaire)", opacity: active || survolee ? 1 : 0.45, transition: "opacity 150ms ease" }}
+                    />
                   </span>
                 </button>
               );
@@ -272,6 +306,7 @@ export default function CouvertureSection({
               parcelles={parcellesCarte}
               regions={regions}
               regionActive={regionActive}
+              regionSurvolee={regionSurvolee}
               onSelectionnerRegion={(code) => setRegionCode((actuel) => (actuel === code ? null : code))}
             />
           </div>
