@@ -31,11 +31,15 @@ export default function CarteParcelles({
   regions,
   regionActive,
   onSelectionnerRegion,
+  zoneGeometrie,
 }: {
   parcelles: Parcelle[];
   regions: RegionRef[];
   regionActive: RegionActive;
   onSelectionnerRegion?: (code: string) => void;
+  // Géométrie de la province/commune sélectionnée dans les filtres (cascade
+  // zoom du 19/08) — cf. VolVersRegion (CarteRegions.tsx).
+  zoneGeometrie?: unknown | null;
 }) {
   return (
     <div
@@ -53,6 +57,7 @@ export default function CarteParcelles({
         regions={regions}
         regionActive={regionActive}
         onSelectionnerRegion={onSelectionnerRegion}
+        zoneGeometrie={zoneGeometrie}
       />
     </div>
   );

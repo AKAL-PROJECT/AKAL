@@ -18,6 +18,7 @@ import {
   type TaillePage,
   type Tri,
 } from "@/data/parcelles";
+import { fetchCommuneGeomDetail, fetchProvinceGeomBounds } from "@/lib/geo-api";
 import CardParcelle from "@/components/parcelles/CardParcelle";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
 import { useComparateur } from "@/hooks/useComparateur";
@@ -291,6 +292,36 @@ function Catalogue() {
     return { code: r.code, nom: r.nom, centre };
   }, [filtres.region, regions, resultats]);
 
+  // Cadrage cascade région/province/commune (audit du 19/08) : dès que le
+  // filtre est affiné jusqu'à une province ou une commune précise, la carte
+  // doit se recadrer sur CETTE zone administrative (pas seulement sur la
+  // moyenne des pins qui matchent, cf. regionActive.centre ci-dessus — un
+  // filtre province/commune peut ne retourner que 0-1 résultat sans que la
+  // zone elle-même perde son sens). Commune prioritaire sur province si les
+  // deux sont renseignées (la cascade des filtres l'empêche normalement,
+  // mais rien ne l'interdit structurellement) — la plus précise gagne.
+  const [zoneGeometrie, setZoneGeometrie] = useState<unknown | null>(null);
+  useEffect(() => {
+    let annule = false;
+    if (filtres.commune) {
+      fetchCommuneGeomDetail(Number(filtres.commune))
+        .then((c) => { if (!annule) setZoneGeometrie(c.geometry ?? null); })
+        .catch(() => { if (!annule) setZoneGeometrie(null); });
+    } else if (filtres.province && filtres.region) {
+      fetchProvinceGeomBounds(filtres.region, Number(filtres.province))
+        .then((geom) => { if (!annule) setZoneGeometrie(geom); })
+        .catch(() => { if (!annule) setZoneGeometrie(null); });
+    } else {
+      // Différé d'un micro-tick — même convention qu'ailleurs dans ce
+      // fichier (ex. le chargement principal du catalogue) : un setState
+      // synchrone en tête d'effet déclenche un rendu en cascade avant même
+      // que React n'ait fini de committer celui-ci
+      // (react-hooks/set-state-in-effect).
+      Promise.resolve().then(() => { if (!annule) setZoneGeometrie(null); });
+    }
+    return () => { annule = true; };
+  }, [filtres.commune, filtres.province, filtres.region]);
+
   // basculerComparaison prend une Parcelle complète (useComparateur), alors
   // que CardParcelle expose un id (cf. sa propre prop onToggleComparaison) —
   // résolue depuis `resultats`, déjà en mémoire (pas de nouveau fetch).
@@ -500,6 +531,7 @@ function Catalogue() {
             regionActive={regionActive}
             onSelectionnerRegion={(code) => patchFiltres({ region: filtres.region === code ? "" : code })}
             onRechercherZone={rechercherZone}
+            zoneGeometrie={zoneGeometrie}
           />
         )}
 

@@ -156,6 +156,7 @@ export default function CarteLeaflet({
   regionActive,
   onSelectionnerRegion,
   onRechercherZone,
+  zoneGeometrie,
 }: {
   parcelles: Parcelle[];
   // Les 12 régions officielles (référentiel PostGIS, jamais de tracé
@@ -168,6 +169,11 @@ export default function CarteLeaflet({
   // qui n'ont pas de sens à héberger cette recherche par zone (ex. future
   // réutilisation hors du catalogue) : le bouton ne se rend simplement pas.
   onRechercherZone?: (bbox: BboxCarte) => void;
+  // Géométrie de la province/commune sélectionnée dans les filtres (cascade
+  // zoom du 19/08) — cf. VolVersRegion (CarteRegions.tsx) pour la priorité
+  // de cadrage exacte. Omis (undefined) sur les cartes sans cette cascade
+  // de filtres (ex. couverture Home, région seule).
+  zoneGeometrie?: unknown | null;
 }) {
   const limites = useLimitesRegions(regions);
 
@@ -187,7 +193,7 @@ export default function CarteLeaflet({
       <TuileOSM />
 
       <RecalculTailleCarte />
-      <VolVersRegion centre={regionActive?.centre ?? null} parcelles={parcelles} />
+      <VolVersRegion centre={regionActive?.centre ?? null} parcelles={parcelles} zoneGeometrie={zoneGeometrie} />
       <BoutonRechercherZone parcelles={parcelles} onRechercherZone={onRechercherZone} />
 
       {/* Les 12 limites régionales, toujours affichées (P0-03) — cliquer

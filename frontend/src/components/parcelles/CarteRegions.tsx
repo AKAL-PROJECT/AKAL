@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GeoJSON, Marker, Popup, useMap } from "react-leaflet";
-import type { LatLngBoundsExpression } from "leaflet";
+import L, { type LatLngBoundsExpression } from "leaflet";
 import Link from "next/link";
 import type * as GJ from "geojson";
 import { apiFetch } from "@/lib/api";
@@ -196,29 +196,62 @@ function bboxDe(parcelles: Parcelle[] | undefined): LatLngBoundsExpression | nul
 // que la bbox administrative complète (peu d'annonces à l'extrême sud/
 // nord) — un cadrage sur cette étendue reste correct (rien de coupé) tout
 // en zoomant sensiblement plus près.
-export function VolVersRegion({ centre, parcelles }: { centre: [number, number] | null; parcelles?: Parcelle[] }) {
+export function VolVersRegion({
+  centre,
+  parcelles,
+  zoneGeometrie,
+}: {
+  centre: [number, number] | null;
+  parcelles?: Parcelle[];
+  // Géométrie GeoJSON (Province ou Commune, cf. lib/geo-api.ts
+  // fetchProvinceGeomBounds/fetchCommuneGeomDetail) de la zone la plus
+  // précise choisie dans les filtres (audit cascade zoom du 19/08) —
+  // prioritaire sur `centre`/`parcelles` dès qu'elle est fournie :
+  // quelqu'un qui affine sa recherche jusqu'à une province ou une commune
+  // veut voir CETTE zone administrative, pas seulement où se trouvent les
+  // quelques pins qui matchent (peut être vide/quasi vide sans que la zone
+  // elle-même n'ait de sens à ignorer pour autant).
+  zoneGeometrie?: unknown | null;
+}) {
   const map = useMap();
   const precedent = useRef(centre);
+  const precedentZone = useRef(zoneGeometrie);
   // Distinct du montage lui-même (cf. commentaire ci-dessous) : reste false
-  // tant qu'il n'y a ni région active ni parcelles chargées à cadrer.
+  // tant qu'il n'y a ni zone/région active ni parcelles chargées à cadrer.
   const cadrageInitialFait = useRef(false);
   // Recalculé à chaque nouveau `parcelles` (nouvelle page/nouveau filtre) —
   // coût négligeable (une boucle sur au plus 50 éléments) ; ne redéclenche
   // PAS de re-cadrage à chaque fois pour autant, cf. la garde
   // `precedent.current === centre` plus bas dans l'effet.
   const bbox = useMemo(() => bboxDe(parcelles), [parcelles]);
+  // Bounds Leaflet de zoneGeometrie — recalculées seulement quand la
+  // géométrie change (pas gratuit sur un polygone à plusieurs milliers de
+  // sommets). L.geoJSON() accepte une Geometry brute directement (pas
+  // besoin de l'envelopper en Feature) — même usage déjà éprouvé dans
+  // CarteLeafletPicker.tsx (GeoJSONFocus, dépôt d'annonce).
+  const zoneBounds = useMemo(() => {
+    if (!zoneGeometrie) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const b = L.geoJSON(zoneGeometrie as any).getBounds();
+    return b.isValid() ? b : null;
+  }, [zoneGeometrie]);
 
   useEffect(() => {
     if (!cadrageInitialFait.current) {
-      // Tant qu'il n'y a ni région active ni parcelle chargée, rien de
+      // Tant qu'il n'y a ni zone/région active ni parcelle chargée, rien de
       // pertinent à cadrer — attendre le prochain rendu (le fetch initial
       // des parcelles est généralement quasi instantané, cf. plus haut)
       // plutôt que de figer immédiatement un repli LIMITES_MAROC qu'on ne
       // recalculera plus jamais ensuite (le cadrage initial ne s'arme
       // qu'une fois).
-      if (!centre && !bbox) return;
+      if (!zoneBounds && !centre && !bbox) return;
       cadrageInitialFait.current = true;
       precedent.current = centre;
+      precedentZone.current = zoneGeometrie;
+      if (zoneBounds) {
+        map.fitBounds(zoneBounds, { padding: [24, 24] });
+        return;
+      }
       // <MapContainer> est toujours créé cadré sur LIMITES_MAROC (ses props
       // bounds/center/zoom ne servent qu'à cette création initiale, cf. doc
       // react-leaflet) — si `centre` est déjà non nul dès ce premier rendu
@@ -240,17 +273,29 @@ export function VolVersRegion({ centre, parcelles }: { centre: [number, number] 
       map.fitBounds(bbox ?? LIMITES_MAROC, { padding: [32, 32], maxZoom: 10 });
       return;
     }
-    // Une vraie mise à jour (pas un montage) : ne pas relancer un flyTo si
-    // `centre` n'a pas changé depuis la dernière fois. Comparaison par
-    // référence plutôt que sur l'état réel de la carte (map.getCenter()
-    // après un center=[32,-6] initial renvoie ~32.008/-5.9985, jamais
-    // exactement [32,-6] — imprécision de projection propre à Leaflet, pas
-    // un bug).
-    if (precedent.current === centre) return;
+
+    // Mise à jour (pas un montage) — même ordre de priorité : zone précise
+    // > centre de région > étendue réelle des parcelles > tout le Maroc. Un
+    // vol n'est relancé QUE si la cible effectivement utilisée a changé
+    // (comparaison par référence, comme pour `centre` plus bas — pas
+    // l'état réel de la carte, imprécis par nature avec Leaflet).
+    if (zoneBounds) {
+      if (precedentZone.current === zoneGeometrie) return;
+      precedentZone.current = zoneGeometrie;
+      precedent.current = centre;
+      map.flyToBounds(zoneBounds, { duration: 0.8, padding: [24, 24] });
+      return;
+    }
+    // Zone quittée (ex. filtre province/commune vidé) — re-cadrer même si
+    // `centre` lui n'a pas changé entre-temps, sinon la carte resterait
+    // bloquée sur les bounds de la province/commune abandonnée.
+    const zoneVientDetreQuittee = precedentZone.current != null;
+    precedentZone.current = zoneGeometrie;
+    if (!zoneVientDetreQuittee && precedent.current === centre) return;
     precedent.current = centre;
     if (centre) map.flyTo(centre, 8, { duration: 0.8 });
     else map.flyToBounds(bbox ?? LIMITES_MAROC, { duration: 0.8, padding: [32, 32], maxZoom: 10 });
-  }, [centre, map, bbox]);
+  }, [centre, map, bbox, zoneBounds, zoneGeometrie]);
   return null;
 }
 

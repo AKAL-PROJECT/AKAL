@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { enregistrerLocalisationAction, type DepotFormState } from "@/app/actions/depot-annonce";
 import { fetchCommuneGeomDetail, fetchCommunesGeom, fetchProvincesGeom, fetchRegionsOfficielles } from "@/lib/geo-api";
+import { MapPin } from "@/components/icons/Icons";
 import type { AnnonceEcriture, CommuneGeomRef, ProvinceGeomRef, RegionOfficielleRef } from "@/types/depot-annonce";
 
 const CarteLeafletPicker = dynamic(() => import("./CarteLeafletPicker"), {
@@ -95,6 +96,62 @@ export function EtapeLocalisation({
   const [mode, setMode] = useState<"point" | "polygone">(
     annonce.parcelle.contour && annonce.parcelle.contour.length > 0 ? "polygone" : "point",
   );
+
+  // Mode "Géolocalisation Terrain" (2026-08-19) — le propriétaire physiquement
+  // sur sa parcelle capture sa position réelle plutôt que de cliquer à vue
+  // sur la carte (souvent imprécis/frustrant au doigt sur petit écran, cf.
+  // demande produit). Même geste dans les deux modes, sens différent : en
+  // "point", capture le repère unique ; en "polygone", ajoute un sommet —
+  // en marchant jusqu'à chaque coin du terrain et en appuyant à chaque
+  // fois, ça construit le contour sans dessiner à vue sur la carte.
+  const [capturePending, setCapturePending] = useState(false);
+  const [captureInfo, setCaptureInfo] = useState<string | null>(null);
+  const [captureErreur, setCaptureErreur] = useState<string | null>(null);
+
+  function capturerPositionActuelle() {
+    if (!("geolocation" in navigator)) {
+      setCaptureErreur("La géolocalisation n'est pas disponible sur cet appareil/navigateur.");
+      return;
+    }
+    setCapturePending(true);
+    setCaptureErreur(null);
+    setCaptureInfo(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCapturePending(false);
+        const point: [number, number] = [position.coords.latitude, position.coords.longitude];
+        const precision = Math.round(position.coords.accuracy);
+        if (mode === "point") {
+          setPosition(point);
+          setCaptureInfo(`Position capturée (précision ≈ ${precision} m).`);
+        } else {
+          setContour((prev) => [...prev, point]);
+          setCaptureInfo(`Sommet ${contour.length + 1} capturé (précision ≈ ${precision} m).`);
+        }
+      },
+      (err) => {
+        setCapturePending(false);
+        // Messages différenciés (pas un seul "échec" générique) — les trois
+        // causes GeolocationPositionError appellent des actions différentes
+        // de la part de l'utilisateur (autoriser vs réessayer en extérieur).
+        if (err.code === err.PERMISSION_DENIED) {
+          setCaptureErreur("Position refusée — autorisez la géolocalisation dans les réglages du navigateur pour utiliser cette fonction.");
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setCaptureErreur("Position indisponible pour le moment — réessayez, idéalement à l'extérieur avec un bon signal GPS.");
+        } else {
+          setCaptureErreur("Délai dépassé en essayant de vous localiser — réessayez.");
+        }
+      },
+      // enableHighAccuracy : privilégie le GPS (précis) au Wi-Fi/réseau
+      // (précision de plusieurs centaines de mètres, inadapté ici) —
+      // délibérément plus lent, acceptable pour une capture ponctuelle sur
+      // le terrain plutôt qu'un suivi en continu. maximumAge: 0 — jamais une
+      // position mise en cache par le navigateur : l'utilisateur vient de se
+      // déplacer jusqu'à ce sommet précis, une position obsolète serait
+      // fausse plutôt qu'approximative.
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
+    );
+  }
 
   useEffect(() => {
     fetchRegionsOfficielles().then(setRegions).catch(() => setRegions([]));
@@ -261,9 +318,33 @@ export function EtapeLocalisation({
 
         <p style={{ fontSize: 13, color: "var(--color-secondaire)", margin: "0 0 8px" }}>
           {mode === "point"
-            ? "Cliquez sur la carte pour placer un repère (déplaçable ensuite par glisser-déposer)."
-            : "Cliquez sur la carte pour ajouter les sommets du contour, dans l'ordre. Chaque sommet reste déplaçable par glisser-déposer."}
+            ? "Cliquez sur la carte pour placer un repère (déplaçable ensuite par glisser-déposer), ou capturez votre position si vous êtes sur place."
+            : "Cliquez sur la carte pour ajouter les sommets du contour, dans l'ordre — ou marchez jusqu'à chaque coin du terrain et capturez votre position à chaque fois. Chaque sommet reste déplaçable par glisser-déposer."}
         </p>
+
+        {/* Géolocalisation Terrain — capture la vraie position GPS de
+            l'appareil plutôt que de cliquer à vue sur la carte (2026-08-19).
+            En dehors du flux carte lui-même (bouton distinct, pas un mode de
+            plus) : reste utilisable même si la carte au-dessus n'est pas
+            encore chargée/interactive. */}
+        <div style={{ marginBottom: 10 }}>
+          <button
+            type="button"
+            onClick={capturerPositionActuelle}
+            disabled={capturePending}
+            className="btn-secondary akal-focusable"
+            style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "8px 14px" }}
+          >
+            <MapPin size={15} />
+            {capturePending
+              ? "Localisation en cours…"
+              : mode === "point"
+                ? "Capturer ma position actuelle"
+                : "Capturer ce sommet (ma position actuelle)"}
+          </button>
+          {captureInfo && <p style={{ fontSize: 12, color: "var(--color-foret)", margin: "6px 0 0" }}>{captureInfo}</p>}
+          {captureErreur && <p style={champErreurStyle}>{captureErreur}</p>}
+        </div>
 
         <div
           style={{

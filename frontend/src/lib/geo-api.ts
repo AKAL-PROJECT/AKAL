@@ -89,6 +89,23 @@ export async function fetchCommunesGeom(params: { province?: number; region?: st
   }));
 }
 
+// Géométrie d'UNE province (audit zoom cascade du 19/08) — contrairement à
+// fetchProvincesGeom ci-dessus (qui alimente une liste déroulante et jette
+// la géométrie), sert au cadrage automatique de la carte du catalogue
+// quand l'utilisateur affine sa recherche jusqu'à une province précise
+// (cf. VolVersRegion, CarteRegions.tsx). Pas d'endpoint dédié
+// /limites/provinces/<id>/ côté back (seules les communes en ont un,
+// cf. fetchCommuneGeomDetail) — on retrouve la province dans la même
+// FeatureCollection déjà utilisée par la cascade de filtres, juste sans
+// jeter sa géométrie cette fois.
+export async function fetchProvinceGeomBounds(regionSlug: string, provinceId: number): Promise<unknown | null> {
+  const collection = await apiFetch<FeatureCollectionGeoJSON<ProvinceGeomProperties>>(
+    "/geo/limites/provinces/",
+    { params: { region: regionSlug } },
+  );
+  return collection.features.find((f) => f.id === provinceId)?.geometry ?? null;
+}
+
 // Une seule commune, avec sa province et sa région — pas de lookup inverse
 // autrement disponible depuis un simple id (cf. api_views.py côté back).
 // Sert uniquement à reconstruire la cascade région/province/commune quand
