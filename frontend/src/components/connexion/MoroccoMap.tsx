@@ -26,11 +26,6 @@ const REGIONS: Region[] = [
   { name: "Dakhla-Oued Ed-Dahab", x: "17%", y: "82%", side: "below" },
 ];
 
-// Réutilisé par AuthMapPanel.tsx pour le micro-label sous la carte compacte
-// (les libellés de région étant masqués à cette taille, cf. plus bas) — un
-// seul décompte, jamais désynchronisé du contenu réel de REGIONS.
-export const NOMBRE_REGIONS = REGIONS.length;
-
 const LABEL_STYLE: Record<Side, React.CSSProperties> = {
   above: { position: "absolute", left: 0, top: "-11px", transform: "translate(-50%,-100%)", textAlign: "center", whiteSpace: "nowrap" },
   below: { position: "absolute", left: 0, top: "11px", transform: "translateX(-50%)", textAlign: "center", whiteSpace: "nowrap" },
@@ -40,12 +35,7 @@ const LABEL_STYLE: Record<Side, React.CSSProperties> = {
 
 const CYCLE_SECONDS = 4;
 
-// `compact` : version réduite pour le bandeau mobile (cf. .connexion-map-mobile,
-// globals.css) — les libellés de région sont illisibles à cette taille et
-// disparaissent, les points animés restent seuls porteurs de l'identité
-// (« couverture nationale vivante »), pas besoin de nommer chaque région.
-export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "compact" }) {
-  const isCompact = variant === "compact";
+export default function MoroccoMap() {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
@@ -56,7 +46,7 @@ export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "c
   }, []);
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: isCompact ? "200px" : "480px", aspectRatio: "1282 / 1299" }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: "480px", aspectRatio: "1282 / 1299" }}>
       <div
         className="akal-drift"
         style={{
@@ -151,26 +141,24 @@ export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "c
                 transition: "width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out",
               }}
             />
-            {!isCompact && (
-              <div style={LABEL_STYLE[r.side]}>
-                <div
-                  style={{
-                    display: "inline-block",
-                    background: "rgba(248,245,240,0.92)",
-                    borderRadius: "5px",
-                    padding: "1px 6px",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    letterSpacing: "0.3px",
-                    color: "#1B3A2D",
-                    opacity: isActive ? 1 : 0.72,
-                    transition: "opacity 0.4s ease-out",
-                  }}
-                >
-                  {r.name}
-                </div>
+            <div style={LABEL_STYLE[r.side]}>
+              <div
+                style={{
+                  display: "inline-block",
+                  background: "rgba(248,245,240,0.92)",
+                  borderRadius: "5px",
+                  padding: "1px 6px",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  letterSpacing: "0.3px",
+                  color: "#1B3A2D",
+                  opacity: isActive ? 1 : 0.72,
+                  transition: "opacity 0.4s ease-out",
+                }}
+              >
+                {r.name}
               </div>
-            )}
+            </div>
           </div>
         );
       })}

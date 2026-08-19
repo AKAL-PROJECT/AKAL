@@ -173,10 +173,12 @@ export default function ConnexionScreen({
         <img src="/uploads/akal-wordmark.svg" alt="AKAL" className="connexion-intro-word" style={{ height: 30, width: "auto" }} />
       </div>
 
-      <AuthMapPanel variant="mobile" />
-
-      {/* Colonne formulaire */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box" }}>
+      {/* Colonne formulaire — padding vertical resserré sous 480px (audit
+          mobile du 19/08, cf. .connexion-form-col dans globals.css) :
+          64px de padding fixe haut+bas avait du sens quand le bandeau
+          carte (retiré, cf. AuthMapPanel.tsx) précédait déjà ce bloc sur
+          mobile, plus maintenant que ce bloc démarre en tout premier. */}
+      <div className="connexion-form-col" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box" }}>
         <div style={{ width: "100%", maxWidth: 440 }}>
 
           {/* Logo, désormais un lien vers l'accueil (2026-08-17) — /connexion
@@ -703,7 +705,7 @@ export default function ConnexionScreen({
         </div>
       </div>
 
-      <AuthMapPanel variant="desktop" />
+      <AuthMapPanel />
     </div>
   );
 }

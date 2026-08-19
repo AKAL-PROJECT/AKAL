@@ -494,15 +494,30 @@
 
   .connexion-shell { display: flex; flex-direction: row; }
   .connexion-map-col { display: flex; }
-  /* Bandeau carte compacte (connexion/inscription) — inverse de
-     .connexion-map-col : la carte pleine hauteur n'a pas de sens en
-     portrait, mais un aperçu réduit garde l'identité de marque plutôt que
-     de la faire disparaître entièrement sous 820px. */
-  .connexion-map-mobile { display: none; }
+  /* Sous 820px, le panneau carte (.connexion-map-col) disparaît entièrement
+     — purement décoratif, sans valeur fonctionnelle pour quelqu'un qui vient
+     saisir ses identifiants. Un bandeau compact équivalent a existé ici
+     jusqu'au 19/08 (.connexion-map-mobile, retiré) : sur un écran de petite
+     hauteur (ex. iPhone SE), il repoussait à lui seul le bouton Google et
+     une partie du champ téléphone sous la ligne de flottaison, avec une
+     rupture de fond beige/crème artificielle entre le bandeau et le
+     formulaire (audit mobile du 19/08). */
   @media (max-width: 820px) {
     .connexion-shell { flex-direction: column; }
     .connexion-map-col { display: none !important; }
-    .connexion-map-mobile { display: flex; }
+  }
+
+  /* Colonne formulaire des écrans d'authentification (connexion/inscription)
+     — le padding vertical fixe de 64px avait du sens quand le bandeau carte
+     précédait ce bloc sur mobile (cf. commentaire ci-dessus) ; resserré sous
+     480px maintenant qu'il n'y a plus rien au-dessus du logo, pour que le
+     formulaire (jusqu'au bouton Google) tienne sans scroll sur la plupart
+     des mobiles. !important : la valeur de base vient du style inline React
+     de chaque écran (padding: "64px clamp(...)"), qu'une règle externe sans
+     !important ne peut pas surcharger (même piège que .akal-nav-*, cf.
+     Navbar.tsx). */
+  @media (max-width: 480px) {
+    .connexion-form-col { padding: 28px 20px 40px !important; }
   }
 
   .connexion-intro {

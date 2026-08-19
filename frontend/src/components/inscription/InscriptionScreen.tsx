@@ -33,10 +33,9 @@ export default function InscriptionScreen({ next }: { next: string }) {
       className="connexion-shell"
       style={{ minHeight: "100vh", background: "#F8F5F0", color: "#1B3A2D", boxSizing: "border-box" }}
     >
-      <AuthMapPanel variant="mobile" />
-
-      {/* Colonne formulaire */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box" }}>
+      {/* Colonne formulaire — padding vertical resserré sous 480px (audit
+          mobile du 19/08, cf. .connexion-form-col dans globals.css). */}
+      <div className="connexion-form-col" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box" }}>
         <div style={{ width: "100%", maxWidth: 440 }}>
           <div className="akal-rise" style={{ display: "flex", alignItems: "center", gap: 14 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -170,7 +169,7 @@ export default function InscriptionScreen({ next }: { next: string }) {
         </div>
       </div>
 
-      <AuthMapPanel variant="desktop" />
+      <AuthMapPanel />
     </div>
   );
 }
