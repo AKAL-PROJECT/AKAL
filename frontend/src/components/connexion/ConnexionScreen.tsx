@@ -172,12 +172,34 @@ export default function ConnexionScreen({
         <img src="/uploads/akal-wordmark.svg" alt="AKAL" className="connexion-intro-word" style={{ height: 30, width: "auto" }} />
       </div>
 
+      {/* Filigrane carte — mobile (<820px) uniquement, cf. .connexion-watermark
+          (globals.css). Option retenue lors de l'audit du 19/08 pour garder
+          un rappel de marque sur mobile sans reproduire le problème du
+          bandeau .connexion-map-mobile retiré au même audit : `position:
+          fixed` + opacité quasi nulle + pointer-events:none, donc 0px de
+          hauteur consommée et aucun risque de repousser le formulaire sous
+          la ligne de flottaison. Masqué ≥820px par la classe elle-même : le
+          panneau desktop (AuthMapPanel) porte déjà la vraie carte
+          interactive juste à côté. */}
+      <div className="connexion-watermark" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/uploads/akal-maroc-regions.svg"
+          alt=""
+          style={{ position: "absolute", top: "50%", right: "-18%", transform: "translateY(-50%)", width: "85vw", maxWidth: "560px", height: "auto" }}
+        />
+      </div>
+
       {/* Colonne formulaire — padding vertical resserré sous 480px (audit
           mobile du 19/08, cf. .connexion-form-col dans globals.css) :
           64px de padding fixe haut+bas avait du sens quand le bandeau
           carte (retiré, cf. AuthMapPanel.tsx) précédait déjà ce bloc sur
-          mobile, plus maintenant que ce bloc démarre en tout premier. */}
-      <div className="connexion-form-col" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box" }}>
+          mobile, plus maintenant que ce bloc démarre en tout premier.
+          position/zIndex : passe au-dessus du filigrane ci-dessus (fixed,
+          donc hors du flux normal — sans ceci l'ordre de peinture par
+          défaut d'un élément positionné n'est pas garanti rester sous ses
+          voisins statiques, cf. règles de stacking CSS). */}
+      <div className="connexion-form-col" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box", position: "relative", zIndex: 1 }}>
         <div style={{ width: "100%", maxWidth: 440 }}>
 
           {/* Logo, désormais un lien vers l'accueil (2026-08-17) — /connexion

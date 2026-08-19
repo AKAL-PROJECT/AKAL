@@ -507,10 +507,28 @@
     .connexion-map-col { display: none !important; }
   }
 
-  /* Colonne formulaire des écrans d'authentification (connexion/inscription)
-     — le padding vertical fixe de 64px avait du sens quand le bandeau carte
-     précédait ce bloc sur mobile (cf. commentaire ci-dessus) ; resserré sous
-     480px maintenant qu'il n'y a plus rien au-dessus du logo, pour que le
+  /* Filigrane carte, mobile (<820px) uniquement — cf. ConnexionScreen.tsx
+     pour le contexte complet. `position: fixed` + opacité quasi nulle +
+     pointer-events:none : contrairement au bandeau .connexion-map-mobile
+     retiré au même audit, ceci ne consomme aucune hauteur et ne peut donc
+     pas repousser le formulaire sous la ligne de flottaison. */
+  .connexion-watermark {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.09;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  @media (min-width: 820px) {
+    .connexion-watermark { display: none; }
+  }
+
+  /* Colonne formulaire de l'écran d'authentification (/connexion, qui sert
+     aussi l'inscription — cf. app/inscription/page.tsx) — le padding
+     vertical fixe de 64px avait du sens quand le bandeau carte précédait ce
+     bloc sur mobile (cf. commentaire ci-dessus) ; resserré sous 480px
+     maintenant qu'il n'y a plus rien au-dessus du logo, pour que le
      formulaire (jusqu'au bouton Google) tienne sans scroll sur la plupart
      des mobiles. !important : la valeur de base vient du style inline React
      de chaque écran (padding: "64px clamp(...)"), qu'une règle externe sans
