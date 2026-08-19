@@ -233,6 +233,30 @@
     .hidden-desktop { display: flex !important; }
   }
 
+  /* --- Navbar : breakpoint dédié à 1024px (refonte du 19/08) ---
+     Distinct de .hidden-mobile/.hidden-desktop ci-dessus (768px, utilisées
+     par le reste du site — sidebar de filtres, etc.) : réutiliser ces
+     classes pour la Navbar aurait créé une zone morte entre 769px et
+     1023px où la nav se comporterait déjà en "desktop" (liens texte
+     visibles) alors que la maquette veut le mode mobile jusqu'à 1024px.
+
+     !important même sur la règle de base (pas seulement dans le @media) :
+     plusieurs éléments qui portent ces classes (bouton burger, tiroir
+     mobile) ont aussi un `display: "flex"` en style inline React, pour
+     leur mise en page interne (alignItems/justifyContent n'ont d'effet que
+     sous display:flex). Un style inline bat toujours une règle externe
+     SANS !important, quel que soit l'ordre — sans le !important ici, la
+     règle de base "cachée par défaut" perdait face à ce display:flex
+     inline et le bouton/tiroir restaient visibles en permanence, y compris
+     en desktop (constaté à 1280px lors de la vérification). */
+  .akal-nav-desktop-only { display: flex !important; }
+  .akal-nav-mobile-only { display: none !important; }
+
+  @media (max-width: 1023px) {
+    .akal-nav-desktop-only { display: none !important; }
+    .akal-nav-mobile-only { display: flex !important; }
+  }
+
   /* Bouton retirer (barre comparateur) — visible par défaut (pas seulement
      au survol) pour rester utilisable au tactile, pas seulement à la souris. */
   .btn-retirer-comparateur {
