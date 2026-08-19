@@ -8,15 +8,12 @@ import { ChevronLeft, Droplets, FileText, Leaf, Ruler, MapPin } from "@/componen
 import ScoreBar from "./ScoreBar";
 import {
   CONFIANCE_LABEL,
+  formatDistance,
   type NiveauConfiance,
   type PasseportAgronomique,
 } from "@/data/passeportAgronomique";
 
 const formatDate = new Intl.DateTimeFormat("fr-MA", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-
-function formatDistance(metres: number): string {
-  return metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
-}
 
 // Carte "zone approximative" — même composant que la fiche (cercle ~500 m
 // autour du point, jamais un marqueur exact) : le Passeport Agronomique n'a

@@ -166,7 +166,13 @@ export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle 
               overflow: "hidden",
             }}
           >
-            {/* En-tête du groupe */}
+            {/* En-tête du groupe — bordure d'accent adoucie (audit fiche du
+                19/08) : color-mix() plutôt que la couleur de la palette en
+                pleine intensité, pour rester un simple séparateur discret
+                et non un bloc de couleur qui tire l'œil plus que les
+                données elles-mêmes. Le point + le libellé ci-dessous
+                gardent, eux, la couleur pleine (assez petits pour ne pas
+                surcharger). */}
             <div
               style={{
                 display: "flex",
@@ -174,7 +180,7 @@ export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle 
                 gap: "8px",
                 padding: "9px 14px",
                 backgroundColor: "var(--color-fond)",
-                borderBottom: `2px solid ${g.accent}`,
+                borderBottom: `2px solid color-mix(in srgb, ${g.accent} 45%, transparent)`,
               }}
             >
               <span

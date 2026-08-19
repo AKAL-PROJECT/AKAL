@@ -15,6 +15,7 @@ import { useFavorisIds } from "@/hooks/useFavorisIds";
 import { useComparateur } from "@/hooks/useComparateur";
 import { COMPARATEUR_MAX } from "./comparateurStorage";
 import { formatMAD } from "@/lib/format";
+import { descriptionClimat, formatDistance, genererPasseport } from "@/data/passeportAgronomique";
 import {
   MapPin,
   Heart,
@@ -87,6 +88,12 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
       router.push(`/connexion?next=/parcelles/${a.slug}?contact=1`);
     }
   };
+
+  // Passeport Agronomique — calcul pur/déterministe (aucun réseau, cf.
+  // data/passeportAgronomique.ts), utilisé ici juste pour la
+  // prévisualisation "mini-indicateurs" du teaser plus bas (audit fiche du
+  // 19/08) ; l'écran complet (/passeport) fait le même calcul de son côté.
+  const passeport = genererPasseport(a);
 
   const { favorisIds, toggleFavori } = useFavorisIds();
   const favori = favorisIds.has(a.id);
@@ -253,25 +260,79 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
               l'ambiguïté avec ce Passeport Agronomique — cf. audit final) :
               ici, un rapport de DÉMONSTRATION à 5 dimensions simulées,
               jamais présenté comme une vraie analyse scientifique — cf.
-              l'avertissement explicite sur l'écran /passeport lui-même. */}
-          <div className="card" style={{ padding: "20px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <span style={{ width: "40px", height: "40px", borderRadius: "var(--radius-md)", backgroundColor: "var(--color-menthe)", color: "var(--color-foret)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Leaf size={18} />
-            </span>
-            <div style={{ flex: 1, minWidth: "200px" }}>
-              <div style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-texte)" }}>Passeport Agronomique</div>
-              <p style={{ fontSize: "13px", color: "var(--color-secondaire)", margin: "2px 0 0" }}>
-                Rapport de démonstration — sol, climat, végétation, topographie, accessibilité.
-              </p>
+              l'avertissement explicite sur l'écran /passeport lui-même.
+              Traitement "certificat" (audit fiche du 19/08) — dégradé +
+              bordure dédiée pour le distinguer des cartes plates
+              (`.card`) utilisées partout ailleurs sur la fiche : c'est la
+              fonctionnalité différenciante d'AKAL, elle ne doit pas se
+              fondre visuellement dans le reste. Les 4 mini-indicateurs
+              résument le MÊME rapport simulé (jamais une donnée
+              supplémentaire inventée) — juste visible avant même de
+              cliquer, cf. data/passeportAgronomique.ts. */}
+          <div
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: "var(--radius-card)",
+              border: "1px solid var(--color-menthe)",
+              background: "linear-gradient(135deg, var(--color-rosee) 0%, white 55%)",
+              boxShadow: "var(--shadow-card)",
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+          >
+            <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.06 }} />
+
+            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+              <span style={{ width: "40px", height: "40px", borderRadius: "var(--radius-md)", backgroundColor: "var(--color-foret)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 10px rgba(45,106,79,0.28)" }}>
+                <Leaf size={18} />
+              </span>
+              <div style={{ flex: 1, minWidth: "200px" }}>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-nuit)" }}>Passeport Agronomique</div>
+                <p style={{ fontSize: "13px", color: "var(--color-secondaire)", margin: "2px 0 0" }}>
+                  Rapport de démonstration — sol, climat, végétation, topographie, accessibilité.
+                </p>
+              </div>
+              <Link
+                href={`/parcelles/${a.slug}/passeport`}
+                className="btn-primary akal-focusable"
+                style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", whiteSpace: "nowrap" }}
+              >
+                Analyser le potentiel
+                <ArrowRight size={14} />
+              </Link>
             </div>
-            <Link
-              href={`/parcelles/${a.slug}/passeport`}
-              className="btn-secondary akal-focusable"
-              style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", whiteSpace: "nowrap" }}
-            >
-              Analyser le potentiel
-              <ArrowRight size={14} />
-            </Link>
+
+            {/* Aperçu — mêmes 4 dimensions que le rapport complet, en un
+                coup d'œil, sans avoir à cliquer. */}
+            <div style={{ position: "relative", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {[
+                { label: "Sol", valeur: passeport.sol.valeurs.typeSol },
+                { label: "Climat", valeur: descriptionClimat(passeport.climat.valeurs.precipitationsAnnuellesMm) },
+                { label: "Pente", valeur: `${passeport.topographie.valeurs.pentePourcent}%` },
+                { label: "Route", valeur: `à ${formatDistance(passeport.accessibilite.valeurs.distanceRouteM)}` },
+              ].map((indic) => (
+                <span
+                  key={indic.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "5px 12px",
+                    borderRadius: "var(--radius-full)",
+                    fontSize: "12px",
+                    backgroundColor: "rgba(255,255,255,0.75)",
+                    border: "1px solid var(--color-menthe)",
+                    color: "var(--color-texte)",
+                  }}
+                >
+                  <span style={{ color: "var(--color-tertiaire)" }}>{indic.label} :</span>
+                  <strong style={{ fontWeight: 600, color: "var(--color-foret)" }}>{indic.valeur}</strong>
+                </span>
+              ))}
+            </div>
           </div>
 
           <BlocCaracteristiques parcelle={a} />

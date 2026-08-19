@@ -187,6 +187,29 @@ export function choisirProfil(parcelleId: string): ProfilSimule {
   return PROFILS[index];
 }
 
+// Descripteur climatique court (audit fiche du 19/08) — dérivé des
+// précipitations annuelles SIMULÉES ci-dessus (jamais une nouvelle donnée :
+// un simple classement à seuils du même chiffre déjà affiché en toutes
+// lettres sur l'écran /passeport, cf. PasseportAgronomiqueScreen.tsx). Sert
+// à la prévisualisation "mini-indicateurs" du teaser sur la fiche
+// (FicheParcelle.tsx) — reste un résumé du profil DÉMO, pas une nouvelle
+// donnée simulée indépendante. Seuils indicatifs pour l'étagement
+// climatique marocain (les profils de ce fichier vont de 140 à 550 mm/an).
+export function descriptionClimat(precipitationsAnnuellesMm: number): string {
+  if (precipitationsAnnuellesMm < 200) return "Aride";
+  if (precipitationsAnnuellesMm < 350) return "Semi-aride";
+  if (precipitationsAnnuellesMm < 500) return "Semi-humide";
+  return "Humide";
+}
+
+// Déplacé ici depuis PasseportAgronomiqueScreen.tsx (audit fiche du 19/08,
+// devenu nécessaire aussi dans le teaser de FicheParcelle.tsx) — un seul
+// formatage de distance pour tout ce qui affiche accessibilite.distanceRouteM,
+// plutôt qu'une copie locale par écran.
+export function formatDistance(metres: number): string {
+  return metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
+}
+
 // ── Identification (données réelles uniquement — P2-01 §1) ─────────────────
 export type IdentificationParcelle = {
   reference: string; // id (troncature lisible) — pas de numéro de dossier séparé, n'existe pas dans le modèle
