@@ -926,7 +926,8 @@
   }
 
   /* Trame parcellaire cadastrale — grille de bornage irrégulière + bornes
-     ponctuelles, calque décoratif posé derrière la colonne texte du Hero.
+     ponctuelles, calque décoratif du Hero (posé sur toute la section depuis
+     la version sobre du 2026-08-17 — plus de colonne texte séparée).
      Double atténuation (stroke-opacity dans le SVG + opacity du calque, même
      principe que .akal-texture-topo) pour retomber sur un ~5% de foret visible. */
   .akal-texture-cadastre {
@@ -937,36 +938,6 @@
     background-repeat: repeat;
     background-size: 220px 180px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='180' viewBox='0 0 220 180'%3E%3Cg fill='none' stroke='%232D6A4F' stroke-opacity='0.55' stroke-width='1'%3E%3Cpath d='M0 0H220M0 180H220M0 0V180M220 0V180M90 0V180M0 70H90M90 110H220M155 0V70'/%3E%3C/g%3E%3Ccircle cx='90' cy='70' r='2' fill='%232D6A4F' fill-opacity='0.55'/%3E%3Ccircle cx='90' cy='110' r='2' fill='%232D6A4F' fill-opacity='0.55'/%3E%3Ccircle cx='155' cy='70' r='2' fill='%232D6A4F' fill-opacity='0.55'/%3E%3C/svg%3E");
-  }
-
-  /* Colonne visuelle plein bleed du Hero — remplace la carte flottante par
-     une image bord-à-bord ; hauteur mini pour porter le fill de next/image. */
-  .akal-hero-visuel {
-    position: relative;
-    overflow: hidden;
-    min-height: 420px;
-  }
-  @media (min-width: 901px) {
-    .akal-hero-visuel { min-height: 620px; }
-  }
-
-  /* Fondu gauche du Hero — raccorde le bord de l'image plein bleed au fond
-     de la colonne texte. Sans objet sous 900px : colonnes empilées, donc pas
-     de bord vertical à raccorder. */
-  .akal-hero-fondu {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, var(--color-fond) 0%, rgba(248,245,240,0.5) 14%, rgba(248,245,240,0) 32%);
-  }
-  @media (max-width: 900px) {
-    .akal-hero-fondu { display: none; }
-  }
-
-  /* Hero (Home) : colonnes plein bleed (0 gap) sur desktop ; sous ~900px,
-     grille en une seule colonne et gap ré-introduit entre texte et image
-     empilés (pas de fondu latéral à ce gabarit, cf. .akal-hero-fondu). */
-  @media (max-width: 900px) {
-    .akal-hero-grid { grid-template-columns: 1fr !important; gap: 32px; }
   }
 
   /* ── Carte de couverture (Home) — bulles de cluster on-brand, remplace le
