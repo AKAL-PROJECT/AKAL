@@ -31,13 +31,17 @@ Référentiel géométrique officiel (2026-08-06, cf. docs/plans) — préfixe
     serializer que la liste (une Feature au lieu d'une FeatureCollection).
 """
 
+from django.contrib.gis.db.models import MultiPolygonField
+from django.db.models import F, Func, Value
 from rest_framework import generics, permissions
 from rest_framework.exceptions import ValidationError
 
 from .models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
 from .serializers import (
+    CommuneGeomListeSerializer,
     CommuneGeomSerializer,
     CommuneSerializer,
+    ProvinceGeomListeSerializer,
     ProvinceGeomSerializer,
     ProvinceSerializer,
     RegionOfficielleSerializer,
@@ -115,16 +119,50 @@ class RegionOfficielleListAPIView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
 
+# Tolérance de simplification (degrés, WGS84) des contours régionaux/
+# communaux servis en fond de carte décoratif — cf. commentaire au-dessus
+# de ProvinceGeomListeSerializer/CommuneGeomListeSerializer (geo/serializers.py)
+# pour le contexte complet. ~0.001° ≈ 100m à la latitude du Maroc :
+# invisible à l'échelle où ces tracés sont affichés (jamais un zoom
+# cadastral), mais réduit fortement le nombre de sommets envoyés (jusqu'à
+# ~500 Ko par région avant simplification, audit cartographie du 19/08).
+#
+# ST_SimplifyPreserveTopology (pas ST_Simplify) : ne casse pas la
+# géométrie d'UNE province/commune sur elle-même (auto-intersections). Ne
+# garantit en revanche pas un bord parfaitement identique entre deux
+# provinces/communes VOISINES, chacune simplifiée indépendamment (limite
+# connue de cette fonction, pas une erreur d'implémentation) — un écart de
+# quelques dizaines de mètres au pire, à cette tolérance, invisible aux
+# zooms où ces cartes sont utilisées (vue Maroc entier ou région entière).
+# ST_Multi(...) en plus : ST_SimplifyPreserveTopology peut renvoyer un
+# POLYGON simple si la simplification supprime toutes les parties sauf
+# une — ST_Multi() force un MULTIPOLYGON en sortie, cohérent avec le
+# MultiPolygonField du modèle (geo/models.py), quel que soit le résultat.
+TOLERANCE_SIMPLIFICATION_CARTE = 0.001
+
+
+def _geom_simplifiee():
+    return Func(
+        Func(
+            F('geom'),
+            Value(TOLERANCE_SIMPLIFICATION_CARTE),
+            function='ST_SimplifyPreserveTopology',
+        ),
+        function='ST_Multi',
+        output_field=MultiPolygonField(srid=4326),
+    )
+
+
 class ProvinceGeomListAPIView(generics.ListAPIView):
     """
     GET /api/geo/limites/provinces/?region=<slug>
 
     GeoJSON FeatureCollection des provinces d'une région. `region`
     obligatoire (400 sinon) — ~123 000 sommets au total sur les 75
-    provinces, jamais de dump national non borné.
+    provinces avant simplification, jamais de dump national non borné.
     """
 
-    serializer_class = ProvinceGeomSerializer
+    serializer_class = ProvinceGeomListeSerializer
     pagination_class = None
     permission_classes = [permissions.AllowAny]
 
@@ -137,6 +175,7 @@ class ProvinceGeomListAPIView(generics.ListAPIView):
         return (
             ProvinceGeom.objects.filter(region__slug=region_slug)
             .select_related('region')
+            .annotate(geom_simplifie=_geom_simplifiee())
             .order_by('nom')
         )
 
@@ -151,7 +190,7 @@ class CommuneGeomListAPIView(generics.ListAPIView):
     jamais de dump non borné.
     """
 
-    serializer_class = CommuneGeomSerializer
+    serializer_class = CommuneGeomListeSerializer
     pagination_class = None
     permission_classes = [permissions.AllowAny]
 
@@ -163,7 +202,9 @@ class CommuneGeomListAPIView(generics.ListAPIView):
         if not province_id and not region_slug:
             raise ValidationError({'detail': "Le paramètre `province` ou `region` est obligatoire."})
 
-        qs = CommuneGeom.objects.select_related('province', 'province__region')
+        qs = CommuneGeom.objects.select_related('province', 'province__region').annotate(
+            geom_simplifie=_geom_simplifiee()
+        )
         if province_id:
             qs = qs.filter(province_id=province_id)
         if region_slug:
