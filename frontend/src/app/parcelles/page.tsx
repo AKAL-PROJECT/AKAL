@@ -74,10 +74,13 @@ function lireDepuisUrl(sp: URLSearchParams): { filtres: FiltresState; tri: Tri; 
     },
     tri: (sp.get("tri") as Tri) ?? "recent",
     page: sp.has("page") ? Math.max(1, Number(sp.get("page")) || 1) : 1,
-    // Permet à un lien externe (ex. "Carte" du header) d'ouvrir directement
-    // la vue carte plutôt que de retomber sur la grille par défaut, ce qui
-    // rendait ce lien indiscernable de "Explorer" (les deux menaient au
-    // même /parcelles en mode grille).
+    // Permet à un lien externe d'ouvrir directement la vue carte plutôt que
+    // de retomber sur la grille par défaut. Le lien "Carte" du header
+    // pointe désormais vers /carte (vue plein écran dédiée, refonte nav du
+    // 19/08, cf. app/carte/page.tsx) plutôt que vers ce paramètre — ce
+    // mécanisme reste néanmoins utile pour tout lien interne qui voudrait
+    // ouvrir le catalogue directement en vue carte (ex. bascule Liste/Carte
+    // ci-dessous, qui écrit ce même paramètre).
     vue: sp.get("vue") === "carte" ? "carte" : "grille",
     tailleParPage,
   };

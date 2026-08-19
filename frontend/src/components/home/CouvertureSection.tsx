@@ -251,10 +251,9 @@ export default function CouvertureSection({
               );
             })}
 
-            {/* Même route que le lien "Carte" du Navbar (/parcelles?vue=carte,
-                cf. app/parcelles/page.tsx) — ouvre directement en vue carte
-                plutôt qu'en grille, cohérent avec "Voir la carte complète". */}
-            <Link href="/parcelles?vue=carte" className="akal-link-fleche" style={{ marginTop: "8px" }}>
+            {/* Même route que le lien "Carte" du Navbar (/carte, refonte nav
+                du 19/08 — vue plein écran dédiée, cf. app/carte/page.tsx). */}
+            <Link href="/carte" className="akal-link-fleche" style={{ marginTop: "8px" }}>
               Voir la carte complète →
             </Link>
           </div>
