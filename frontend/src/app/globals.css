@@ -543,6 +543,13 @@
   .akal-spin { animation: akal-spin-slow 7s linear infinite; }
   .akal-ring-out { animation: akal-ring-out 2.6s ease-out both; }
   .akal-drift { animation: akal-drift-opacity 6s ease-in-out infinite; }
+  /* Halo lent et permanent des régions "hub" de la carte desktop
+     (MoroccoMap.tsx) — même keyframe que .akal-ring-out (déjà utilisée pour
+     la région active du cycle automatique), mais en boucle et bien plus
+     lente : un signal discret et continu plutôt qu'un effet ponctuel,
+     réservé aux 3 régions à la plus forte densité d'annonces (audit
+     desktop du 19/08). */
+  .akal-hub-ring { animation: akal-ring-out 3.6s ease-out infinite; }
 
   .connexion-input {
     background-color: #FAF8F4;
@@ -587,7 +594,7 @@
       opacity: 1 !important;
       transform: none !important;
     }
-    .akal-pulse, .akal-spin, .akal-ring-out, .akal-drift {
+    .akal-pulse, .akal-spin, .akal-ring-out, .akal-drift, .akal-hub-ring {
       animation: none !important;
     }
   }
