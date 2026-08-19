@@ -7,10 +7,13 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 
 import io
 
+from django.contrib import admin
+from django.contrib.auth.models import Group
 from django.contrib.gis.geos import MultiPolygon, Polygon
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase
 from PIL import Image
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
@@ -19,6 +22,7 @@ from accounts.models import User
 from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
 from messaging.models import Conversation, Favori, Message
 from . import transitions
+from .admin import publier_selection, rejeter_selection
 from .models import Annonce, Parcelle, Photo, StatistiqueAnnonce
 
 ANNONCES_URL = '/api/annonces/'
@@ -1684,3 +1688,120 @@ class DatasetActifTests(TestCase):
         titres = [a['titre'] for a in response.data['results']]
         self.assertIn('Annonce avito', titres)
         self.assertNotIn('Annonce interne', titres)
+
+
+class AdminModerationTests(AnnoncesTestBase):
+    """Actions groupées de l'admin (publier_selection/rejeter_selection) et
+    restriction get_readonly_fields — audit admin du 19/08. Appelle les
+    fonctions d'action directement (pas un round-trip HTTP par le formulaire
+    d'actions de l'admin) : plus rapide, et c'est la même logique métier
+    testée soit qu'on la déclenche depuis /admin/ ou en Python."""
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier()
+        self.factory = RequestFactory()
+        self.superuser = User.objects.create_superuser(
+            email='admin@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Admin', prenom='AKAL',
+        )
+        self.moderateur = User.objects.create_user(
+            email='moderateur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Modo', prenom='AKAL', is_staff=True,
+        )
+        self.moderateur.groups.add(Group.objects.get(name='Modérateurs'))
+        self.modeladmin = admin.site._registry[Annonce]
+
+    def _requete(self, user):
+        # message_user() (appelé par les deux actions) a besoin d'un backend
+        # de messages sur la requête — FallbackStorage est le plus simple
+        # sans passer par le vrai middleware de session, mais il essaie
+        # d'abord le stockage en session (avant le repli sur cookie), donc
+        # `request.session` doit exister ; un dict simple suffit à son usage
+        # (get/__setitem__), pas besoin d'un vrai SessionStore.
+        request = self.factory.get('/admin/annonces/annonce/')
+        request.user = user
+        request.session = {}
+        request._messages = FallbackStorage(request)
+        return request
+
+    def _annonce_eligible(self, statut):
+        """Annonce satisfaisant can_publish() (géoloc + photo + prix), forcée
+        au statut demandé — jamais via l'API (aucun déclencheur ne mène
+        actuellement à en_attente, cf. transitions.py), à la main comme le
+        ferait un futur flux de modération."""
+        annonce_id = self.creer_brouillon().data['id']
+        self.localiser(annonce_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        annonce = Annonce.objects.get(id=annonce_id)
+        annonce.statut = statut
+        annonce.save(update_fields=['statut'])
+        return annonce
+
+    def test_publier_selection_publie_en_attente_et_brouillon_eligibles(self):
+        en_attente = self._annonce_eligible(Annonce.StatutAnnonce.EN_ATTENTE)
+        brouillon = self._annonce_eligible(Annonce.StatutAnnonce.BROUILLON)
+        request = self._requete(self.superuser)
+
+        publier_selection(self.modeladmin, request, Annonce.objects.filter(id__in=[en_attente.id, brouillon.id]))
+
+        en_attente.refresh_from_db()
+        brouillon.refresh_from_db()
+        self.assertEqual(en_attente.statut, Annonce.StatutAnnonce.EN_LIGNE)
+        self.assertEqual(brouillon.statut, Annonce.StatutAnnonce.EN_LIGNE)
+        self.assertIsNotNone(en_attente.date_publication)
+
+    def test_publier_selection_ignore_les_annonces_sans_photo(self):
+        annonce_id = self.creer_brouillon().data['id']
+        self.localiser(annonce_id)
+        annonce = Annonce.objects.get(id=annonce_id)  # jamais de photo -> can_publish() False
+        request = self._requete(self.superuser)
+
+        publier_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+
+    def test_publier_selection_ignore_une_annonce_deja_en_ligne(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_LIGNE)
+        request = self._requete(self.superuser)
+
+        # en_ligne -> en_ligne n'est pas une arête du graphe (transitions.py)
+        publier_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)  # inchangé, pas une erreur
+
+    def test_rejeter_selection_repasse_en_attente_vers_brouillon(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_ATTENTE)
+        request = self._requete(self.superuser)
+
+        rejeter_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+
+    def test_rejeter_selection_ignore_une_annonce_en_ligne(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_LIGNE)
+        request = self._requete(self.superuser)
+
+        rejeter_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)  # seul "en attente" peut être rejeté
+
+    def test_statut_lecture_seule_pour_un_moderateur_pas_pour_un_superutilisateur(self):
+        request_modo = self._requete(self.moderateur)
+        request_admin = self._requete(self.superuser)
+
+        self.assertIn('statut', self.modeladmin.get_readonly_fields(request_modo))
+        self.assertNotIn('statut', self.modeladmin.get_readonly_fields(request_admin))
+
+    def test_groupe_moderateurs_na_pas_acces_aux_utilisateurs(self):
+        # Périmètre volontairement restreint (migration 0009) — un
+        # modérateur review du contenu, jamais les comptes.
+        self.assertFalse(self.moderateur.has_perm('accounts.change_user'))
+        self.assertTrue(self.moderateur.has_perm('annonces.change_annonce'))
