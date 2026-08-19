@@ -179,6 +179,89 @@ class InboxTests(MessagingTestBase):
         self.assertEqual(response.data['results'][0]['annonce']['titre'], 'Autre parcelle')
 
 
+class ConversationsNonLuesTests(MessagingTestBase):
+    """
+    GET /api/conversations/non-lues/ — cf. docstring ConversationsNonLuesAPIView
+    (regression du 19/08 : le badge Navbar sommait jusque-là uniquement la
+    première page paginée de l'inbox, cf. fetchNombreMessagesNonLus()).
+    """
+
+    NON_LUES_URL = '/api/conversations/non-lues/'
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier('vendeur@akal.ma')
+        self.client.logout()
+        self.annonce = self.creer_annonce(self.vendeur)
+        self.acheteur = self.authentifier('acheteur@akal.ma')
+        self.client.post(
+            CONVERSATIONS_URL, {'annonce': str(self.annonce.id), 'contenu': 'Bonjour !'},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_refuse_si_non_authentifie(self):
+        self.client.logout()
+
+        response = self.client.get(self.NON_LUES_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_compte_du_point_de_vue_du_destinataire_pas_de_lexpediteur(self):
+        # acheteur = expéditeur du seul message existant → 0 pour lui.
+        response_acheteur = self.client.get(self.NON_LUES_URL)
+        self.assertEqual(response_acheteur.data['messages_non_lus'], 0)
+
+        # vendeur = destinataire → 1.
+        self.se_connecter('vendeur@akal.ma')
+        response_vendeur = self.client.get(self.NON_LUES_URL)
+        self.assertEqual(response_vendeur.data['messages_non_lus'], 1)
+
+    def test_compte_au_dela_de_la_premiere_page_de_linbox(self):
+        """
+        Régression : avant ce endpoint, le total était dérivé en sommant
+        `messages_non_lus` sur la seule première page de GET /api/conversations/
+        (PAGE_SIZE=12). Ce test construit délibérément plus de 12
+        conversations pour le vendeur, LUES pour 13 d'entre elles (le
+        vendeur les a ouvertes — GET .../messages/ marque lu, cf.
+        ConversationMessagesAPIView.list()) — seul le fil créé dans setUp()
+        (jamais ouvert par le vendeur) reste non lu, et se retrouve hors
+        page 1 une fois les 13 autres, plus récemment actives, passées
+        devant (tri -updated_at). La somme sur la page 1 donnerait 0,
+        l'agrégat réel doit donner 1.
+        """
+        # Le fil déjà créé dans setUp() est le plus ancien (premier créé) —
+        # jamais ouvert par le vendeur, reste donc non lu tout du long.
+        conversation_ids = []
+        for i in range(13):
+            # scope 'signup' (5/hour, cf. settings.REST_FRAMEWORK) — sans ce
+            # reset, la 6e itération échoue en 429 (même précaution que
+            # setUp() ci-dessus, appliquée ici à chaque itération plutôt
+            # qu'une seule fois : 13 vrais signups dans le même test).
+            cache.clear()
+            self.authentifier(f'acheteur{i}@akal.ma')
+            reponse = self.client.post(
+                CONVERSATIONS_URL, {'annonce': str(self.annonce.id), 'contenu': f'Message {i}'},
+                format='json', **self.csrf_headers(),
+            )
+            conversation_ids.append(reponse.data['id'])
+            self.client.logout()
+
+        self.se_connecter('vendeur@akal.ma')
+        # Le vendeur ouvre les 13 nouveaux fils — marque leurs messages lus
+        # (effet de bord du GET, cf. ConversationMessagesAPIView.list()) et
+        # les fait remonter en tête de l'inbox (tri -updated_at), poussant
+        # le fil non lu de setUp() hors de la première page.
+        for cid in conversation_ids:
+            self.client.get(self.messages_url(cid), **self.csrf_headers())
+
+        inbox = self.client.get(CONVERSATIONS_URL)
+        titres_page_1 = [c['dernier_message']['contenu'] for c in inbox.data['results']]
+        self.assertNotIn('Bonjour !', titres_page_1)  # confirme que le fil non lu est bien hors page 1
+
+        response = self.client.get(self.NON_LUES_URL)
+        self.assertEqual(response.data['messages_non_lus'], 1)
+
+
 class ConversationDetailTests(MessagingTestBase):
     def setUp(self):
         super().setUp()

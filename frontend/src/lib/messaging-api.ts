@@ -50,16 +50,24 @@ export async function fetchInbox(): Promise<Paginated<Conversation>> {
   return (await res.json()) as Paginated<Conversation>;
 }
 
-// Total des messages non lus, tous fils confondus — dérivé de fetchInbox()
-// (aucun endpoint agrégé côté API, cf. MesStatistiquesAPIView côté backend
-// qui fait un choix similaire). Appelée une seule fois par rendu du layout
-// racine (badge Navbar, app/layout.tsx) : pas de polling ici, le polling
-// reste scopé à /messages (InboxScreen). Même limite que l'inbox
-// elle-même : ne couvre que la première page de fetchInbox() — acceptable
-// pour un badge (compte réel plus précis visible en ouvrant /messages).
+// Total des messages non lus, tous fils confondus — GET /api/conversations/non-lues/
+// (ConversationsNonLuesAPIView, ajouté le 19/08). Corrige un vrai sous-
+// comptage : jusque-là dérivé de fetchInbox() en sommant `messages_non_lus`
+// sur sa seule première page (fetchInbox() est paginée, PAGE_SIZE=12) — un
+// utilisateur avec plus de 12 conversations et un non-lu resté au-delà de
+// la page 1 (triée par activité récente : une conversation ancienne jamais
+// rouverte peut y rester) voyait un badge silencieusement inférieur au vrai
+// total. Même défaut de principe que le bug des pins de la carte de
+// couverture (1ace292/9510d6c) : un total affiché dérivé d'une page/d'un
+// échantillon plutôt que du vrai total agrégé côté serveur.
 export async function fetchNombreMessagesNonLus(): Promise<number> {
-  const inbox = await fetchInbox();
-  return inbox.results.reduce((total, conversation) => total + conversation.messages_non_lus, 0);
+  const res = await fetch(`${API_URL}/conversations/non-lues/`, {
+    headers: { Cookie: await cookieHeader() },
+    cache: "no-store",
+  });
+  if (!res.ok) await lireOuLeverErreur(res);
+  const data = (await res.json()) as { messages_non_lus: number };
+  return data.messages_non_lus;
 }
 
 // Résumé d'un fil (annonce, autre participant) — récupéré une seule fois au
