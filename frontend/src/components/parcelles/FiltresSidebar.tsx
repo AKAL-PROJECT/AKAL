@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   ACCES_EAU_OPTIONS,
   STATUTS,
   type FiltresState,
   type Region,
   filtresActifs,
+  filtresVersCriteresAlerte,
 } from "@/data/parcelles";
 import { STATUT_FONCIER_LABEL } from "./BadgeStatut";
-import { Search, X, ChevronDown, Check } from "@/components/icons/Icons";
+import { Search, X, ChevronDown, Check, Bell } from "@/components/icons/Icons";
 import { formatMAD } from "@/lib/format";
+import { creerRechercheSauvegardeeAction } from "@/app/actions/recherches-sauvegardees";
 // Cascade P0-04 (région → province → commune) — référentiel officiel
 // (2026-08-06), même source et mêmes fonctions que la cascade du dépôt
 // d'annonce (EtapeLocalisation.tsx, territoire d'Ibrahim) : lib/geo-api.ts
@@ -322,6 +326,27 @@ export default function FiltresSidebar({
   onAppliquer,
 }: Props) {
   const f = filtres;
+  const pathname = usePathname();
+
+  // "Sauvegarder cette recherche" (alertes, 2026-08-19) — état local à ce
+  // composant, jamais remonté au parent : contrairement aux filtres
+  // eux-mêmes, cette petite machine à états (repos → saisie du nom → envoi
+  // → fait/erreur) n'a besoin d'être connue de rien d'autre que ce bouton.
+  const [etapeSauvegarde, setEtapeSauvegarde] = useState<"repos" | "saisie" | "envoi" | "fait">("repos");
+  const [nomRecherche, setNomRecherche] = useState("");
+  const [erreurSauvegarde, setErreurSauvegarde] = useState<string | null>(null);
+
+  async function handleSauvegarderRecherche() {
+    setEtapeSauvegarde("envoi");
+    setErreurSauvegarde(null);
+    const resultat = await creerRechercheSauvegardeeAction(nomRecherche.trim(), filtresVersCriteresAlerte(f), pathname);
+    if (resultat.ok) {
+      setEtapeSauvegarde("fait");
+    } else {
+      setErreurSauvegarde(resultat.error);
+      setEtapeSauvegarde("saisie");
+    }
+  }
 
   // Cascade P0-04 — provinces/communes du référentiel officiel, chargées au
   // fil de la sélection (jamais tout le référentiel national d'un coup :
@@ -426,6 +451,76 @@ export default function FiltresSidebar({
               </button>
             </div>
           </div>
+
+          {/* Alertes (2026-08-19) — sauvegarder les filtres actifs pour être
+              notifié (in-app + email) dès qu'une nouvelle annonce
+              correspondante est publiée. Visible seulement si au moins un
+              filtre structurant est actif (filtresActifs) : sauvegarder une
+              recherche vide alerterait sur TOUT le catalogue, jamais utile. */}
+          {filtresActifs(f) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {etapeSauvegarde === "repos" && (
+                <button
+                  type="button"
+                  onClick={() => setEtapeSauvegarde("saisie")}
+                  className="akal-focusable"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                    padding: "8px 12px", fontSize: "13px", fontWeight: 500,
+                    color: "var(--color-foret)", backgroundColor: "var(--color-rosee)",
+                    border: "none", borderRadius: "var(--radius-sm)", cursor: "pointer",
+                  }}
+                >
+                  <Bell size={14} />
+                  Recevoir une alerte pour cette recherche
+                </button>
+              )}
+              {(etapeSauvegarde === "saisie" || etapeSauvegarde === "envoi") && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <input
+                    type="text"
+                    value={nomRecherche}
+                    onChange={(e) => setNomRecherche(e.target.value)}
+                    placeholder="Nom de l'alerte (ex. Souss-Massa &gt; 2 ha)"
+                    maxLength={120}
+                    className="input"
+                    style={{ fontSize: "13px" }}
+                    disabled={etapeSauvegarde === "envoi"}
+                  />
+                  {erreurSauvegarde && <p style={{ fontSize: "12px", color: "var(--color-erreur)", margin: 0 }}>{erreurSauvegarde}</p>}
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      type="button"
+                      onClick={handleSauvegarderRecherche}
+                      disabled={etapeSauvegarde === "envoi"}
+                      className="btn-primary akal-focusable"
+                      style={{ flex: 1, padding: "8px 12px", fontSize: "13px" }}
+                    >
+                      {etapeSauvegarde === "envoi" ? "Enregistrement…" : "Enregistrer"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEtapeSauvegarde("repos"); setErreurSauvegarde(null); }}
+                      disabled={etapeSauvegarde === "envoi"}
+                      className="akal-focusable"
+                      style={{ padding: "8px 12px", fontSize: "13px", background: "none", border: "1px solid var(--color-bordure)", borderRadius: "var(--radius-sm)", cursor: "pointer", color: "var(--color-secondaire)" }}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
+              {etapeSauvegarde === "fait" && (
+                <p style={{ fontSize: "13px", color: "var(--color-foret)", margin: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Check size={14} />
+                  Alerte enregistrée.{" "}
+                  <Link href="/compte/recherches" style={{ color: "var(--color-foret)", fontWeight: 500 }}>
+                    Voir mes recherches →
+                  </Link>
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Recherche textuelle — envoyée au backend en `q=` (titre +
               description, sur tout le catalogue), cf. data/parcelles.ts. */}

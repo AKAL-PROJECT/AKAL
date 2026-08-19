@@ -6,7 +6,7 @@ import {
   Droplets,
   TrendingUp,
 } from "@/components/icons/Icons";
-import { formatMAD } from "@/lib/format";
+import { formatMAD, hectaresVersM2 } from "@/lib/format";
 
 type Groupe = {
   titre: string;
@@ -30,7 +30,7 @@ const ACCES_EAU_LABEL: Record<AccesEau, string> = {
 // (§ "regrouper l'information de façon plus logique", refonte Phase 2).
 function buildGroupes(a: Parcelle): Groupe[] {
   const prixHa = a.prixM2 * 10_000;
-  const surfaceM2 = Math.round(a.parcelle.surface * 10_000).toLocaleString("fr-MA");
+  const surfaceM2 = hectaresVersM2(a.parcelle.surface);
 
   return [
     {

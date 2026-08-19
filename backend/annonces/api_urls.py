@@ -30,6 +30,8 @@ from .api_views import (
     MesAnnoncesListAPIView,
     MesStatistiquesAPIView,
     PhotoDeleteAPIView,
+    RechercheSauvegardeeDetailAPIView,
+    RechercheSauvegardeeListCreateAPIView,
 )
 
 app_name = 'annonces-api'
@@ -39,6 +41,13 @@ urlpatterns = [
     path('stats/regions/', AnnonceStatsRegionAPIView.as_view(), name='stats-regions'),
     path('mes-annonces/', MesAnnoncesListAPIView.as_view(), name='mes-annonces'),
     path('mes-annonces/statistiques/', MesStatistiquesAPIView.as_view(), name='mes-statistiques'),
+    # Recherches sauvegardées (alertes, 2026-08-19) — déclarées avant
+    # <uuid:pk>/ et <slug:slug>/ pour la même raison que stats/regions/ et
+    # mes-annonces/ ci-dessus (toutes à 2 segments, hors de portée du
+    # convertisseur <slug:slug>/ à 1 segment, mais la précaution reste
+    # gratuite et cohérente avec le reste du fichier).
+    path('recherches-sauvegardees/', RechercheSauvegardeeListCreateAPIView.as_view(), name='recherches-sauvegardees-list'),
+    path('recherches-sauvegardees/<uuid:pk>/', RechercheSauvegardeeDetailAPIView.as_view(), name='recherches-sauvegardees-detail'),
     path('<uuid:pk>/', AnnonceUpdateAPIView.as_view(), name='update'),
     path('<uuid:annonce_id>/photos/<uuid:photo_id>/', PhotoDeleteAPIView.as_view(), name='photo-delete'),
     path('<slug:slug>/', AnnonceDetailAPIView.as_view(), name='detail'),

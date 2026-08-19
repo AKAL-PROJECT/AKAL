@@ -3,7 +3,7 @@ from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import Parcelle, Annonce, AgriScore, Photo, DonneesGeo, StatistiqueAnnonce
+from .models import Parcelle, Annonce, AgriScore, Photo, DonneesGeo, RechercheSauvegardee, StatistiqueAnnonce
 from .transitions import transition_autorisee
 
 
@@ -143,3 +143,10 @@ class StatistiqueAnnonceAdmin(admin.ModelAdmin):
     list_display = ('annonce', 'date', 'vues')
     list_filter = ('date',)
     search_fields = ('annonce__titre',)
+
+
+@admin.register(RechercheSauvegardee)
+class RechercheSauvegardeeAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'utilisateur', 'actif', 'created_at')
+    list_filter = ('actif',)
+    search_fields = ('nom', 'utilisateur__email')

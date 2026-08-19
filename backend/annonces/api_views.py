@@ -57,12 +57,13 @@ from messaging.models import Conversation, Favori, Message
 # compter), aucune dépendance de geo vers annonces en retour.
 from geo.models import RegionOfficielle
 
-from .models import Annonce, Parcelle, Photo, StatistiqueAnnonce
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
 from .serializers import (
     AnnonceListSerializer,
     AnnonceDetailSerializer,
     AnnonceEcritureSerializer,
     MesStatistiquesSerializer,
+    RechercheSauvegardeeSerializer,
 )
 
 
@@ -453,6 +454,56 @@ class MesStatistiquesAPIView(APIView):
             'vues_totales': vues_totales,
         })
         return Response(serializer.data)
+
+
+# ──────────────────────────────────────────────
+# RECHERCHE SAUVEGARDÉE — Alertes (2026-08-19)
+# ──────────────────────────────────────────────
+
+class RechercheSauvegardeeListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET  /api/annonces/recherches-sauvegardees/  → recherches de l'utilisateur connecté
+    POST /api/annonces/recherches-sauvegardees/  → en créer une nouvelle
+
+    `criteres` (payload POST) : mêmes clés que les query params envoyés à
+    GET /api/annonces/ (region, province, commune, statut_foncier,
+    acces_eau, prix_min, prix_max, surface_min, surface_max) — le frontend
+    envoie directement l'état courant de ses filtres, cf.
+    data/parcelles.ts::filtresVersParams(). Pas de pagination : le volume
+    par utilisateur reste faible pour le MVP (même choix que
+    MesAnnoncesListAPIView/Favori).
+    """
+
+    serializer_class = RechercheSauvegardeeSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return RechercheSauvegardee.objects.filter(utilisateur=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(utilisateur=self.request.user)
+
+
+class RechercheSauvegardeeDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET/PATCH/DELETE /api/annonces/recherches-sauvegardees/<uuid:pk>/
+
+    PATCH sert surtout à `{"actif": false}` (mettre en pause sans supprimer,
+    ex. le temps de conclure un achat) — mais rien n'empêche de modifier
+    `nom`/`criteres` aussi via le même endpoint générique.
+    """
+
+    serializer_class = RechercheSauvegardeeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Scope à l'utilisateur connecté directement dans la queryset (pas
+        # une vérification a posteriori) : une recherche d'un autre
+        # utilisateur renvoie 404, jamais 403 — n'en révèle pas même
+        # l'existence, même principe que EstProprietaire plus bas pour les
+        # annonces.
+        return RechercheSauvegardee.objects.filter(utilisateur=self.request.user)
 
 
 # ──────────────────────────────────────────────

@@ -8,3 +8,16 @@
 // ponctuelle) — les appelants continuent de l'ajouter eux-mêmes, l'usage
 // réel est trop varié pour un seul format figé.
 export const formatMAD = new Intl.NumberFormat("fr-MA");
+
+// Conversion hectares → m² (1 ha = 10 000 m², unité SI sans ambiguïté —
+// contrairement à des unités traditionnelles comme le kheddam, dont la
+// valeur varie selon la région et n'est délibérément pas implémentée ici :
+// afficher un chiffre "précis" mais faux pour la région de l'utilisateur
+// serait pire que ne pas convertir du tout). Même arrondi/locale que
+// l'usage préexistant dans BlocCaracteristiques.tsx (fiche annonce) —
+// extrait ici pour qu'EtapeInfosGenerales.tsx (aperçu temps réel au dépôt
+// d'annonce, audit du 19/08) réutilise exactement le même calcul plutôt
+// que de le dupliquer.
+export function hectaresVersM2(ha: number): string {
+  return Math.round(ha * 10_000).toLocaleString("fr-MA");
+}

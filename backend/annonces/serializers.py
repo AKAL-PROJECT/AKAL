@@ -23,7 +23,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from . import transitions
-from .models import Annonce, AgriScore, DonneesGeo, Parcelle, Photo
+from .models import Annonce, AgriScore, DonneesGeo, Parcelle, Photo, RechercheSauvegardee
 
 # Sentinelle distincte de `None` : `_appliquer_parcelle` doit pouvoir
 # distinguer "le client n'a pas touché au champ `contour`" (ne rien changer)
@@ -706,3 +706,33 @@ class MesStatistiquesSerializer(serializers.Serializer):
     conversations_recues = serializers.IntegerField(read_only=True)
     messages_non_lus = serializers.IntegerField(read_only=True)
     vues_totales = serializers.IntegerField(read_only=True)
+
+
+# ──────────────────────────────────────────────
+# RECHERCHE SAUVEGARDÉE — Alertes (2026-08-19)
+# ──────────────────────────────────────────────
+
+class RechercheSauvegardeeSerializer(serializers.ModelSerializer):
+    """
+    `utilisateur` est délibérément absent des champs — jamais fourni par le
+    client, toujours déduit de request.user côté vue
+    (RechercheSauvegardeeListCreateAPIView.perform_create), même principe
+    que Favori/Conversation ailleurs dans le projet : un utilisateur ne
+    peut créer une ressource que pour lui-même, pas au nom d'un autre id
+    qu'il aurait pu glisser dans le payload.
+    """
+
+    class Meta:
+        model = RechercheSauvegardee
+        fields = ['id', 'nom', 'criteres', 'actif', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def validate_criteres(self, valeur):
+        # AnnonceAPIFilter(data=...) (cf. alertes.py) attend un mapping de
+        # query params — un JSONField accepterait n'importe quelle valeur
+        # JSON (liste, nombre...) sans cette garde explicite, et casserait
+        # silencieusement le matching à la première annonce publiée plutôt
+        # qu'à la création de la recherche.
+        if not isinstance(valeur, dict):
+            raise serializers.ValidationError("Les critères doivent être un objet (mêmes clés que les filtres du catalogue).")
+        return valeur

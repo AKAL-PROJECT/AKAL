@@ -590,6 +590,29 @@ export function filtresActifs(f: FiltresState): boolean {
   );
 }
 
+// Critères d'une recherche sauvegardée (alertes, 2026-08-19) — même clés
+// que AnnonceAPIFilter côté backend (region/province/commune/statut_foncier/
+// acces_eau/prix_min/prix_max/surface_min/surface_max), volontairement un
+// sous-ensemble de filtresVersParams() ci-dessus : ni la recherche texte
+// (`q`) ni le tri/la pagination/la bbox carte n'ont de sens pour une alerte
+// qui doit rester valide indéfiniment après cette visite précise. Toutes
+// les valeurs en chaîne (jamais un nombre natif) — c'est la forme que
+// AnnonceAPIFilter(data=...) attend côté backend (mêmes query params qu'une
+// vraie requête HTTP, jamais des types Python natifs).
+export function filtresVersCriteresAlerte(f: FiltresState): Record<string, string> {
+  const criteres: Record<string, string> = {};
+  if (f.region) criteres.region = f.region;
+  if (f.province) criteres.province = f.province;
+  if (f.commune) criteres.commune = f.commune;
+  if (f.statutFoncier) criteres.statut_foncier = f.statutFoncier;
+  if (f.eau !== "tous") criteres.acces_eau = f.eau;
+  if (f.prixMin != null) criteres.prix_min = String(f.prixMin);
+  if (f.prixMax != null) criteres.prix_max = String(f.prixMax);
+  if (f.surfaceMin != null) criteres.surface_min = String(f.surfaceMin);
+  if (f.surfaceMax != null) criteres.surface_max = String(f.surfaceMax);
+  return criteres;
+}
+
 // Normalise une chaîne pour comparaison insensible à la casse / aux accents.
 function normaliser(s: string): string {
   return s

@@ -11,6 +11,7 @@ from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, SimpleTestCase
@@ -20,10 +21,11 @@ from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import User
 from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
-from messaging.models import Conversation, Favori, Message
+from messaging.models import Conversation, Favori, Message, Notification
 from . import transitions
 from .admin import publier_selection, rejeter_selection
-from .models import Annonce, Parcelle, Photo, StatistiqueAnnonce
+from .alertes import notifier_recherches_correspondantes
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
 
 ANNONCES_URL = '/api/annonces/'
 
@@ -1805,3 +1807,202 @@ class AdminModerationTests(AnnoncesTestBase):
         # modérateur review du contenu, jamais les comptes.
         self.assertFalse(self.moderateur.has_perm('accounts.change_user'))
         self.assertTrue(self.moderateur.has_perm('annonces.change_annonce'))
+
+
+class AlertesRechercheSauvegardeeTests(AnnoncesTestBase):
+    """Signal + matching + notification/email — cf. signals.py/alertes.py.
+    RECHERCHE_URL : réutilise ANNONCES_URL en préfixe, comme le reste des
+    tests de ce module (jamais l'URL complète codée en dur ailleurs)."""
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier(email='vendeur@akal.ma')
+        self.acheteur = User.objects.create_user(
+            email='acheteur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Acheteur', prenom='Test',
+        )
+
+    def _annonce_eligible(self, proprietaire_email='vendeur@akal.ma'):
+        """Annonce en brouillon, géolocalisée + une photo (satisfait
+        can_publish()), déposée par `proprietaire_email` (déjà authentifié
+        comme self.client à cet instant)."""
+        annonce_id = self.creer_brouillon().data['id']
+        self.localiser(annonce_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        return annonce_id
+
+    def _publier(self, annonce_id):
+        # captureOnCommitCallbacks(execute=True) : TestCase enveloppe chaque
+        # test dans une transaction qui n'est JAMAIS réellement commitée
+        # (rollback en fin de test, pour l'isolation) — sans ce contexte,
+        # transaction.on_commit() (signals.py) ne s'exécute donc jamais ici,
+        # alors qu'il s'exécute bien en usage réel (une vraie requête HTTP
+        # commite pour de vrai). Ce contexte simule ce commit pour que le
+        # callback parte quand même, comme en production.
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.patch(
+                f'{ANNONCES_URL}{annonce_id}/', {'statut': 'en_ligne'}, format='json', **self.csrf_headers(),
+            )
+        return response
+
+    def test_publication_notifie_une_recherche_correspondante(self):
+        annonce_id = self._annonce_eligible()
+        recherche = RechercheSauvegardee.objects.create(
+            utilisateur=self.acheteur, nom='Fès-Meknès', criteres={'region': 'fes-meknes'},
+        )
+
+        response = self._publier(annonce_id)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        notif = Notification.objects.filter(
+            destinataire=self.acheteur, type_notif=Notification.TypeNotif.ALERTE_RECHERCHE,
+        )
+        self.assertEqual(notif.count(), 1)
+        self.assertEqual(str(notif.first().annonce_id), annonce_id)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.acheteur.email, mail.outbox[0].to)
+        self.assertIn(recherche.nom, mail.outbox[0].subject + ''.join(mail.outbox[0].body))
+
+    def test_publication_ne_notifie_pas_une_recherche_qui_ne_correspond_pas(self):
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(
+            utilisateur=self.acheteur, criteres={'region': 'oriental'},  # notre annonce est fes-meknes
+        )
+
+        self._publier(annonce_id)
+
+        self.assertFalse(Notification.objects.filter(destinataire=self.acheteur).exists())
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_recherche_inactive_ne_notifie_pas(self):
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(
+            utilisateur=self.acheteur, criteres={'region': 'fes-meknes'}, actif=False,
+        )
+
+        self._publier(annonce_id)
+
+        self.assertFalse(Notification.objects.filter(destinataire=self.acheteur).exists())
+
+    def test_le_vendeur_ne_recoit_jamais_dalerte_pour_sa_propre_annonce(self):
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(
+            utilisateur=self.vendeur, criteres={'region': 'fes-meknes'},
+        )
+
+        self._publier(annonce_id)
+
+        self.assertFalse(Notification.objects.filter(destinataire=self.vendeur, type_notif=Notification.TypeNotif.ALERTE_RECHERCHE).exists())
+
+    def test_republication_ne_notifie_pas_une_seconde_fois(self):
+        # archivee -> en_ligne (réactivation) sur une annonce DÉJÀ passée
+        # une fois par en_ligne ne doit pas redéclencher pour autant si elle
+        # y est déjà — ce test couvre spécifiquement l'inverse : deux PATCH
+        # 'en_ligne' de suite (le second no-op, transition_autorisee rejette
+        # en_ligne -> en_ligne) ne doublent pas la notification.
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(utilisateur=self.acheteur, criteres={'region': 'fes-meknes'})
+
+        self._publier(annonce_id)
+        self._publier(annonce_id)  # rejeté par transition_autorisee, statut déjà en_ligne
+
+        self.assertEqual(Notification.objects.filter(destinataire=self.acheteur).count(), 1)
+
+    def test_action_admin_publier_selection_declenche_aussi_lalerte(self):
+        # Même signal, quel que soit le chemin qui écrit statut=en_ligne
+        # (cf. docstring signals.py) — vérifié ici via l'action admin
+        # plutôt que par l'API, pour couvrir un DEUXIÈME chemin distinct.
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(utilisateur=self.acheteur, criteres={'region': 'fes-meknes'})
+
+        factory = RequestFactory()
+        request = factory.get('/admin/annonces/annonce/')
+        request.user = self.vendeur
+        request.session = {}
+        request._messages = FallbackStorage(request)
+        modeladmin = admin.site._registry[Annonce]
+        with self.captureOnCommitCallbacks(execute=True):  # cf. commentaire de _publier() ci-dessus
+            publier_selection(modeladmin, request, Annonce.objects.filter(id=annonce_id))
+
+        self.assertTrue(Notification.objects.filter(destinataire=self.acheteur, type_notif=Notification.TypeNotif.ALERTE_RECHERCHE).exists())
+
+    def test_notifier_recherches_correspondantes_ignore_une_annonce_pas_en_ligne(self):
+        # Appel direct (pas via le signal) sur une annonce encore en
+        # brouillon — filet de sécurité de la fonction elle-même (cf.
+        # commentaire alertes.py), jamais supposé n'être vérifié que côté
+        # signal.
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(utilisateur=self.acheteur, criteres={'region': 'fes-meknes'})
+
+        notifier_recherches_correspondantes(annonce_id)
+
+        self.assertFalse(Notification.objects.filter(destinataire=self.acheteur).exists())
+
+
+class RechercheSauvegardeeAPITests(AnnoncesTestBase):
+    URL = f'{ANNONCES_URL}recherches-sauvegardees/'
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.authentifier(email='investisseur@akal.ma')
+
+    def test_creer_une_recherche(self):
+        response = self.client.post(
+            self.URL,
+            {'nom': 'Souss-Massa >2ha', 'criteres': {'region': 'souss-massa', 'surface_min': '2'}},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        recherche = RechercheSauvegardee.objects.get(id=response.data['id'])
+        self.assertEqual(recherche.utilisateur, self.user)
+        self.assertEqual(recherche.criteres, {'region': 'souss-massa', 'surface_min': '2'})
+
+    def test_criteres_doit_etre_un_objet(self):
+        response = self.client.post(
+            self.URL, {'nom': 'Invalide', 'criteres': ['pas', 'un', 'objet']},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_liste_scopee_a_lutilisateur_connecte(self):
+        RechercheSauvegardee.objects.create(utilisateur=self.user, nom='La mienne', criteres={})
+        autre = User.objects.create_user(email='autre@akal.ma', password='un-mot-de-passe-solide-2026', nom='A', prenom='B')
+        RechercheSauvegardee.objects.create(utilisateur=autre, nom='Pas la mienne', criteres={})
+
+        response = self.client.get(self.URL)
+
+        noms = [r['nom'] for r in response.data]
+        self.assertIn('La mienne', noms)
+        self.assertNotIn('Pas la mienne', noms)
+
+    def test_ne_peut_pas_supprimer_la_recherche_dun_autre(self):
+        autre = User.objects.create_user(email='autre2@akal.ma', password='un-mot-de-passe-solide-2026', nom='A', prenom='B')
+        recherche = RechercheSauvegardee.objects.create(utilisateur=autre, criteres={})
+
+        response = self.client.delete(f'{self.URL}{recherche.id}/', **self.csrf_headers())
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(RechercheSauvegardee.objects.filter(id=recherche.id).exists())
+
+    def test_peut_mettre_en_pause_sans_supprimer(self):
+        recherche = RechercheSauvegardee.objects.create(utilisateur=self.user, criteres={})
+
+        response = self.client.patch(
+            f'{self.URL}{recherche.id}/', {'actif': False}, format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        recherche.refresh_from_db()
+        self.assertFalse(recherche.actif)
+
+    def test_anonyme_ne_peut_pas_creer_de_recherche(self):
+        self.client.logout()
+
+        response = self.client.post(self.URL, {'nom': 'x', 'criteres': {}}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

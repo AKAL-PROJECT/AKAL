@@ -109,13 +109,16 @@ class Notification(models.Model):
     """
     Notification adressée à un utilisateur (nouveau message, favori reçu,
     nouveau contact...). Générée par les signaux de messaging/signals.py,
-    jamais créée directement depuis une vue.
+    jamais créée directement depuis une vue — sauf ALERTE_RECHERCHE
+    (2026-08-19), générée par annonces/alertes.py (app distincte, cf. son
+    docstring pour pourquoi ce n'est pas ici malgré la remarque ci-dessus).
     """
 
     class TypeNotif(models.TextChoices):
         NOUVEAU_MESSAGE = 'nouveau_message', 'Nouveau message'
         NOUVEAU_FAVORI = 'nouveau_favori', 'Nouveau favori'
         CONTACT_RECU = 'contact_recu', 'Contact reçu'
+        ALERTE_RECHERCHE = 'alerte_recherche', 'Alerte recherche sauvegardée'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     destinataire = models.ForeignKey(

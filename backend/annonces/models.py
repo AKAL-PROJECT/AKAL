@@ -329,3 +329,46 @@ class Photo(models.Model):
 
     def __str__(self):
         return f"Photo {self.ordre} — {self.annonce}"
+
+
+# ──────────────────────────────────────────────
+# RECHERCHE SAUVEGARDÉE — Alertes (2026-08-19)
+# ──────────────────────────────────────────────
+
+class RechercheSauvegardee(models.Model):
+    """
+    Recherche enregistrée par un utilisateur (ex. « Terrain titré > 2 ha
+    dans le Souss-Massa < 800 000 MAD ») — dès qu'une annonce EN LIGNE
+    correspond, son propriétaire reçoit une alerte (in-app + email, cf.
+    alertes.py — jamais SMS/WhatsApp, qui nécessiterait un fournisseur
+    payant, hors périmètre pour l'instant, décision produit du 19/08).
+
+    `criteres` stocke exactement le même dict de paramètres que le frontend
+    envoie déjà à GET /api/annonces/ (region, province, commune,
+    statut_foncier, acces_eau, prix_min, prix_max, surface_min,
+    surface_max) — le matching (alertes.py) applique littéralement
+    AnnonceAPIFilter dessus, jamais une réimplémentation séparée des
+    règles de filtrage : les deux restent garantis identiques par
+    construction plutôt que par discipline à maintenir deux logiques en
+    parallèle.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    utilisateur = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='recherches_sauvegardees'
+    )
+    # Libellé facultatif choisi par l'utilisateur (ex. "Souss-Massa >2ha") —
+    # à défaut, l'alerte utilise un texte générique (cf. alertes.py).
+    nom = models.CharField(max_length=120, blank=True, default='')
+    criteres = models.JSONField(default=dict, blank=True)
+    actif = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'recherche_sauvegardee'
+        verbose_name = 'Recherche sauvegardée'
+        verbose_name_plural = 'Recherches sauvegardées'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.nom or f"Recherche {str(self.id)[:8]} ({self.utilisateur})"

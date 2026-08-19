@@ -26,6 +26,13 @@ export default async function ComptePage() {
           </Link>
         )}
 
+        {/* Alertes (2026-08-19) — jamais restreint à un rôle, contrairement
+            à "Voir mes annonces" ci-dessus : un vendeur peut tout aussi bien
+            vouloir surveiller le marché qu'un acheteur. */}
+        <Link href="/compte/recherches" className="btn-secondary" style={{ display: "inline-block", textDecoration: "none", textAlign: "center" }}>
+          Mes recherches sauvegardées →
+        </Link>
+
         <form action={logoutAction}>
           <button type="submit" className="btn-ghost">Se déconnecter</button>
         </form>
