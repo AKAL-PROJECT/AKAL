@@ -283,6 +283,78 @@
     z-index: 30;
   }
 
+  /* --- Espace personnel (Tableau de bord/Mes annonces/Mes recherches/Mon
+     profil, 20/08) — cf. app/(espace-perso)/layout.tsx. Même pattern sticky
+     que .filtres-sidebar ci-dessus (top: 64px, sous la navbar), mais en
+     rail de navigation (icône + libellé), pas en formulaire de filtres. */
+  .espace-perso-layout {
+    display: flex;
+    align-items: flex-start;
+  }
+  .espace-perso-nav {
+    position: sticky;
+    top: 64px;
+    flex-shrink: 0;
+    width: 232px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 24px 12px;
+  }
+  .espace-perso-contenu {
+    flex: 1;
+    min-width: 0;
+  }
+  .espace-perso-onglet {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-secondaire);
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .espace-perso-onglet:hover {
+    background-color: var(--color-fond-input);
+    color: var(--color-texte);
+  }
+  .espace-perso-onglet-actif,
+  .espace-perso-onglet-actif:hover {
+    background-color: var(--color-rosee);
+    color: var(--color-foret);
+    font-weight: 600;
+  }
+
+  /* Mobile (même seuil que .hidden-mobile/.filtres-sidebar) : rail vertical
+     -> bandeau d'onglets horizontal défilant, collé sous la navbar comme une
+     deuxième barre sticky (au lieu d'une colonne à gauche qui grignoterait
+     toute la largeur déjà réduite du mobile). */
+  @media (max-width: 768px) {
+    .espace-perso-layout {
+      flex-direction: column;
+    }
+    .espace-perso-nav {
+      position: sticky;
+      top: 64px;
+      z-index: 20;
+      width: 100%;
+      flex-direction: row;
+      overflow-x: auto;
+      gap: 6px;
+      padding: 10px 16px;
+      background-color: white;
+      border-bottom: 1px solid var(--color-bordure);
+      -webkit-overflow-scrolling: touch;
+    }
+    .espace-perso-onglet {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+  }
+
   /* --- Dashboard propriétaire : ligne d'annonce responsive (audit mobile,
      correctif P0 /compte/annonces) ---
      Desktop/tablette (>=768px, non touché ici) : ListeAnnonces.tsx regroupe
