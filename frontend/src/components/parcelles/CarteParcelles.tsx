@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { Parcelle } from "@/types/parcelle";
+import type { BboxCarte } from "@/data/parcelles";
 import type { RegionActive, RegionRef } from "./CarteRegions";
 
 // Leaflet a besoin de `window`, qui n'existe pas au rendu serveur (SSR).
@@ -31,12 +32,14 @@ export default function CarteParcelles({
   regions,
   regionActive,
   onSelectionnerRegion,
+  onRechercherZone,
   zoneGeometrie,
 }: {
   parcelles: Parcelle[];
   regions: RegionRef[];
   regionActive: RegionActive;
   onSelectionnerRegion?: (code: string) => void;
+  onRechercherZone?: (bbox: BboxCarte) => void;
   // Géométrie de la province/commune sélectionnée dans les filtres (cascade
   // zoom du 19/08) — cf. VolVersRegion (CarteRegions.tsx).
   zoneGeometrie?: unknown | null;
@@ -50,6 +53,7 @@ export default function CarteParcelles({
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
         overflow: "hidden",
+        position: "relative",
       }}
     >
       <CarteLeaflet
@@ -57,6 +61,7 @@ export default function CarteParcelles({
         regions={regions}
         regionActive={regionActive}
         onSelectionnerRegion={onSelectionnerRegion}
+        onRechercherZone={onRechercherZone}
         zoneGeometrie={zoneGeometrie}
       />
     </div>

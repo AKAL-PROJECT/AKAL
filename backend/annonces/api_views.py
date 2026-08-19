@@ -86,6 +86,7 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
         ?prix_max=         → Prix maximum (<=)
         ?surface_min=      → Surface minimum en ha (>=)
         ?surface_max=      → Surface maximum en ha (<=)
+        ?lat_min=/?lat_max=/?lng_min=/?lng_max= → Bbox carte ("Rechercher cette zone")
         ?ordering=         → Tri : date_publication, prix_mad, surface_ha (préfixe - pour desc)
     """
 
@@ -151,6 +152,18 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
         lookup_expr='lte',
         label='Surface maximum (ha)',
     )
+
+    # ── Bbox carte ("Rechercher cette zone", 2026-08-17) — filtre sur les
+    # latitude/longitude déjà exposées en FloatField (pas de lookup GIS sur
+    # `geom` : mêmes gte/lte simples que prix_min/max ci-dessus, cohérent
+    # avec le reste de ce FilterSet plutôt qu'une syntaxe à part pour cette
+    # seule feature). Les 4 bornes sont indépendantes : un appelant peut n'en
+    # passer qu'une partie, mais le frontend les envoie toujours ensemble
+    # (cf. CarteLeaflet.tsx, moveend → bounds du MapContainer).
+    lat_min = dj_filters.NumberFilter(field_name='parcelle__latitude', lookup_expr='gte', label='Latitude minimum')
+    lat_max = dj_filters.NumberFilter(field_name='parcelle__latitude', lookup_expr='lte', label='Latitude maximum')
+    lng_min = dj_filters.NumberFilter(field_name='parcelle__longitude', lookup_expr='gte', label='Longitude minimum')
+    lng_max = dj_filters.NumberFilter(field_name='parcelle__longitude', lookup_expr='lte', label='Longitude maximum')
 
     # ── T4 : Ordering conforme au contrat §4.2 ──
     ordering = dj_filters.OrderingFilter(
@@ -227,7 +240,8 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
 
     Filtres query params :
         q, region, province, commune, statut_foncier, acces_eau,
-        prix_min, prix_max, surface_min, surface_max
+        prix_min, prix_max, surface_min, surface_max,
+        lat_min, lat_max, lng_min, lng_max
 
     Ordering (tri) — paramètre ?ordering= :
         date_publication, prix_mad, surface_ha
