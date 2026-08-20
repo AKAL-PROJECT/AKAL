@@ -325,7 +325,11 @@ export function MarqueurParcelle({ parcelle: p }: { parcelle: Parcelle }) {
           <div style={{ fontSize: "13px", fontWeight: 600, color: "#2D6A4F" }}>
             {formatMAD.format(p.prix)} MAD
           </div>
-          <Link href={`/parcelles/${p.slug}`} style={{ fontSize: "12px", color: "#C4622D", textDecoration: "underline" }}>
+          {/* #AD4E1B (équivalent --color-terre-texte) plutôt que #C4622D —
+              4,09:1 sur blanc, sous les 4,5:1 AA à cette taille de texte
+              (audit final du 20/08) ; hex littéral gardé comme le reste de
+              ce fichier (popup Leaflet), pas de var(--...) introduite ici. */}
+          <Link href={`/parcelles/${p.slug}`} style={{ fontSize: "12px", color: "#AD4E1B", textDecoration: "underline" }}>
             Voir l&apos;annonce →
           </Link>
         </div>

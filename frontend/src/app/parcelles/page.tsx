@@ -6,7 +6,6 @@ import {
   FILTRES_INITIAUX,
   PAGE_SIZE_DEFAUT,
   TAILLES_PAGE_DISPONIBLES,
-  filtresActifs,
   filtresVersParams,
   getParcelles,
   getParcellesPage,

@@ -8,7 +8,7 @@ import BadgeStatut from "./BadgeStatut";
 import ScoreBar from "./ScoreBar";
 import { MapPin, Heart, Droplets } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
-import { formatMAD } from "@/lib/format";
+import { formatMAD, formatPrixM2 } from "@/lib/format";
 
 const formatDate = new Intl.DateTimeFormat("fr-MA", { day: "numeric", month: "long", year: "numeric" });
 
@@ -178,7 +178,7 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
 
         {/* Tags */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
-          {[`${a.parcelle.surface} ha`, `${a.prixM2} MAD/m²`].map((t) => (
+          {[`${a.parcelle.surface} ha`, formatPrixM2(a.prixM2)].map((t) => (
             <span
               key={t}
               style={{

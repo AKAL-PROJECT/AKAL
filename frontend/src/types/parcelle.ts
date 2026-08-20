@@ -108,7 +108,7 @@ export type Parcelle = {
   titre: string;
   description: string; // "" en liste (non exposé, allégé), renseigné en détail
   prix: number; // prix_mad
-  prixM2: number; // MAD/m² — calculé (prix / surface en m²)
+  prixM2: number; // MAD/m² — calculé (prix / surface en m²), valeur BRUTE non arrondie ; utiliser formatPrixM2() (lib/format.ts) pour l'affichage
   statut: StatutAnnonce;
   // Absent en liste (allégée) — renseigné en détail uniquement.
   datePublication: string | null;

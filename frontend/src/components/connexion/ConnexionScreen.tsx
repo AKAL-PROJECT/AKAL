@@ -48,7 +48,7 @@ export default function ConnexionScreen({
   const [vue, setVue] = useState<Vue>("accueil");
   const [methode, setMethode] = useState<Methode>("telephone");
   const [modeEmail, setModeEmail] = useState<ModeEmail>("connexion");
-  const [googlePending, startGoogleTransition] = useTransition();
+  const [, startGoogleTransition] = useTransition();
   const [googleError, setGoogleError] = useState<string | null>(null);
   const googleFormRef = useRef<HTMLFormElement>(null);
   const googleTokenRef = useRef<HTMLInputElement>(null);
@@ -66,7 +66,7 @@ export default function ConnexionScreen({
   const [otpPending, setOtpPending] = useState(false);
 
   // Server Actions
-  const [googleState, googleFormAction, googleActionPending] = useActionState<AuthFormState, FormData>(googleLoginAction, null);
+  const [googleState, googleFormAction] = useActionState<AuthFormState, FormData>(googleLoginAction, null);
   const [phoneState, phoneAction, phoneActionPending] = useActionState<AuthFormState, FormData>(phoneLoginAction, null);
   const [loginState, loginFormAction, loginActionPending] = useActionState<AuthFormState, FormData>(loginAction, null);
   const [signupState, signupFormAction, signupActionPending] = useActionState<AuthFormState, FormData>(signupAction, null);
@@ -217,7 +217,9 @@ export default function ConnexionScreen({
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/uploads/akal-wordmark.svg" alt="AKAL" style={{ height: 23, width: "auto", display: "block" }} />
-              <span className="tifinagh" style={{ fontSize: 13, letterSpacing: "5px", color: "#8A8378" }}>ⴰⴽⴰⵍ</span>
+              {/* var(--color-tertiaire) plutôt que #8A8378 littéral — 3,75:1
+                  sur blanc, sous les 4,5:1 AA (audit final du 20/08). */}
+              <span className="tifinagh" style={{ fontSize: 13, letterSpacing: "5px", color: "var(--color-tertiaire)" }}>ⴰⴽⴰⵍ</span>
             </div>
           </Link>
 
@@ -255,7 +257,9 @@ export default function ConnexionScreen({
                     borderRadius: "7px",
                     background: methode === m ? "#fff" : "transparent",
                     boxShadow: methode === m ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                    color: methode === m ? "#1B3A2D" : "#8A8378",
+                    // var(--color-tertiaire) plutôt que #8A8378 littéral —
+                    // 3,75:1 sur blanc, sous les 4,5:1 AA (audit final du 20/08).
+                    color: methode === m ? "#1B3A2D" : "var(--color-tertiaire)",
                     fontSize: 14,
                     fontWeight: 500,
                     cursor: "pointer",
@@ -268,7 +272,9 @@ export default function ConnexionScreen({
               ))}
             </div>
 
-            <p style={{ fontSize: 15, color: "#8A8378", margin: "0 0 24px", lineHeight: 1.4 }}>
+            {/* var(--color-tertiaire) plutôt que #8A8378 littéral — 3,75:1
+                sur blanc, sous les 4,5:1 AA (audit final du 20/08). */}
+            <p style={{ fontSize: 15, color: "var(--color-tertiaire)", margin: "0 0 24px", lineHeight: 1.4 }}>
               {methode === "telephone"
                 ? "Utilisez votre numéro de téléphone pour vous connecter rapidement"
                 : modeEmail === "connexion"
@@ -301,6 +307,7 @@ export default function ConnexionScreen({
                     <select
                       value={countryCode}
                       onChange={e => setCountryCode(e.target.value)}
+                      aria-label="Indicatif téléphonique du pays"
                       style={{
                         position: "absolute",
                         top: 0, left: 0, width: "100%", height: "100%",
@@ -543,7 +550,13 @@ export default function ConnexionScreen({
               <>
                 <div style={{ display: "flex", alignItems: "center", margin: "32px 0" }}>
                   <div style={{ flex: 1, height: 1, background: "#eee" }} />
-                  <span style={{ margin: "0 16px", color: "#888", fontSize: 14 }}>Ou avec</span>
+                  {/* var(--color-tertiaire) plutôt que #888 littéral — 3,54:1
+                      sur blanc, sous les 4,5:1 AA à cette taille de texte
+                      (même constat que la revue a11y Phase 3 qui a déjà fait
+                      passer ce même #888888 à --color-tertiaire ailleurs ;
+                      cette occurrence-ci était restée en dehors des tokens —
+                      audit final du 20/08). */}
+                  <span style={{ margin: "0 16px", color: "var(--color-tertiaire)", fontSize: 14 }}>Ou avec</span>
                   <div style={{ flex: 1, height: 1, background: "#eee" }} />
                 </div>
 

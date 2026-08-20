@@ -10,7 +10,6 @@
  */
 
 import {
-  PhoneAuthProvider,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   type ConfirmationResult,

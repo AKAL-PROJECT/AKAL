@@ -124,8 +124,16 @@ function calculerBadge(createdAt: string): string | null {
 }
 
 function calculerPrixM2(prix: number, surfaceHa: number): number {
+  // Valeur BRUTE, non arrondie (audit final du 20/08, P4) — l'arrondi
+  // vivait ici avant et produisait un 0 trompeur pour tout prix réel
+  // inférieur à 0,5 MAD/m² une fois affiché. L'arrondi (et le "< 1 MAD/m²"
+  // en dessous) est désormais la responsabilité de l'affichage
+  // (formatPrixM2, lib/format.ts), jamais de ce calcul — ComparateurScreen
+  // compare aussi cette valeur brute pour désigner la "meilleure" offre
+  // (meilleure: "min"), qu'un arrondi prématuré aurait pu fausser entre deux
+  // parcelles très proches sous 1 MAD/m².
   const surfaceM2 = surfaceHa * 10_000;
-  return surfaceM2 > 0 ? Math.round(prix / surfaceM2) : 0;
+  return surfaceM2 > 0 ? prix / surfaceM2 : 0;
 }
 
 function mapScoreCourant(dto: ScoreCourantListDTO | ScoreCourantDetailDTO): ScoreCourant | null {

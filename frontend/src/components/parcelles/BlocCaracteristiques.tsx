@@ -6,7 +6,7 @@ import {
   Droplets,
   TrendingUp,
 } from "@/components/icons/Icons";
-import { formatMAD, hectaresVersM2 } from "@/lib/format";
+import { formatMAD, formatPrixM2, hectaresVersM2 } from "@/lib/format";
 
 type Groupe = {
   titre: string;
@@ -83,7 +83,7 @@ function buildGroupes(a: Parcelle): Groupe[] {
           type: "texte",
           icon: <TrendingUp size={13} />,
           label: "Prix au m²",
-          valeur: `${a.prixM2} MAD/m²`,
+          valeur: formatPrixM2(a.prixM2),
         },
         {
           type: "texte",

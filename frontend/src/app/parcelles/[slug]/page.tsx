@@ -26,6 +26,10 @@ export async function generateStaticParams() {
   return results.map((p) => ({ slug: p.slug }));
 }
 
+// Même convention que app/robots.ts et app/sitemap.ts — une seule source
+// pour l'origine publique du site, jamais reconstruite différemment ici.
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://akal.ma").replace(/\/+$/, "");
+
 export async function generateMetadata({
   params,
 }: {
@@ -33,11 +37,46 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const p = await getParcelleBySlug(slug);
+  // getParcelleBySlug ne résout jamais un brouillon (l'API publique
+  // GET /api/annonces/<slug>/ est déjà scopée aux annonces en_ligne côté
+  // backend, cf. AnnonceDetailAPIView.get_queryset()) — un slug inconnu ou
+  // un brouillon produisent donc le même repli générique ici, jamais de
+  // metadata construite sur une annonce non publiée.
   if (!p) return { title: "AKAL" };
+
   const lieu = p.parcelle.adresseApproximative ?? p.parcelle.regionNom;
+  const titre = `${p.titre} — AKAL`;
+  // Description volontairement identique à celle déjà utilisée pour <title>
+  // ci-dessous (surface, lieu, prix) — jamais la description longue de
+  // l'annonce (texte libre du vendeur, hors périmètre du extrait de partage)
+  // ni aucune donnée liée au propriétaire (téléphone, identité).
+  const description = `${p.parcelle.surface} ha · ${lieu} · ${formatMAD.format(p.prix)} MAD`;
+  const url = `${SITE_URL}/parcelles/${p.slug}`;
+  // photoPrincipale est déjà une URL absolue (PhotoSerializer.get_url,
+  // build_absolute_uri côté backend) — jamais reconstruite ici. Peut être
+  // `null` (annonce sans photo, cf. contrat §4.4) : dans ce cas, aucun champ
+  // `images` n'est renseigné plutôt qu'une URL cassée dans le partage.
+  const images = p.photoPrincipale ? [{ url: p.photoPrincipale }] : undefined;
+
   return {
-    title: `${p.titre} — AKAL`,
-    description: `${p.parcelle.surface} ha · ${lieu} · ${formatMAD.format(p.prix)} MAD`,
+    title: titre,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: titre,
+      description,
+      url,
+      siteName: "AKAL",
+      locale: "fr_MA",
+      type: "website",
+      images,
+    },
+    twitter: {
+      card: images ? "summary_large_image" : "summary",
+      title: titre,
+      description,
+      images: images?.map((i) => i.url),
+    },
   };
 }
 

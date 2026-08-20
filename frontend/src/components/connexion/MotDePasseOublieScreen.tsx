@@ -66,7 +66,11 @@ export default function MotDePasseOublieScreen() {
             </form>
 
             <div style={{ marginTop: 20, fontSize: 14, textAlign: "center" }}>
-              <Link href="/connexion" style={{ color: "var(--color-terre)" }}>
+              {/* --color-terre-texte (pas --color-terre, 4,09:1 sur blanc —
+                  sous les 4,5:1 AA à cette taille de texte, audit final du
+                  20/08) : même variante "sûre pour du texte" déjà utilisée
+                  partout ailleurs (FiltresSidebar, FicheParcelle...). */}
+              <Link href="/connexion" style={{ color: "var(--color-terre-texte)" }}>
                 Retour à la connexion
               </Link>
             </div>

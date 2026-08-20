@@ -19,6 +19,11 @@ const eslintConfig = defineConfig([
     // (cf. audit d'intégration du 2026-08-15).
     "fetch_countries.js",
     "generate_countries_node.js",
+    // Bibliothèque vendored, servie telle quelle au navigateur, jamais
+    // transpilée ni écrite par ce projet (audit final du 20/08, P7) —
+    // générait à elle seule ~200 des 229 avertissements de `npm run lint`,
+    // noyant les vrais signaux du code source applicatif.
+    "public/vendor/**",
   ]),
 ]);
 

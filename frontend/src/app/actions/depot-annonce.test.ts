@@ -5,8 +5,13 @@
 // Fonctions serveur pures, pas de DOM (environment "node" par défaut).
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { enregistrerInfosGeneralesAction, enregistrerLocalisationAction } from "./depot-annonce";
-import { creerBrouillon, patchBrouillon } from "@/lib/annonces-api";
+import {
+  ajouterPhotosAction,
+  enregistrerInfosGeneralesAction,
+  enregistrerLocalisationAction,
+  supprimerPhotoAction,
+} from "./depot-annonce";
+import { creerBrouillon, getBrouillon, patchBrouillon, supprimerPhoto, uploaderPhotos } from "@/lib/annonces-api";
 import { ApiError } from "@/lib/api";
 import type { AnnonceEcriture } from "@/types/depot-annonce";
 
@@ -20,6 +25,9 @@ vi.mock("@/lib/annonces-api", () => ({
 
 const creerBrouillonMock = vi.mocked(creerBrouillon);
 const patchBrouillonMock = vi.mocked(patchBrouillon);
+const uploaderPhotosMock = vi.mocked(uploaderPhotos);
+const supprimerPhotoMock = vi.mocked(supprimerPhoto);
+const getBrouillonMock = vi.mocked(getBrouillon);
 
 afterEach(() => {
   vi.resetAllMocks();
@@ -220,5 +228,98 @@ describe("enregistrerLocalisationAction — données envoyées à l'API", () => 
       "annonce-1",
       expect.objectContaining({ parcelle: expect.objectContaining({ contour: [] }) }),
     );
+  });
+});
+
+// ajouterPhotosAction / supprimerPhotoAction — jamais testées jusqu'ici
+// malgré uploaderPhotos/supprimerPhoto déjà mockés plus haut (audit final du
+// 20/08, P13 : "upload multi-photos avec réseau lent" faisait partie des
+// parcours dégradés listés comme non rejoués). Même garde-fou etatErreur()
+// que les deux describe ci-dessus (ApiError => message+fieldErrors précis,
+// autre exception => message générique) : ce n'est pas une logique nouvelle
+// à tester isolément, mais cette action précise n'avait jamais elle-même
+// été exercée.
+function formDataAvecPhotos(fichiers: File[]): FormData {
+  const fd = new FormData();
+  for (const f of fichiers) fd.append("photos", f);
+  return fd;
+}
+
+function fichierImage(nom = "photo.jpg"): File {
+  return new File([new Uint8Array([1, 2, 3])], nom, { type: "image/jpeg" });
+}
+
+describe("ajouterPhotosAction", () => {
+  it("succès => { annonce, error: '', fieldErrors: null }, ne perd aucun fichier valide", async () => {
+    uploaderPhotosMock.mockResolvedValue(ANNONCE_RETOURNEE);
+
+    const resultat = await ajouterPhotosAction("annonce-1", formDataAvecPhotos([fichierImage(), fichierImage("2.jpg")]));
+
+    expect(uploaderPhotosMock).toHaveBeenCalledWith(
+      "annonce-1",
+      expect.arrayContaining([expect.any(File), expect.any(File)]),
+    );
+    expect(uploaderPhotosMock.mock.calls[0][1]).toHaveLength(2);
+    expect(resultat).toEqual({ annonce: ANNONCE_RETOURNEE, error: "", fieldErrors: null });
+  });
+
+  it("filtre les entrées vides du FormData (jamais un File fantôme envoyé à l'API)", async () => {
+    uploaderPhotosMock.mockResolvedValue(ANNONCE_RETOURNEE);
+    const fd = formDataAvecPhotos([fichierImage()]);
+    fd.append("photos", new File([], "", { type: "" })); // input file vide (aucune sélection)
+
+    await ajouterPhotosAction("annonce-1", fd);
+
+    expect(uploaderPhotosMock.mock.calls[0][1]).toHaveLength(1);
+  });
+
+  it("dépôt refusé par le serveur (ApiError, ex. quota/format) => error + fieldErrors, jamais d'exception", async () => {
+    uploaderPhotosMock.mockRejectedValue(
+      new ApiError(400, "« photo.jpg » n'est pas une image valide.", { photos: ["« photo.jpg » n'est pas une image valide."] }),
+    );
+
+    const resultat = await ajouterPhotosAction("annonce-1", formDataAvecPhotos([fichierImage()]));
+
+    expect(resultat).toEqual({
+      annonce: null,
+      error: "« photo.jpg » n'est pas une image valide.",
+      fieldErrors: { photos: ["« photo.jpg » n'est pas une image valide."] },
+    });
+  });
+
+  it("réseau lent/coupé pendant l'upload (pas une ApiError) => message générique, jamais l'exception brute", async () => {
+    // Reproduit le scénario explicitement demandé par l'audit : la requête
+    // d'upload ne reçoit jamais de réponse HTTP (timeout/coupure), donc
+    // fetch() lui-même rejette plutôt que de résoudre avec un statut d'erreur.
+    uploaderPhotosMock.mockRejectedValue(new TypeError("fetch failed"));
+
+    const resultat = await ajouterPhotosAction("annonce-1", formDataAvecPhotos([fichierImage()]));
+
+    expect(resultat).toEqual({ annonce: null, error: "Une erreur est survenue. Réessayez.", fieldErrors: null });
+  });
+});
+
+describe("supprimerPhotoAction", () => {
+  it("succès => supprime puis relit le brouillon à jour (jamais un ordre recalculé côté client)", async () => {
+    supprimerPhotoMock.mockResolvedValue(undefined);
+    getBrouillonMock.mockResolvedValue(ANNONCE_RETOURNEE);
+
+    const resultat = await supprimerPhotoAction("annonce-1", "photo-1");
+
+    expect(supprimerPhotoMock).toHaveBeenCalledWith("annonce-1", "photo-1");
+    expect(getBrouillonMock).toHaveBeenCalledWith("annonce-1");
+    expect(resultat).toEqual({ annonce: ANNONCE_RETOURNEE, error: "", fieldErrors: null });
+  });
+
+  it("échec réseau pendant la suppression => message générique, jamais l'exception brute", async () => {
+    supprimerPhotoMock.mockRejectedValue(new TypeError("fetch failed"));
+
+    const resultat = await supprimerPhotoAction("annonce-1", "photo-1");
+
+    expect(resultat).toEqual({ annonce: null, error: "Une erreur est survenue. Réessayez.", fieldErrors: null });
+    // Un échec de suppression ne doit jamais quand même relire le brouillon
+    // (sinon un état incohérent : la photo a échoué à se supprimer, mais un
+    // re-fetch pourrait masquer l'échec si appelé par erreur).
+    expect(getBrouillonMock).not.toHaveBeenCalled();
   });
 });

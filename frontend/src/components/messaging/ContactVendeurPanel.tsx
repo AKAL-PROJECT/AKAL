@@ -86,7 +86,10 @@ export function ContactVendeurPanel({
             backgroundColor: "var(--color-fond)",
           }}
         >
-          <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0, color: "var(--color-terre)" }}>
+          {/* --color-terre-texte (pas --color-terre, 4,09:1 sur blanc — sous
+              les 4,5:1 AA, audit final du 20/08) : même variante "sûre pour
+              du texte" déjà utilisée partout ailleurs (FiltresSidebar...). */}
+          <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0, color: "var(--color-terre-texte)" }}>
             Contacter le vendeur
           </h2>
           <button
@@ -141,10 +144,18 @@ export function ContactVendeurPanel({
           {/* Formulaire ou Succès */}
           {success ? (
             <div className="akal-fade-in" style={{ textAlign: "center", padding: "32px 0" }}>
-              <div style={{ color: "var(--color-primary)", marginBottom: 16 }}>
+              {/* --color-primary n'existe pas dans globals.css (aucune
+                  définition) — var() sans fallback sur une propriété héritée
+                  comme `color` calcule alors la valeur héritée du parent
+                  plutôt que d'échouer bruyamment, donc jamais visiblement
+                  cassé, mais jamais non plus la couleur "succès" voulue.
+                  --color-succes (alias de --color-foret) est le token déjà
+                  prévu pour exactement ce cas — audit final du 20/08. */}
+              <div style={{ color: "var(--color-succes)", marginBottom: 16 }}>
                 <Check size={48} style={{ margin: "0 auto" }} />
               </div>
-              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: "var(--color-terre)" }}>
+              {/* --color-terre-texte, même raison que le h2 plus haut. */}
+              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: "var(--color-terre-texte)" }}>
                 Message envoyé !
               </h3>
               <p style={{ fontSize: 14, color: "var(--color-tertiaire)", marginBottom: 32 }}>

@@ -11,7 +11,7 @@ import { MapPin, X } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
 import { useComparateur } from "@/hooks/useComparateur";
 import { AGRISCORE_ACTIF } from "@/config/features";
-import { formatMAD } from "@/lib/format";
+import { formatMAD, formatPrixM2 } from "@/lib/format";
 
 // Leaflet a besoin de `window`, absent au rendu serveur — même contrainte
 // que CarteParcelles.tsx.
@@ -51,7 +51,7 @@ type Ligne = {
 
 const LIGNES: Ligne[] = [
   { label: "Prix", valeur: (p) => p.prix, meilleure: "min", render: (p) => `${formatMAD.format(p.prix)} MAD` },
-  { label: "Prix au m²", valeur: (p) => p.prixM2, meilleure: "min", render: (p) => `${formatMAD.format(p.prixM2)} MAD/m²` },
+  { label: "Prix au m²", valeur: (p) => p.prixM2, meilleure: "min", render: (p) => formatPrixM2(p.prixM2) },
   { label: "Surface", valeur: (p) => p.parcelle.surface, meilleure: "max", render: (p) => `${p.parcelle.surface} ha` },
   // AgriScore hors périmètre produit actuel (cf. src/config/features.ts) —
   // ligne conservée, simplement exclue du tableau tant que le flag est faux.

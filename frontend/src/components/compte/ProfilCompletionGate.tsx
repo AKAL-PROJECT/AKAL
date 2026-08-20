@@ -2,9 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 import type { User } from "@/lib/auth-api";
-import { Phone, ChevronDown, ChevronLeft } from "@/components/icons/Icons";
+import { ChevronDown, ChevronLeft } from "@/components/icons/Icons";
 import { sendPhoneSms, verifyPhoneOtp, type ConfirmationResult } from "@/lib/firebase-client";
 import { COUNTRY_CODES } from "@/lib/country-codes";
 import { mettreAJourProfilAction } from "@/app/actions/compte";
@@ -180,7 +179,10 @@ export default function ProfilCompletionGate({
           <h1 style={{ fontSize: 20, fontWeight: 600, color: "#1B3A2D", margin: "0 0 8px" }}>
             Complétez votre profil
           </h1>
-          <p style={{ fontSize: 14, color: "#8A8378", margin: 0, lineHeight: 1.5 }}>
+          {/* var(--color-tertiaire) plutôt que #8A8378 littéral — 3,75:1
+              sur blanc, sous les 4,5:1 AA à cette taille de texte (audit
+              final du 20/08). */}
+          <p style={{ fontSize: 14, color: "var(--color-tertiaire)", margin: 0, lineHeight: 1.5 }}>
             {manquants.includes("telephone")
               ? "Votre numéro est nécessaire pour que les acheteurs puissent vous contacter."
               : "Ces informations permettent de personnaliser votre expérience."}
@@ -251,6 +253,7 @@ export default function ProfilCompletionGate({
                     <select
                       value={countryCode}
                       onChange={e => setCountryCode(e.target.value)}
+                      aria-label="Indicatif téléphonique du pays"
                       style={{
                         position: "absolute",
                         top: 0, left: 0, width: "100%", height: "100%",
