@@ -26,6 +26,7 @@ from . import transitions
 from .admin import publier_selection, rejeter_selection
 from .alertes import notifier_recherches_correspondantes
 from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
+from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
 ANNONCES_URL = '/api/annonces/'
 
@@ -2006,3 +2007,135 @@ class RechercheSauvegardeeAPITests(AnnoncesTestBase):
         response = self.client.post(self.URL, {'nom': 'x', 'criteres': {}}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+# ──────────────────────────────────────────────
+# WHATSAPP — _numero_whatsapp / _message_whatsapp / get_whatsapp_lien
+# (audit final du 20/08, P9 — jusqu'ici sans test dédié malgré leur rôle
+# dans une fonctionnalité différenciante du produit)
+# ──────────────────────────────────────────────
+
+class NumeroWhatsAppTests(SimpleTestCase):
+    """_numero_whatsapp() — fonction pure, aucun accès base nécessaire."""
+
+    def test_numero_marocain_national_valide(self):
+        self.assertEqual(_numero_whatsapp('0612345678'), '212612345678')
+
+    def test_numero_avec_prefixe_international_valide(self):
+        self.assertEqual(_numero_whatsapp('+212612345678'), '212612345678')
+
+    def test_numero_avec_espaces_est_normalise(self):
+        # Espaces courants d'une saisie humaine (profil /compte) — retirés
+        # avant normalisation, quel que soit le format d'origine.
+        self.assertEqual(_numero_whatsapp('+212 6 12 34 56 78'), '212612345678')
+        self.assertEqual(_numero_whatsapp('06 12 34 56 78'), '212612345678')
+
+    def test_numero_invalide_retourne_none(self):
+        # Ne commence ni par '0' ni par '+212' — format non reconnu, jamais
+        # un lien construit sur une donnée dont la forme n'est pas sûre.
+        self.assertIsNone(_numero_whatsapp('123456789'))
+        self.assertIsNone(_numero_whatsapp('+33612345678'))
+
+    def test_numero_avec_caracteres_non_numeriques_retourne_none(self):
+        self.assertIsNone(_numero_whatsapp('06ABCD5678'))
+
+    def test_numero_absent_retourne_none(self):
+        self.assertIsNone(_numero_whatsapp(None))
+        self.assertIsNone(_numero_whatsapp(''))
+
+
+class MessageWhatsAppTests(AnnoncesTestBase):
+    """_message_whatsapp() / get_whatsapp_lien() — nécessitent une vraie
+    Annonce+Parcelle (localisation, surface, prix) en base."""
+
+    def creer_annonce(self, **overrides):
+        proprietaire = overrides.pop('proprietaire', None) or User.objects.create_user(
+            email='proprio-whatsapp@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Alaoui', prenom='Karim', telephone='+212612345678',
+        )
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, surface_ha=2.5, statut_foncier='melkia',
+            acces_eau='irriguee', topographie='plat', acces_routier='goudron',
+            latitude=33.5, longitude=-5.5,
+        )
+        defaults = {
+            'parcelle': parcelle, 'proprietaire': proprietaire, 'titre': 'Belle parcelle',
+            'description': 'Une description suffisamment longue.', 'prix_mad': 150000,
+            'statut': Annonce.StatutAnnonce.EN_LIGNE,
+        }
+        defaults.update(overrides)
+        return Annonce.objects.create(**defaults)
+
+    def test_message_contient_reference_localisation_surface_et_prix(self):
+        annonce = self.creer_annonce()
+
+        message = _message_whatsapp(annonce)
+
+        self.assertIn(f"AKAL-{str(annonce.id)[:8].upper()}", message)
+        # "Meknès Ville" (self.commune, AnnoncesTestBase.setUp) — caractère
+        # accentué transmis tel quel, jamais échappé/perdu à ce stade (c'est
+        # get_whatsapp_lien ci-dessous qui gère l'encodage URL).
+        self.assertIn("Meknès Ville", message)
+        self.assertIn("2.5 ha", message)
+        self.assertIn("150 000 MAD", message)
+
+    def test_message_omet_les_lignes_sans_donnee_disponible(self):
+        # Parcelle sans commune/commune_geom (aucune localisation connue) —
+        # la ligne "Localisation" doit être absente, jamais "Localisation : None".
+        parcelle_sans_commune = Parcelle.objects.create(surface_ha=1.0)
+        annonce = Annonce.objects.create(
+            parcelle=parcelle_sans_commune,
+            proprietaire=User.objects.create_user(
+                email='sans-loc@akal.ma', password='un-mot-de-passe-solide-2026',
+                nom='X', prenom='Y', telephone='+212612345678',
+            ),
+            titre='Parcelle sans localisation', description='Description suffisamment longue.',
+            prix_mad=100000, statut=Annonce.StatutAnnonce.EN_LIGNE,
+        )
+
+        message = _message_whatsapp(annonce)
+
+        self.assertNotIn("Localisation", message)
+        self.assertNotIn("None", message)
+
+    def test_lien_whatsapp_encode_le_message_pour_lurl(self):
+        annonce = self.creer_annonce()
+
+        data = AnnonceDetailSerializer(annonce).data
+        lien = data['whatsapp_lien']
+
+        self.assertTrue(lien.startswith('https://wa.me/212612345678?text='))
+        # Le message contient des retours à la ligne et des espaces — un lien
+        # correctement encodé (urllib.parse.quote) ne doit jamais en laisser
+        # passer un littéral dans la query string.
+        self.assertNotIn('\n', lien)
+        self.assertNotIn(' ', lien)
+        # Accent correctement encodé (%C3%A8 = "è" en UTF-8) plutôt que perdu
+        # ou laissé brut (invalide dans une URL).
+        self.assertIn('%C3%A8', lien)
+
+    def test_pas_de_numero_exploitable_retourne_lien_none(self):
+        proprietaire = User.objects.create_user(
+            email='sans-tel@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Z', prenom='W', telephone='',
+        )
+        annonce = self.creer_annonce(proprietaire=proprietaire)
+
+        data = AnnonceDetailSerializer(annonce).data
+
+        self.assertIsNone(data['whatsapp_lien'])
+
+    def test_numero_brut_du_proprietaire_najamais_fuite_dans_le_serializer_public(self):
+        # RGPD (loi 09-08) — seul un lien wa.me déjà construit est un usage
+        # sanctionné du numéro (cf. commentaire au-dessus de _numero_whatsapp,
+        # annonces/serializers.py) ; ProprietaireSerializer ne doit exposer
+        # que l'UUID et une version masquée, jamais un champ `telephone` brut.
+        annonce = self.creer_annonce()
+
+        data = AnnonceDetailSerializer(annonce).data
+
+        self.assertNotIn('telephone', data['proprietaire'])
+        self.assertIn('telephone_masque', data['proprietaire'])
+        self.assertNotEqual(data['proprietaire']['telephone_masque'], annonce.proprietaire.telephone)
+        self.assertTrue(data['proprietaire']['telephone_masque'].startswith('+212 6 '))
+        self.assertIn('**', data['proprietaire']['telephone_masque'])

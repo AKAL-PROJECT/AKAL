@@ -205,6 +205,25 @@ class Annonce(models.Model):
         # `id` en second critère : deux annonces publiées à la même seconde
         # auraient sinon un ordre relatif non déterministe entre elles.
         ordering = ['-date_publication', 'id']
+        # Index composite (audit final du 20/08, P5) — `en_ligne()` (statut=
+        # 'en_ligne') et `dataset_actif()` (source__in=[...]) sont TOUJOURS
+        # combinés dans le code applicatif (jamais l'un sans l'autre — cf.
+        # AnnonceListCreateAPIView/AnnonceDetailAPIView/AnnonceStatsRegionAPIView,
+        # annonces/api_views.py) et s'appliquent sur la quasi-totalité des
+        # requêtes publiques (catalogue, fiche, stats région) ; l'ordre par
+        # défaut ci-dessus (-date_publication) est lui aussi quasi-systématique.
+        # Un seul index composite plutôt que deux index simples sur `statut`
+        # et `source` séparément : Postgres peut utiliser le préfixe gauche
+        # d'un index composite (statut seul) sans jamais avoir besoin d'un
+        # index dédié à `source` seul, qui n'est jamais filtré indépendamment
+        # de `statut` dans le code actuel — deux index simples auraient
+        # dupliqué une partie de cette couverture pour rien. Sans effet
+        # mesurable au volume actuel (~200 annonces, cf. audit), mais évite
+        # un scan séquentiel sur l'endpoint le plus sollicité du site une
+        # fois le catalogue plus grand.
+        indexes = [
+            models.Index(fields=['statut', 'source', '-date_publication'], name='annonce_statut_source_pub_idx'),
+        ]
         constraints = [
             # Unique seulement quand source_id est renseigné (condition) :
             # les annonces internes (source_id=NULL) ne doivent jamais
