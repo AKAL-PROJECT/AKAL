@@ -58,6 +58,9 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
     'django_filters',
+    # django-axes (audit final du 20/08, correction du P1 sécurité admin) —
+    # cf. AUTHENTICATION_BACKENDS et bloc AXES_* plus bas pour la config.
+    'axes',
 
     # Apps du projet
     'accounts',
@@ -76,6 +79,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # django-axes — DOIT être le dernier middleware (recommandation du
+    # package) : il traduit un verrouillage détecté plus haut dans la pile
+    # (AUTHENTICATION_BACKENDS, cf. bloc AXES_* plus bas) en réponse HTTP 403
+    # lisible, une fois que la vue a déjà tenté de répondre.
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'akal.urls'
@@ -286,6 +294,74 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_SECURE': True,
     'AUTH_COOKIE_SAMESITE': 'None',
 }
+
+
+# ──────────────────────────────────────────────
+# DJANGO-AXES — anti-brute-force sur /admin/ (audit final du 20/08, P1)
+# ──────────────────────────────────────────────
+#
+# L'audit a constaté que le throttling DRF ci-dessus (login/signup/...) ne
+# couvre que les endpoints DRF de accounts/ — la vue de connexion Django
+# Admin classique (/admin/login/) n'en a jamais bénéficié et peut être
+# attaquée par force brute sans aucun ralentissement.
+#
+# AxesBackend s'insère AVANT ModelBackend dans la chaîne d'authentification
+# Django (authenticate()) : il bloque une tentative déjà verrouillée avant
+# même que ModelBackend ne vérifie le mot de passe. Il n'authentifie jamais
+# lui-même — cf. axes/backends.py.
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# Portée strictement limitée à /admin/ (AXES_ONLY_ADMIN_SITE) : la connexion
+# JWT de l'app (LoginView, accounts/views.py) passe elle aussi par
+# authenticate() — donc par AxesBackend — mais dispose déjà de son propre
+# throttle_scope 'login' (5/min, cf. REST_FRAMEWORK ci-dessus). Sans cette
+# restriction, axes suivrait EN PLUS les tentatives sur la connexion grand
+# public et pourrait la verrouiller (par défaut, un verrou axes est
+# permanent tant qu'un staff ne le lève pas manuellement en admin — cf.
+# AXES_COOLOFF_TIME plus bas) : une dégradation du mécanisme existant,
+# jamais voulue ici. Vérifié dans axes/handlers/base.py::is_allowed() —
+# AXES_ONLY_ADMIN_SITE=True exempte totalement les requêtes hors admin du
+# suivi, pas seulement de la réponse de verrouillage.
+AXES_ONLY_ADMIN_SITE = True
+
+# 5 échecs avant verrouillage — légèrement plus permissif que le défaut du
+# package (3) : un admin qui se trompe deux fois de mot de passe ne doit pas
+# se verrouiller lui-même pour la journée.
+AXES_FAILURE_LIMIT = 5
+
+# Verrou temporaire (30 min), jamais permanent : contrairement au défaut du
+# package (AXES_COOLOFF_TIME=None => verrou permanent, levé uniquement par
+# un staff en base), un verrou qui s'auto-résout après une pause raisonnable
+# ne rend jamais le panel injoignable pour un administrateur légitime en
+# pleine démo/soutenance.
+AXES_COOLOFF_TIME = timedelta(minutes=30)
+
+# Verrouille sur CHACUN des deux critères indépendamment (liste à plat, pas
+# imbriquée — sémantique "OR" du package) : une IP qui teste beaucoup de
+# comptes différents est bloquée par IP, un compte attaqué depuis plusieurs
+# IP (botnet) est bloqué par identifiant — les deux protections demandées
+# par l'audit, pas une combinaison stricte des deux qui laisserait passer
+# l'un ou l'autre cas isolément.
+AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']
+
+# Une connexion réussie remet le compteur d'échecs à zéro — un admin qui se
+# trompe puis réussit ne doit pas rester à un échec de la limite.
+AXES_RESET_ON_SUCCESS = True
+
+# Historique des tentatives visible dans /admin/ elle-même (modèles axes
+# AccessAttempt/AccessLog) — logs exploitables sans dépendre d'un outil
+# externe, cf. exigence de l'audit.
+AXES_ENABLE_ADMIN = True
+
+# Messages explicitement en français (le package les fournit par défaut en
+# anglais) — même convention que SignupSerializer/UniqueValidator
+# (accounts/serializers.py) : ce projet n'a jamais compté sur la traduction
+# automatique d'un message tiers pour un texte visible par un humain.
+AXES_COOLOFF_MESSAGE = 'Compte verrouillé : trop de tentatives de connexion. Réessayez dans quelques minutes.'
+AXES_PERMALOCK_MESSAGE = 'Compte verrouillé : trop de tentatives de connexion. Contactez un administrateur pour le déverrouiller.'
 
 
 # ──────────────────────────────────────────────

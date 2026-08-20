@@ -1,5 +1,4 @@
-from django.core.cache import cache
-import random
+import logging
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,9 +11,19 @@ import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
 import os
 from django.conf import settings
-from .models import User
+from django.db import IntegrityError
+from .models import DOMAINE_EMAIL_TELEPHONE, User
 from .serializers import UserSerializer
 from .views import _set_auth_cookies
+
+# Audit final du 20/08 (P3, nettoyage) : `from django.core.cache import
+# cache` et `import random` n'étaient utilisés nulle part dans ce fichier —
+# retirés (imports morts). logger applicatif (P8, même audit) : remplace les
+# print() ci-dessous, qui ne remontaient jamais à Sentry (settings.LOGGING
+# capture logger.warning()/exception(), jamais stdout, cf. akal/settings/
+# base.py) — un échec de connexion Firebase/Google en prod passait donc
+# inaperçu.
+logger = logging.getLogger(__name__)
 
 # Paresseux à dessein (audit d'intégration du 2026-08-15, bloquant #2) :
 # initialiser Firebase Admin ici, au niveau module, faisait planter TOUT
@@ -62,8 +71,14 @@ class PhoneLoginVerifyView(APIView):
 
         try:
             firebase_auth_module = _get_firebase_auth()
-        except Exception as e:
-            print("Firebase indisponible (secret non provisionné ?):", e)
+        except Exception:
+            # error (pas warning) : panne de service (secret manquant/
+            # invalide) — rare, actionnable, doit remonter à Sentry
+            # (LoggingIntegration ne capture que ERROR+, cf. base.py). À la
+            # différence des jetons individuels invalides/expirés plus bas
+            # (logger.warning) : ceux-là sont un bruit attendu côté client,
+            # pas un incident serveur.
+            logger.error("Firebase indisponible (secret non provisionné ?)", exc_info=True)
             return Response(
                 {'error': "Connexion par téléphone temporairement indisponible."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -79,7 +94,7 @@ class PhoneLoginVerifyView(APIView):
             user, created = User.objects.get_or_create(
                 telephone=telephone,
                 defaults={
-                    'email': f"{telephone.replace('+', '').replace(' ', '')}@tel.akal.local",
+                    'email': f"{telephone.replace('+', '').replace(' ', '')}@{DOMAINE_EMAIL_TELEPHONE}",
                     'nom': nom or 'Utilisateur',
                     'prenom': prenom or telephone,
                 }
@@ -103,8 +118,30 @@ class PhoneLoginVerifyView(APIView):
             _set_auth_cookies(response, refresh.access_token, refresh)
             return response
 
-        except Exception as e:
-            print("Erreur Firebase:", e)
+        except IntegrityError:
+            # Audit final du 20/08 (P3) : filet de sécurité pour une
+            # collision déjà existante en base (créée avant ce correctif, ou
+            # migrée depuis un autre environnement) — SignupSerializer.
+            # validate_email empêche désormais toute NOUVELLE collision,
+            # mais ce cas reste distingué du "Jeton invalide." générique
+            # ci-dessous : c'est une incohérence de données, pas un problème
+            # côté client, donc error (Sentry) plutôt que warning.
+            logger.error(
+                "Collision sur l'email synthétique de connexion téléphone (numéro déjà préempté)",
+                exc_info=True,
+            )
+            return Response(
+                {'error': "Connexion par téléphone impossible pour ce numéro. Contactez le support AKAL."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except Exception:
+            # warning : jeton Firebase invalide/expiré est un aléa client
+            # attendu à un rythme non nul (OTP expiré, jeton rejoué...), pas
+            # un incident serveur — volontairement sous le seuil Sentry
+            # (ERROR+, cf. plus haut) pour ne pas noyer les vraies pannes
+            # sous du bruit. exc_info=True garde la trace complète dans les
+            # logs (console/Render) pour un diagnostic manuel si besoin.
+            logger.warning("Échec de vérification du jeton Firebase (téléphone)", exc_info=True)
             return Response({'error': 'Jeton invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
 class GoogleLoginView(APIView):
@@ -119,7 +156,9 @@ class GoogleLoginView(APIView):
             
         client_id = settings.GOOGLE_CLIENT_ID
         if not client_id:
-            print("GOOGLE_CLIENT_ID absent — connexion Google non configurée.")
+            # error : même raisonnement que le cas Firebase ci-dessus —
+            # panne de service actionnable, pas un aléa client.
+            logger.error("GOOGLE_CLIENT_ID absent — connexion Google non configurée.")
             return Response(
                 {'error': "Connexion Google temporairement indisponible."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -132,10 +171,24 @@ class GoogleLoginView(APIView):
             email = idinfo.get('email')
             prenom = idinfo.get('given_name', 'Utilisateur')
             nom = idinfo.get('family_name', 'Google')
-            
+
             if not email:
                 return Response({'error': 'Email non trouvé dans le jeton.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
+            # Audit final du 20/08 (P2) : Google peut émettre un jeton valide
+            # (signature vérifiée ci-dessus) avec email_verified=False — cas
+            # marginal de certains domaines Google Workspace mal configurés.
+            # Sans ce refus, get_or_create(email=...) juste en dessous
+            # rattacherait la connexion à un compte AKAL existant (créé par
+            # mot de passe) sur la seule foi d'un email non prouvé —
+            # contournement du mot de passe. Comportement inchangé pour le
+            # cas normal (jeton invalide, GOOGLE_CLIENT_ID absent).
+            if not idinfo.get('email_verified'):
+                return Response(
+                    {'error': "Cette adresse email Google n'est pas vérifiée."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             user, created = User.objects.get_or_create(
                 email=email,
                 defaults={
@@ -150,6 +203,8 @@ class GoogleLoginView(APIView):
             _set_auth_cookies(response, refresh.access_token, refresh)
             return response
             
-        except ValueError as e:
-            print("Erreur Google:", e)
+        except ValueError:
+            # warning : même raisonnement que le jeton Firebase invalide
+            # ci-dessus (bruit client attendu, pas un incident serveur).
+            logger.warning("Échec de vérification du jeton Google", exc_info=True)
             return Response({'error': 'Jeton invalide.'}, status=status.HTTP_400_BAD_REQUEST)

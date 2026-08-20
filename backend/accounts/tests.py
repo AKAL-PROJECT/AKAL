@@ -1,6 +1,10 @@
+from unittest.mock import patch
+
+from axes.utils import reset as axes_reset
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
 from django.core.cache import cache
+from django.test import Client, TestCase, override_settings
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
@@ -73,6 +77,43 @@ class SignupTests(AuthTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('password', response.data)
+
+
+class SignupEmailDomaineReserveTests(AuthTestCase):
+    """
+    SignupSerializer.validate_email (audit final du 20/08, P3) — le domaine
+    @tel.akal.local est réservé aux comptes créés par la connexion SMS
+    (PhoneLoginVerifyView, accounts/auth_api_views.py) ; l'inscription
+    classique ne doit jamais pouvoir le préempter.
+    """
+
+    def payload(self, email):
+        return {**self.credentials, 'email': email}
+
+    def test_email_normal_est_accepte(self):
+        response = self.client.post(SIGNUP_URL, self.payload('normal@akal.ma'))
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_domaine_reserve_est_rejete(self):
+        response = self.client.post(SIGNUP_URL, self.payload('212612345678@tel.akal.local'))
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('email', response.data)
+        self.assertFalse(User.objects.filter(email='212612345678@tel.akal.local').exists())
+
+    def test_domaine_reserve_est_rejete_quelle_que_soit_la_casse(self):
+        response = self.client.post(SIGNUP_URL, self.payload('212612345678@TEL.AKAL.LOCAL'))
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_domaine_qui_ressemble_mais_differe_reste_accepte(self):
+        # Ne doit pas sur-bloquer un domaine qui contient juste la même
+        # sous-chaîne — seule une correspondance exacte du domaine final est
+        # rejetée (endswith('@tel.akal.local'), pas un simple "in").
+        response = self.client.post(SIGNUP_URL, self.payload('contact@not-tel.akal.local.example.com'))
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
 class LoginTests(AuthTestCase):
@@ -362,3 +403,241 @@ class PasswordResetThrottleTests(AuthTestCase):
         response = self.client.post(PASSWORD_RESET_URL, {'email': 'x@akal.ma'})
 
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+class PhoneLoginTests(AuthTestCase):
+    """
+    POST /api/auth/phone/verify/ (audit final du 20/08, P3) —
+    _get_firebase_auth() est mocké : ces tests ne dépendent jamais d'un vrai
+    jeton Firebase/SMS.
+    """
+
+    PHONE_URL = '/api/auth/phone/verify/'
+
+    def _mock_firebase(self, mock_get_auth, telephone='+212612345678'):
+        mock_module = mock_get_auth.return_value
+        mock_module.verify_id_token.return_value = {'phone_number': telephone}
+        return mock_module
+
+    @patch('accounts.auth_api_views._get_firebase_auth')
+    def test_nouveau_numero_cree_un_compte_et_connecte(self, mock_get_auth):
+        self._mock_firebase(mock_get_auth)
+
+        response = self.client.post(self.PHONE_URL, {
+            'token': 'un-jeton', 'prenom': 'Yasmine', 'nom': 'Alaoui',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access_token', response.cookies)
+        self.assertTrue(User.objects.filter(telephone='+212612345678').exists())
+
+    @patch('accounts.auth_api_views._get_firebase_auth')
+    def test_email_synthetique_deja_preempte_retourne_409_pas_400_generique(self, mock_get_auth):
+        # Reproduit une collision déjà existante en base (ex. compte migré
+        # depuis avant ce correctif) plutôt que de la provoquer via
+        # /signup/ (désormais bloqué, cf. SignupEmailDomaineReserveTests) —
+        # create_user() contourne volontairement SignupSerializer pour
+        # recréer ce scénario précis.
+        User.objects.create_user(
+            email='212612345678@tel.akal.local', password='peu-importe-2026',
+            nom='Intrus', prenom='Intrus',
+        )
+        self._mock_firebase(mock_get_auth, telephone='+212612345678')
+
+        response = self.client.post(self.PHONE_URL, {'token': 'un-jeton'})
+
+        # 409 explicite (cf. correction P3), jamais le 400 "Jeton invalide."
+        # générique qui masquerait une vraie incohérence de données derrière
+        # un message qui laisse croire à un problème côté utilisateur.
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        # Le vrai propriétaire du numéro n'a pas été rattaché au compte intrus.
+        self.assertFalse(User.objects.filter(telephone='+212612345678').exists())
+
+    @patch('accounts.auth_api_views._get_firebase_auth')
+    def test_jeton_sans_numero_est_rejete(self, mock_get_auth):
+        mock_module = mock_get_auth.return_value
+        mock_module.verify_id_token.return_value = {}
+
+        response = self.client.post(self.PHONE_URL, {'token': 'un-jeton'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_sans_token_est_rejete(self):
+        response = self.client.post(self.PHONE_URL, {})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+@override_settings(GOOGLE_CLIENT_ID='un-client-id-de-test')
+class GoogleLoginTests(AuthTestCase):
+    """
+    POST /api/auth/google/ (audit final du 20/08, P2) —
+    id_token.verify_oauth2_token est mocké : ces tests ne dépendent jamais
+    d'un appel réseau réel vers les serveurs Google.
+    """
+
+    GOOGLE_URL = '/api/auth/google/'
+
+    def _idinfo(self, **overrides):
+        base = {
+            'email': 'nouveau.via.google@akal.ma',
+            'email_verified': True,
+            'given_name': 'Yasmine',
+            'family_name': 'Google',
+        }
+        base.update(overrides)
+        return base
+
+    @patch('accounts.auth_api_views.id_token.verify_oauth2_token')
+    def test_token_valide_email_verifie_connecte_normalement(self, mock_verify):
+        mock_verify.return_value = self._idinfo()
+
+        response = self.client.post(self.GOOGLE_URL, {'token': 'un-jeton-quelconque'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access_token', response.cookies)
+        self.assertTrue(User.objects.filter(email='nouveau.via.google@akal.ma').exists())
+
+    @patch('accounts.auth_api_views.id_token.verify_oauth2_token')
+    def test_token_valide_email_non_verifie_est_refuse(self, mock_verify):
+        # Cœur de la correction P2 : signature cryptographique valide mais
+        # `email_verified: False` — ne doit jamais créer/connecter de compte.
+        mock_verify.return_value = self._idinfo(email_verified=False)
+
+        response = self.client.post(self.GOOGLE_URL, {'token': 'un-jeton-quelconque'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn('access_token', response.cookies)
+        self.assertFalse(User.objects.filter(email='nouveau.via.google@akal.ma').exists())
+
+    @patch('accounts.auth_api_views.id_token.verify_oauth2_token')
+    def test_email_verified_absent_du_jeton_est_traite_comme_non_verifie(self, mock_verify):
+        # Un jeton qui omettrait purement et simplement la revendication (au
+        # lieu de la poser explicitement à False) ne doit pas non plus passer
+        # par défaut — .get() renvoie None, donc falsy, donc refusé.
+        idinfo = self._idinfo()
+        del idinfo['email_verified']
+        mock_verify.return_value = idinfo
+
+        response = self.client.post(self.GOOGLE_URL, {'token': 'un-jeton-quelconque'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch('accounts.auth_api_views.id_token.verify_oauth2_token')
+    def test_jeton_invalide_est_rejete_comportement_inchange(self, mock_verify):
+        mock_verify.side_effect = ValueError('jeton corrompu')
+
+        response = self.client.post(self.GOOGLE_URL, {'token': 'un-jeton-invalide'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @override_settings(GOOGLE_CLIENT_ID='')
+    def test_google_mal_configure_retourne_503_comportement_inchange(self):
+        response = self.client.post(self.GOOGLE_URL, {'token': 'peu-importe'})
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    def test_sans_token_est_rejete(self):
+        response = self.client.post(self.GOOGLE_URL, {})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class AdminAxesLockoutTests(TestCase):
+    """
+    django-axes sur /admin/login/ (audit final du 20/08, correction du P1
+    sécurité admin) — cf. AXES_* dans akal/settings/base.py.
+
+    Client Django standard (pas APIClient) : /admin/login/ est une vue
+    Django classique, pas un endpoint DRF. AXES_ONLY_ADMIN_SITE=True limite
+    strictement axes à /admin/ — LoginThrottleTests ci-dessus (endpoint JWT
+    grand public) reste régi par son seul throttle DRF, jamais par axes ;
+    aucune interférence entre les deux mécanismes n'est donc attendue ici.
+    """
+
+    ADMIN_LOGIN_URL = '/admin/login/'
+
+    def setUp(self):
+        self.admin_password = 'un-mot-de-passe-admin-2026'
+        self.admin = User.objects.create_superuser(
+            email='admin-axes@akal.ma', password=self.admin_password,
+            nom='Admin', prenom='Test',
+        )
+        self.client = Client()
+
+    def _tenter(self, password):
+        return self.client.post(self.ADMIN_LOGIN_URL, {
+            'username': self.admin.email,
+            'password': password,
+            'next': '/admin/',
+        })
+
+    def _session_authentifiee(self):
+        return str(self.client.session.get('_auth_user_id')) == str(self.admin.pk)
+
+    def test_tentative_normale_fonctionne(self):
+        response = self._tenter(self.admin_password)
+
+        # Succès admin classique : redirection (302) vers `next`, jamais un
+        # nouveau rendu du formulaire de connexion.
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(self._session_authentifiee())
+
+    def test_mauvais_mots_de_passe_repetes_declenchent_le_verrou(self):
+        # AXES_FAILURE_LIMIT = 5 : les 5 premiers échecs sont traités
+        # normalement (chacun refuse la connexion pour "mauvais mot de
+        # passe"), le verrou se déclenche à partir de la 6ᵉ tentative —
+        # même convention de comptage que LoginThrottleTests ci-dessus.
+        for _ in range(5):
+            echec = self._tenter('mauvais-mot-de-passe')
+            self.assertFalse(self._session_authentifiee())
+            self.assertNotEqual(echec.status_code, 302)
+
+        # 6ᵉ tentative, cette fois avec le BON mot de passe : axes bloque
+        # avant même que ModelBackend ne le vérifie. 429 (pas 403) : même
+        # code que le throttling DRF existant (LoginThrottleTests) — vérifié
+        # empiriquement, axes.middleware traduit son verrou en 429 dans ce
+        # projet plutôt que le 403 générique documenté par le package.
+        response = self._tenter(self.admin_password)
+
+        self.assertFalse(self._session_authentifiee())
+        self.assertContains(response, 'trop', status_code=429)
+
+    def test_authentification_apres_deverrouillage_fonctionne(self):
+        for _ in range(5):
+            self._tenter('mauvais-mot-de-passe')
+        verrouille = self._tenter(self.admin_password)
+        self.assertFalse(self._session_authentifiee())
+        self.assertEqual(verrouille.status_code, 429)
+
+        # Déverrouillage — même opération que celle disponible en admin
+        # (action "Reset" sur AccessAttempt, AXES_ENABLE_ADMIN=True) ou que
+        # l'expiration naturelle d'AXES_COOLOFF_TIME (30 min) : ici appelée
+        # directement via l'API publique du package plutôt que d'attendre
+        # 30 minutes dans un test. AXES_LOCKOUT_PARAMETERS=['username',
+        # 'ip_address'] suit les deux dimensions indépendamment (§AXES_* de
+        # base.py) : le client de test n'ayant qu'une IP (127.0.0.1, défaut
+        # Django), les DEUX enregistrements ont atteint la limite —
+        # ip_or_username=True lève le verrou sur l'un OU l'autre en un seul
+        # appel, pas seulement celui keyé par username.
+        axes_reset(username=self.admin.email, ip='127.0.0.1', ip_or_username=True)
+
+        response = self._tenter(self.admin_password)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(self._session_authentifiee())
+
+    def test_verrou_admin_naffecte_pas_la_connexion_jwt_grand_public(self):
+        # AXES_ONLY_ADMIN_SITE=True : épuiser le quota axes sur /admin/login/
+        # ne doit jamais toucher /api/auth/login/ (régi par son propre
+        # throttle_scope 'login', cf. LoginThrottleTests) — deux mécanismes
+        # indépendants, pas un seul verrou partagé par erreur de portée.
+        for _ in range(6):
+            self._tenter('mauvais-mot-de-passe')
+
+        api_client = APIClient(enforce_csrf_checks=True)
+        response = api_client.post(LOGIN_URL, {
+            'email': self.admin.email,
+            'password': self.admin_password,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

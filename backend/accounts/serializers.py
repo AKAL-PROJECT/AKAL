@@ -7,7 +7,7 @@ from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from .models import User
+from .models import DOMAINE_EMAIL_TELEPHONE, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -75,6 +75,22 @@ class SignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email', 'password', 'nom', 'prenom', 'telephone']
+
+    def validate_email(self, value):
+        # Audit final du 20/08 (P3) : @tel.akal.local est réservé aux
+        # comptes créés par PhoneLoginVerifyView (auth_api_views.py) — un
+        # email choisi librement ici dans ce même domaine préempterait le
+        # compte que la connexion SMS du vrai propriétaire du numéro
+        # correspondant créerait plus tard (cf. DOMAINE_EMAIL_TELEPHONE,
+        # accounts/models.py, pour le détail du scénario). Comparaison
+        # insensible à la casse : un email est déjà normalisé en minuscules
+        # par EmailField/normalize_email, mais on ne fait pas reposer une
+        # règle de sécurité sur cet ordre d'exécution implicite.
+        if value.lower().endswith(f'@{DOMAINE_EMAIL_TELEPHONE}'):
+            raise serializers.ValidationError(
+                "Ce domaine d'adresse email est réservé et ne peut pas être utilisé pour un compte."
+            )
+        return value
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)

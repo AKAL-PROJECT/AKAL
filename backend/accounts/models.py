@@ -4,6 +4,18 @@ import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
+# Domaine synthétique utilisé par PhoneLoginVerifyView (auth_api_views.py)
+# pour donner un email aux comptes créés par connexion SMS, qui n'en
+# fournissent jamais un réel : f"{telephone}@{DOMAINE_EMAIL_TELEPHONE}".
+# Constante partagée (pas seulement une chaîne dupliquée) parce que
+# SignupSerializer.validate_email (serializers.py) doit refuser ce même
+# domaine à l'inscription classique — audit final du 20/08 (P3) : sans ce
+# refus, s'inscrire avec l'email exact d'un numéro de téléphone connu/deviné
+# préempte le compte que la connexion SMS de son vrai propriétaire créerait
+# plus tard, cassant sa connexion avec une erreur générique (get_or_create
+# échoue sur l'email déjà pris).
+DOMAINE_EMAIL_TELEPHONE = 'tel.akal.local'
+
 
 class UserManager(BaseUserManager):
     """Manager custom pour un User sans champ username."""
