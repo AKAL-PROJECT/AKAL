@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { MapContainer } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Parcelle } from "@/types/parcelle";
@@ -11,9 +12,12 @@ import {
   VolVersRegion,
   RecalculTailleCarte,
   MarqueurParcelle,
+  boundsDeRegion,
+  boundsNationalDe,
   type RegionActive,
   type RegionRef,
 } from "./CarteRegions";
+import { TuileSatellite, BasculeFondCarte, type VueFond } from "./FondCarte";
 // Sans ce CSS, les tuiles Leaflet (.leaflet-tile) restent en flux normal
 // (pas de position:absolute) : elles s'empilent verticalement l'une sous
 // l'autre au lieu de se superposer, chacune en plus décalée par le
@@ -57,6 +61,14 @@ export default function CarteCouvertureLeaflet({
   regionSurvolee?: string | null;
 }) {
   const limites = useLimitesRegions(regions);
+  // Fond satellite par défaut sur cette carte aussi (finalisation §1.3) —
+  // même composant partagé que CarteLeaflet.tsx/CarteLeafletFiche.tsx.
+  const [vue, setVue] = useState<VueFond>("satellite");
+  const regionBounds = useMemo(
+    () => (regionActive ? boundsDeRegion(limites[regionActive.code]) : null),
+    [limites, regionActive],
+  );
+  const boundsNational = useMemo(() => boundsNationalDe(limites), [limites]);
 
   return (
     <MapContainer
@@ -69,10 +81,16 @@ export default function CarteCouvertureLeaflet({
       minZoom={5}
       style={{ height: "100%", width: "100%" }}
     >
-      <TuileOSM />
+      {vue === "satellite" ? <TuileSatellite /> : <TuileOSM />}
+      <BasculeFondCarte vue={vue} onChange={setVue} />
 
       <RecalculTailleCarte />
-      <VolVersRegion centre={regionActive?.centre ?? null} parcelles={parcelles} />
+      <VolVersRegion
+        centre={regionActive?.centre ?? null}
+        parcelles={parcelles}
+        regionBounds={regionBounds}
+        boundsNational={boundsNational}
+      />
 
       {/* Les 12 limites régionales (union des provinces, référentiel
           géométrique officiel) — toujours affichées, même sans annonce
@@ -82,6 +100,7 @@ export default function CarteCouvertureLeaflet({
         codeActif={regionActive?.code ?? null}
         codeSurvole={regionSurvolee}
         onSelectionner={onSelectionnerRegion}
+        surSatellite={vue === "satellite"}
       />
 
       <MarkerClusterGroup key={regionActive?.code ?? "tout"} chunkedLoading maxClusterRadius={45}>

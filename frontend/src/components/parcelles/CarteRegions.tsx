@@ -76,28 +76,52 @@ export function LimitesRegions({
   codeActif,
   codeSurvole,
   onSelectionner,
+  surSatellite,
 }: {
   limites: Record<string, FeatureCollectionProvinces>;
   codeActif: string | null;
   codeSurvole?: string | null;
   onSelectionner?: (code: string) => void;
+  // Le vert forêt (#2D6A4F) choisi pour le fond "Plan" (Positron, clair) se
+  // fond dans les tons sable du Sahara sur le fond satellite (finalisation
+  // §1.3, constaté au Sud une fois le satellite activé par défaut) — trait
+  // blanc, contraste universellement correct sur océan/végétation/désert.
+  surSatellite?: boolean;
 }) {
+  // Survol réel de la carte (mouseover/mouseout Leaflet sur le polygone
+  // lui-même) — distinct de `codeSurvole` (piloté depuis un panneau externe,
+  // ex. la liste de régions de CouvertureSection.tsx sur la Home). Le
+  // catalogue (/parcelles) et la carte plein écran (/carte) n'ont pas ce
+  // panneau et n'avaient donc jusqu'ici aucun survol sur la carte elle-même
+  // (finalisation §1.2). Les deux sources cohabitent sans se marcher
+  // dessus : `codeSurvole` (externe) reste prioritaire quand fourni, le
+  // survol interne prend le relais sinon.
+  const [codeSurvoleCarte, setCodeSurvoleCarte] = useState<string | null>(null);
+  const codeSurvoleEffectif = codeSurvole ?? codeSurvoleCarte;
+
   return (
     <>
       {Object.entries(limites).map(([code, donnees]) => {
         const active = code === codeActif;
-        const survolee = !active && code === codeSurvole;
+        const survolee = !active && code === codeSurvoleEffectif;
         return (
           <GeoJSON
             key={code}
             data={donnees as GJ.FeatureCollection}
             style={{
-              color: "#2D6A4F",
-              weight: active ? 2.5 : survolee ? 2 : 1,
-              fillColor: "#52B788",
+              color: surSatellite ? "#FFFFFF" : "#2D6A4F",
+              weight: surSatellite
+                ? (active ? 3 : survolee ? 2.5 : 1.5)
+                : (active ? 2.5 : survolee ? 2 : 1),
+              opacity: surSatellite ? (active ? 0.95 : survolee ? 0.85 : 0.65) : 1,
+              fillColor: surSatellite ? "#FFFFFF" : "#52B788",
               fillOpacity: active ? 0.18 : survolee ? 0.13 : 0.06,
             }}
-            eventHandlers={onSelectionner ? { click: () => onSelectionner(code) } : undefined}
+            eventHandlers={{
+              ...(onSelectionner ? { click: () => onSelectionner(code) } : {}),
+              mouseover: () => setCodeSurvoleCarte(code),
+              mouseout: () => setCodeSurvoleCarte((v) => (v === code ? null : v)),
+            }}
           />
         );
       })}
@@ -176,30 +200,66 @@ function bboxDe(parcelles: Parcelle[] | undefined): LatLngBoundsExpression | nul
   return [[latMin, lngMin], [latMax, lngMax]];
 }
 
-// Recentre la carte sur la région active, ou sur l'étendue réelle des
-// parcelles affichées si aucune région n'est sélectionnée (`parcelles`) —
-// repli sur LIMITES_MAROC (bbox administrative des 12 régions) si cette
-// étendue n'est pas calculable (aucune parcelle chargée pour l'instant, ou
-// aucun résultat).
+// Bounds Leaflet d'une région (union des provinces qui la composent) —
+// mêmes FeatureCollection déjà chargées par useLimitesRegions pour le
+// rendu des contours (aucune requête supplémentaire), même technique que
+// `zoneBounds` plus bas (L.geoJSON(...).getBounds()). `null` si la
+// collection n'est pas encore chargée pour ce code région.
+export function boundsDeRegion(fc: FeatureCollectionProvinces | undefined): L.LatLngBounds | null {
+  if (!fc || fc.features.length === 0) return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const b = L.geoJSON(fc as any).getBounds();
+  return b.isValid() ? b : null;
+}
+
+// Bounds Leaflet de "tout le Maroc" — union de toutes les collections
+// régionales déjà chargées (mêmes 12 requêtes que le rendu des contours,
+// finalisation §1.1/§4 : jamais une bbox codée en dur tant que ces données
+// réelles sont disponibles). `null` tant qu'aucune région n'est encore
+// chargée — VolVersRegion retombe alors sur LIMITES_MAROC (constante,
+// dernier repli uniquement, cf. lib/leaflet.ts).
+export function boundsNationalDe(limites: Record<string, FeatureCollectionProvinces>): L.LatLngBounds | null {
+  const b = L.latLngBounds([]);
+  for (const fc of Object.values(limites)) {
+    const rb = boundsDeRegion(fc);
+    if (rb) b.extend(rb);
+  }
+  return b.isValid() ? b : null;
+}
+
+// Événement Leaflet interne (pas une vraie interaction utilisateur) —
+// émis par VolVersRegion à chaque recadrage programmatique qu'il déclenche
+// lui-même. BoutonRechercherZone (CarteLeaflet.tsx) s'y abonne pour réarmer
+// sa référence "vue correspondant aux résultats actuels" : sans ça, un
+// recadrage qui survient après le délai initial de 900ms (ex. régionBounds/
+// boundsNational qui résolvent après le tout premier cadrage, finalisation
+// §1.1/§4) fait apparaître "Rechercher cette zone" à tort — la vue vient de
+// changer PAR LE CODE, pas par un geste de l'utilisateur.
+export const EVENEMENT_RECADRAGE_CARTE = "akal:recadrage";
+
+// Recentre la carte, par ordre de priorité : zone précise (province/commune
+// choisie dans les filtres) > région active > tout le Maroc.
 //
-// Pourquoi pas systématiquement LIMITES_MAROC (comme avant le 19/08) :
-// constaté sur la carte plein écran (app/carte/page.tsx, conteneur large -
-// 16:9 ou plus) — LIMITES_MAROC est presque aussi haute que large (le
-// Maroc est un pays tout en longueur, nord-sud), alors qu'un écran large
-// est justement l'inverse. `fitBounds` doit alors dézoomer fortement pour
-// ne rien rogner en HAUTEUR, ce qui laisse l'essentiel de la LARGEUR
-// occupée par l'Espagne/l'Algérie/l'océan — mathématiquement correct (rien
-// n'est coupé) mais inutilisable (tous les pins entassés au centre,
-// vérifié : zoom 5 sur un conteneur 1280×736, alors que Casablanca et Fès
-// tiennent déjà largement dans un cadrage bien plus serré). L'étendue
-// réelle des annonces affichées est nettement moins étirée verticalement
-// que la bbox administrative complète (peu d'annonces à l'extrême sud/
-// nord) — un cadrage sur cette étendue reste correct (rien de coupé) tout
-// en zoomant sensiblement plus près.
+// Avant la finalisation du 20/08, le cadrage "aucune sélection" se faisait
+// sur l'étendue réelle des annonces CHARGÉES plutôt que sur `boundsNational`
+// (choix délibéré de l'époque : LIMITES_MAROC, presque aussi haute que
+// large, force `fitBounds` à dézoomer fortement sur un écran large pour ne
+// rien rogner en hauteur, laissant l'essentiel de la largeur occupée par
+// l'Espagne/l'Algérie/l'océan). Problème constaté avec ce choix : dès qu'un
+// filtre ne charge aucune annonce au Sud (ex. jeu de données de démo), le
+// Sud disparaissait du cadrage par défaut alors que sa géométrie existe et
+// est correcte. La consigne de finalisation est explicite (« Maroc dans sa
+// globalité, y compris le Sud, par défaut ») — `boundsNational` (calculé,
+// jamais codé en dur) est donc redevenu la cible par défaut ; l'étendue des
+// annonces (`bbox`) ne sert plus que de filet si `boundsNational` n'a pas
+// encore chargé, LIMITES_MAROC restant le tout dernier repli si le fetch
+// des régions échoue.
 export function VolVersRegion({
   centre,
   parcelles,
   zoneGeometrie,
+  regionBounds,
+  boundsNational,
 }: {
   centre: [number, number] | null;
   parcelles?: Parcelle[];
@@ -212,10 +272,25 @@ export function VolVersRegion({
   // quelques pins qui matchent (peut être vide/quasi vide sans que la zone
   // elle-même n'ait de sens à ignorer pour autant).
   zoneGeometrie?: unknown | null;
+  // Bounds réelles de la région active (cf. boundsDeRegion ci-dessus) —
+  // prioritaire sur `centre` dès qu'elle est disponible ; `centre` reste un
+  // repli tant que useLimitesRegions n'a pas encore résolu cette région
+  // (finalisation §1.1, remplace l'ancien flyTo à zoom fixe).
+  regionBounds?: L.LatLngBounds | null;
+  // Bounds de tout le Maroc, calculées depuis les régions déjà chargées
+  // (cf. boundsNationalDe) — cible par défaut en l'absence de toute
+  // sélection (finalisation §4).
+  boundsNational?: L.LatLngBounds | null;
 }) {
   const map = useMap();
   const precedent = useRef(centre);
   const precedentZone = useRef(zoneGeometrie);
+  // Suit les transitions null -> valeur de boundsNational (résolution du
+  // fetch des 12 régions, potentiellement après le tout premier cadrage) —
+  // sans ce suivi dédié, un cadrage initial retombé sur `bbox` (régions pas
+  // encore chargées) resterait bloqué dessus indéfiniment une fois
+  // boundsNational disponible, cf. garde plus bas.
+  const precedentBoundsNational = useRef(boundsNational);
   // Distinct du montage lui-même (cf. commentaire ci-dessous) : reste false
   // tant qu'il n'y a ni zone/région active ni parcelles chargées à cadrer.
   const cadrageInitialFait = useRef(false);
@@ -238,18 +313,24 @@ export function VolVersRegion({
 
   useEffect(() => {
     if (!cadrageInitialFait.current) {
-      // Tant qu'il n'y a ni zone/région active ni parcelle chargée, rien de
-      // pertinent à cadrer — attendre le prochain rendu (le fetch initial
-      // des parcelles est généralement quasi instantané, cf. plus haut)
+      // Tant qu'il n'y a ni zone/région/Maroc calculable ni parcelle
+      // chargée, rien de pertinent à cadrer — attendre le prochain rendu
       // plutôt que de figer immédiatement un repli LIMITES_MAROC qu'on ne
       // recalculera plus jamais ensuite (le cadrage initial ne s'arme
       // qu'une fois).
-      if (!zoneBounds && !centre && !bbox) return;
+      if (!zoneBounds && !regionBounds && !centre && !boundsNational && !bbox) return;
       cadrageInitialFait.current = true;
       precedent.current = centre;
       precedentZone.current = zoneGeometrie;
+      precedentBoundsNational.current = boundsNational;
       if (zoneBounds) {
         map.fitBounds(zoneBounds, { padding: [24, 24] });
+        map.fire(EVENEMENT_RECADRAGE_CARTE);
+        return;
+      }
+      if (regionBounds) {
+        map.fitBounds(regionBounds, { padding: [24, 24] });
+        map.fire(EVENEMENT_RECADRAGE_CARTE);
         return;
       }
       // <MapContainer> est toujours créé cadré sur LIMITES_MAROC (ses props
@@ -258,44 +339,55 @@ export function VolVersRegion({
       // (ex. la carte remonte alors qu'une région est déjà sélectionnée : la
       // carte du catalogue remonte entièrement à chaque changement de
       // filtre région, cf. <Suspense> autour de useSearchParams() dans
-      // app/parcelles/page.tsx), il faut recentrer immédiatement — setView
-      // plutôt que flyTo : rien à « survoler » depuis une carte qui vient
-      // d'apparaître, et surtout pas de fenêtre d'animation ouverte pendant
-      // que RecalculTailleCarte peut, lui aussi, s'exécuter au même instant
-      // sur ce montage.
+      // app/parcelles/page.tsx) et que `regionBounds` n'a pas encore résolu,
+      // il faut recentrer immédiatement — setView plutôt que flyTo : rien à
+      // « survoler » depuis une carte qui vient d'apparaître, et surtout
+      // pas de fenêtre d'animation ouverte pendant que RecalculTailleCarte
+      // peut, lui aussi, s'exécuter au même instant sur ce montage.
       if (centre) {
         map.setView(centre, 8);
+        map.fire(EVENEMENT_RECADRAGE_CARTE);
         return;
       }
-      // maxZoom : filet de sécurité si les parcelles affichées sont toutes
-      // très proches (ex. région filtrée sur une seule ville) — sans lui,
-      // une bbox minuscule zoomerait par défaut jusqu'au niveau rue.
-      map.fitBounds(bbox ?? LIMITES_MAROC, { padding: [32, 32], maxZoom: 10 });
+      // maxZoom : filet de sécurité si l'étendue à cadrer est minuscule
+      // (ex. bbox de secours sur une seule ville) — sans lui, une bbox
+      // minuscule zoomerait par défaut jusqu'au niveau rue.
+      map.fitBounds(boundsNational ?? bbox ?? LIMITES_MAROC, { padding: [32, 32], maxZoom: 10 });
+      map.fire(EVENEMENT_RECADRAGE_CARTE);
       return;
     }
 
     // Mise à jour (pas un montage) — même ordre de priorité : zone précise
-    // > centre de région > étendue réelle des parcelles > tout le Maroc. Un
-    // vol n'est relancé QUE si la cible effectivement utilisée a changé
-    // (comparaison par référence, comme pour `centre` plus bas — pas
-    // l'état réel de la carte, imprécis par nature avec Leaflet).
+    // > région active > tout le Maroc. Un vol n'est relancé QUE si la cible
+    // effectivement utilisée a changé (comparaison par référence, comme
+    // pour `centre` plus bas — pas l'état réel de la carte, imprécis par
+    // nature avec Leaflet).
     if (zoneBounds) {
       if (precedentZone.current === zoneGeometrie) return;
       precedentZone.current = zoneGeometrie;
       precedent.current = centre;
       map.flyToBounds(zoneBounds, { duration: 0.8, padding: [24, 24] });
+      map.fire(EVENEMENT_RECADRAGE_CARTE);
       return;
     }
     // Zone quittée (ex. filtre province/commune vidé) — re-cadrer même si
-    // `centre` lui n'a pas changé entre-temps, sinon la carte resterait
-    // bloquée sur les bounds de la province/commune abandonnée.
+    // `centre`/`regionBounds` n'ont pas changé entre-temps, sinon la carte
+    // resterait bloquée sur les bounds de la province/commune abandonnée.
     const zoneVientDetreQuittee = precedentZone.current != null;
     precedentZone.current = zoneGeometrie;
-    if (!zoneVientDetreQuittee && precedent.current === centre) return;
+    // boundsNational vient de résoudre (ex. fetch des 12 régions plus lent
+    // que celui des parcelles) alors que le cadrage initial s'était déjà
+    // armé sur `bbox`/LIMITES_MAROC — upgrade vers le vrai cadrage national
+    // même si `centre` n'a pas changé, cf. commentaire sur le ref plus haut.
+    const boundsNationalResolu = precedentBoundsNational.current !== boundsNational;
+    precedentBoundsNational.current = boundsNational;
+    if (!zoneVientDetreQuittee && !boundsNationalResolu && precedent.current === centre) return;
     precedent.current = centre;
-    if (centre) map.flyTo(centre, 8, { duration: 0.8 });
-    else map.flyToBounds(bbox ?? LIMITES_MAROC, { duration: 0.8, padding: [32, 32], maxZoom: 10 });
-  }, [centre, map, bbox, zoneBounds, zoneGeometrie]);
+    if (regionBounds) map.flyToBounds(regionBounds, { duration: 0.8, padding: [24, 24] });
+    else if (centre) map.flyTo(centre, 8, { duration: 0.8 });
+    else map.flyToBounds(boundsNational ?? bbox ?? LIMITES_MAROC, { duration: 0.8, padding: [32, 32], maxZoom: 10 });
+    map.fire(EVENEMENT_RECADRAGE_CARTE);
+  }, [centre, map, bbox, zoneBounds, zoneGeometrie, regionBounds, boundsNational]);
   return null;
 }
 

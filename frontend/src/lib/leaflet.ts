@@ -29,14 +29,16 @@ export const CENTRE_MAROC: [number, number] = [32.0, -6.0];
 
 // Bornes réelles des 12 régions officielles (nord Tanger-Tétouan-Al
 // Hoceïma ≈35.9°N → sud Dakhla-Oued Ed-Dahab ≈20.8°N), calculées le
-// 2026-08-17 depuis les polygones /api/geo/limites/provinces/ — vue par
-// défaut des cartes "Maroc entier" (couverture Home, catalogue). Remplace
-// un ancien center=CENTRE_MAROC/zoom=6 fixe : à ce zoom, centré à 32°N,
-// Dakhla-Oued Ed-Dahab tombait hors du cadre visible par défaut (signalé
-// le 2026-08-17 — "Dakhla ne se voit pas sur la carte"). Avec `bounds` (+
-// boundsOptions.padding), Leaflet calcule lui-même le zoom qui fait tenir
-// tout le pays, quelle que soit la taille du conteneur (mini-carte Home
-// 480px vs carte plein catalogue).
+// 2026-08-17 depuis les polygones /api/geo/limites/provinces/. Sert de
+// cadrage initial des <MapContainer> (prop `bounds`, avant que le fetch des
+// régions ne résolve) et de tout dernier repli si ce fetch échoue — depuis
+// la finalisation du 20/08, le cadrage "Maroc entier" par défaut est
+// `boundsNationalDe(limites)` (CarteRegions.tsx), calculé en direct depuis
+// les mêmes données plutôt que figé ici, pour ne jamais désynchroniser les
+// deux si le référentiel géographique évolue. Remplace un ancien
+// center=CENTRE_MAROC/zoom=6 fixe : à ce zoom, centré à 32°N, Dakhla-Oued
+// Ed-Dahab tombait hors du cadre visible par défaut (signalé le 2026-08-17
+// — "Dakhla ne se voit pas sur la carte").
 export const LIMITES_MAROC: LatLngBoundsExpression = [
   [20.5, -17.3],
   [36.2, -0.8],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -15,9 +15,13 @@ import {
   VolVersRegion,
   RecalculTailleCarte,
   MarqueurParcelle,
+  boundsDeRegion,
+  boundsNationalDe,
+  EVENEMENT_RECADRAGE_CARTE,
   type RegionActive,
   type RegionRef,
 } from "./CarteRegions";
+import { TuileSatellite, BasculeFondCarte, type VueFond } from "./FondCarte";
 import "leaflet/dist/leaflet.css";
 // Regroupement des marqueurs proches en bulles chiffrées (audit
 // cartographie du 19/08) — jusque-là seule CarteCouvertureLeaflet.tsx
@@ -77,15 +81,46 @@ function BoutonRechercherZone({
     // effet déclenche un rendu en cascade avant même le démarrage du timer
     // ci-dessous (react-hooks/set-state-in-effect).
     let annule = false;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const armer = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        if (!annule) reference.current = map.getBounds();
+      }, 900);
+    };
     Promise.resolve().then(() => {
       if (!annule) setVisible(false);
     });
-    const t = setTimeout(() => {
-      reference.current = map.getBounds();
-    }, 900);
+    armer();
+
+    // Réarme aussi à chaque recadrage programmatique déclenché par
+    // VolVersRegion (pas seulement au montage/changement de `parcelles`) —
+    // cf. EVENEMENT_RECADRAGE_CARTE (CarteRegions.tsx) : sans ce second
+    // déclencheur, un recadrage survenant après ce délai initial de 900ms
+    // (ex. regionBounds/boundsNational qui résolvent plus tard que le tout
+    // premier cadrage, finalisation §1.1/§4) laisse la référence figée sur
+    // l'ancienne vue et fait apparaître ce bouton à tort — la vue vient de
+    // changer PAR LE CODE, pas par un geste de l'utilisateur.
+    const surRecadrage = () => {
+      // reference.current remis à null (pas seulement setVisible(false)) —
+      // exactement l'état initial avant le tout premier armer() : le garde
+      // `if (!reference.current) return;` du moveend plus bas ignore alors
+      // sûrement le moveend de FIN d'animation de ce même recadrage (flyTo/
+      // flyToBounds, ~0.8s) même s'il survient tout juste avant que le
+      // nouveau timer de 900ms n'ait capturé la nouvelle référence — sans
+      // ça, ce moveend comparait la vue tout juste recadrée à l'ANCIENNE
+      // référence (encore en place jusqu'au tick du nouveau timer) et
+      // déclenchait un faux positif.
+      reference.current = null;
+      setVisible(false);
+      armer();
+    };
+    map.on(EVENEMENT_RECADRAGE_CARTE, surRecadrage);
+
     return () => {
       annule = true;
-      clearTimeout(t);
+      if (t) clearTimeout(t);
+      map.off(EVENEMENT_RECADRAGE_CARTE, surRecadrage);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcelles]);
@@ -176,6 +211,17 @@ export default function CarteLeaflet({
   zoneGeometrie?: unknown | null;
 }) {
   const limites = useLimitesRegions(regions);
+  // Fond satellite par défaut sur cette carte (finalisation §1.3) — mêmes
+  // TuileSatellite/BasculeFondCarte que la fiche annonce, cf. FondCarte.tsx.
+  const [vue, setVue] = useState<VueFond>("satellite");
+  // Bounds réelles région/Maroc, calculées depuis les mêmes collections déjà
+  // chargées pour le rendu des contours (finalisation §1.1/§4) — aucune
+  // requête supplémentaire, cf. CarteRegions.tsx.
+  const regionBounds = useMemo(
+    () => (regionActive ? boundsDeRegion(limites[regionActive.code]) : null),
+    [limites, regionActive],
+  );
+  const boundsNational = useMemo(() => boundsNationalDe(limites), [limites]);
 
   return (
     <MapContainer
@@ -190,17 +236,29 @@ export default function CarteLeaflet({
       minZoom={5}
       style={{ height: "100%", width: "100%", borderRadius: "var(--radius-card)" }}
     >
-      <TuileOSM />
+      {vue === "satellite" ? <TuileSatellite /> : <TuileOSM />}
+      <BasculeFondCarte vue={vue} onChange={setVue} />
 
       <RecalculTailleCarte />
-      <VolVersRegion centre={regionActive?.centre ?? null} parcelles={parcelles} zoneGeometrie={zoneGeometrie} />
+      <VolVersRegion
+        centre={regionActive?.centre ?? null}
+        parcelles={parcelles}
+        zoneGeometrie={zoneGeometrie}
+        regionBounds={regionBounds}
+        boundsNational={boundsNational}
+      />
       <BoutonRechercherZone parcelles={parcelles} onRechercherZone={onRechercherZone} />
 
       {/* Les 12 limites régionales, toujours affichées (P0-03) — cliquer
           sur une région filtre le catalogue exactement comme le sélecteur
           de la barre latérale (même patchFiltres({ region }) côté appelant,
           cf. app/parcelles/page.tsx). */}
-      <LimitesRegions limites={limites} codeActif={regionActive?.code ?? null} onSelectionner={onSelectionnerRegion} />
+      <LimitesRegions
+        limites={limites}
+        codeActif={regionActive?.code ?? null}
+        onSelectionner={onSelectionnerRegion}
+        surSatellite={vue === "satellite"}
+      />
 
       {/* Regroupement en bulles chiffrées dès que plusieurs parcelles sont
           proches (audit cartographie du 19/08) — même réglage que la

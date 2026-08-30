@@ -1,20 +1,9 @@
 import Link from "next/link";
-import { getParcelles } from "@/data/parcelles";
+import { getParcelles, getRegions } from "@/data/parcelles";
 import { Reveal } from "@/components/Reveal";
 import CouvertureSection from "@/components/home/CouvertureSection";
 import SelectionTerrainsSlider from "@/components/home/SelectionTerrainsSlider";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
-
-// cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés. Sert
-// uniquement au <select> du formulaire de recherche du Hero ci-dessous
-// (aucune interactivité region→carte ici, cf. CouvertureSection pour ça).
-const REGIONS = [
-  { code: "casablanca-settat", nom: "Casablanca-Settat" },
-  { code: "fes-meknes", nom: "Fès-Meknès" },
-  { code: "souss-massa", nom: "Souss-Massa" },
-  { code: "rabat-sale-kenitra", nom: "Rabat-Salé-Kénitra" },
-  { code: "oriental", nom: "Oriental" },
-];
 
 const CONFIANCE = [
   { icone: Shield, titre: "Statut foncier déclaré", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — informations déclarées par le vendeur sur chaque annonce." },
@@ -33,7 +22,19 @@ export default async function Home() {
   // (app/parcelles/[slug]/page.tsx) — page_size au max autorisé par le
   // contrat (§4.2), aucun flux de données spécifique à la Home. `count` est
   // le vrai total serveur (peut dépasser 50), jamais recalculé côté client.
-  const { results: parcelles, count: totalCount } = await getParcelles({ page_size: 50 });
+  // `ordering: "-date_publication"` (finalisation §3) — déjà garanti par
+  // Meta.ordering côté modèle (annonces/models.py, audit du 2026-07-30) même
+  // sans ce paramètre, mais explicite ici pour la même raison de clarté que
+  // app/carte/page.tsx : cet échantillon alimente à la fois
+  // SelectionTerrainsSlider ("dernières annonces") et CouvertureSection.
+  // `getRegions()` (référentiel des 12 régions officielles, même source que
+  // FiltresSidebar/CouvertureSection) alimente le <select> du formulaire de
+  // recherche du Hero ci-dessous — remplace l'ancienne liste de 5 régions
+  // codée en dur ici (incomplète, désynchronisée du vrai référentiel).
+  const [{ results: parcelles, count: totalCount }, regions] = await Promise.all([
+    getParcelles({ page_size: 50, ordering: "-date_publication" }),
+    getRegions(),
+  ]);
 
   return (
     <div>
@@ -105,7 +106,7 @@ export default async function Home() {
               <span className="sr-only">Région</span>
               <select name="region" className="select-chevron akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} defaultValue="">
                 <option value="">Région</option>
-                {REGIONS.map((r) => (
+                {regions.map((r) => (
                   <option key={r.code} value={r.code}>{r.nom}</option>
                 ))}
               </select>
