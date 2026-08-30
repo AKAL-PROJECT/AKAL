@@ -28,6 +28,7 @@ import CarteParcelles from "@/components/parcelles/CarteParcelles";
 import type { RegionActive } from "@/components/parcelles/CarteRegions";
 import { Grid, Map, Filter } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
+import { BanniereDemo } from "@/components/BanniereDemo";
 
 // Auto-fill avec un seuil de 300px : ≈3 colonnes sur un desktop courant
 // (sidebar + gap déduits), 1 colonne sous ~620px — équivalent explicite au
@@ -347,6 +348,10 @@ function Catalogue() {
             Phase 3) : la navigation par titres au clavier/lecteur d'écran
             n'avait aucun repère pour cet écran. */}
         <h1 style={{ fontSize: "22px", margin: "0 0 16px" }}>Explorer les parcelles</h1>
+
+        <div style={{ marginBottom: "16px" }}>
+          <BanniereDemo />
+        </div>
 
         {/* Barre de contrôle */}
         <div

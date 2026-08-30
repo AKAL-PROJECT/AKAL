@@ -13,7 +13,6 @@ import type {
   AccesEau,
   AnnonceProprietaire,
   Parcelle,
-  ScoreCourant,
   StatutAnnonce,
   StatutFoncier,
   Topographie,
@@ -59,17 +58,9 @@ type ParcelleDetailDTO = Omit<ParcelleListDTO, "localisation"> & {
   commune?: string | null;
 };
 
-// Liste : allégé à score_global seul (§4.4).
-type ScoreCourantListDTO = {
-  score_global: number;
-} | null;
-
-// Détail : objet complet.
-type ScoreCourantDetailDTO = {
-  score_global: number;
-  sous_scores: Record<string, number>;
-  version_ponderation: string;
-} | null;
+// AgriScore — RETIRÉ de l'API publique le 2026-08-30 (cf. types/parcelle.ts,
+// backend annonces/serializers.py). Plus de `score_courant` dans aucun DTO ;
+// `scoreCourant` est mappé en dur à `null`.
 
 export type AnnonceListDTO = {
   id: string;
@@ -78,7 +69,6 @@ export type AnnonceListDTO = {
   prix_mad: number;
   statut: StatutAnnonce;
   parcelle: ParcelleListDTO;
-  score_courant: ScoreCourantListDTO;
   photo_principale: string | null;
   created_at: string;
 };
@@ -98,16 +88,17 @@ export type AnnonceDetailDTO = {
   statut: StatutAnnonce;
   date_publication: string | null;
   parcelle: ParcelleDetailDTO;
-  score_courant: ScoreCourantDetailDTO;
   photos: PhotoDTO[]; // toujours triées par ordre croissant, [] si vide
   proprietaire: { id: string; telephone_masque: string | null }; // anonymisé - RGPD/loi 09-08, §4.5
-  // Lien https://wa.me/... déjà entièrement construit par le back (numéro +
-  // message prérempli dans l'URL), ou null si le propriétaire n'a pas de
-  // numéro exploitable — JAMAIS le numéro seul (cf. annonces/serializers.py,
-  // get_whatsapp_lien()). Optionnel (pas seulement nullable) : la fixture de
-  // test mapAnnonceToParcelle.test.ts est un JSON verbatim du contrat v1.2
-  // §4.4, gelé, antérieur à ce champ.
-  whatsapp_lien?: string | null;
+  // Booléen : le vendeur a-t-il un numéro exploitable ? Le lien wa.me lui-même
+  // (qui contient le numéro) s'obtient via GET /api/annonces/<id>/whatsapp/,
+  // authentifié — jamais dans ce DTO public (hardening 2026-08-30). Optionnel
+  // (pas seulement nullable) : la fixture de test mapAnnonceToParcelle.test.ts
+  // en tient compte.
+  whatsapp_disponible?: boolean;
+  // L'emplacement exact est-il masqué ? Si true, la localisation renvoyée ici
+  // est déjà floutée côté serveur pour un lecteur non-propriétaire.
+  loc_confidentielle?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -134,15 +125,6 @@ function calculerPrixM2(prix: number, surfaceHa: number): number {
   // parcelles très proches sous 1 MAD/m².
   const surfaceM2 = surfaceHa * 10_000;
   return surfaceM2 > 0 ? prix / surfaceM2 : 0;
-}
-
-function mapScoreCourant(dto: ScoreCourantListDTO | ScoreCourantDetailDTO): ScoreCourant | null {
-  if (dto == null) return null;
-  return {
-    scoreGlobal: dto.score_global,
-    sousScores: "sous_scores" in dto ? dto.sous_scores : null,
-    versionPonderation: "version_ponderation" in dto ? dto.version_ponderation : null,
-  };
 }
 
 // Réponse de GET /api/annonces/ (un élément de `results[]`).
@@ -185,7 +167,7 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       adresseApproximative: null, // absent en liste
       contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
-    scoreCourant: mapScoreCourant(dto.score_courant),
+    scoreCourant: null, // AgriScore retiré de l'API publique (cf. haut du fichier)
     photoPrincipale: dto.photo_principale,
     photos: [],
   };
@@ -239,7 +221,7 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       adresseApproximative: dto.parcelle.localisation.adresse_approximative,
       contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
-    scoreCourant: mapScoreCourant(dto.score_courant),
+    scoreCourant: null, // AgriScore retiré de l'API publique (cf. haut du fichier)
     // photos toujours triées par ordre croissant côté API (§4.4) ; ordre 0 = principale.
     photoPrincipale: dto.photos[0]?.url ?? null,
     photos: dto.photos.map((p) => p.url),
@@ -247,6 +229,7 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       id: dto.proprietaire.id,
       telephoneMasque: dto.proprietaire.telephone_masque,
     },
-    whatsappLien: dto.whatsapp_lien ?? null,
+    whatsappDisponible: dto.whatsapp_disponible ?? false,
+    locConfidentielle: dto.loc_confidentielle ?? false,
   };
 }

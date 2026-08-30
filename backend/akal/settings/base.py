@@ -263,6 +263,11 @@ REST_FRAMEWORK = {
         'annonce_create': '20/hour',
         'photo_upload': '30/hour',
         'message': '40/hour',
+        # Lien WhatsApp (WhatsAppLienAPIView, hardening 2026-08-30) — chaque
+        # appel révèle un numéro de vendeur (dans l'URL wa.me). Authentifié
+        # déjà, mais scope dédié pour qu'un compte ne puisse pas énumérer
+        # tous les numéros du catalogue en boucle.
+        'whatsapp': '60/hour',
     },
 }
 

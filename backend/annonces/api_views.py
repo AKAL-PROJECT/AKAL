@@ -33,9 +33,12 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
       d'annonces déjà en_ligne reste hors périmètre F03.
 """
 
+from urllib.parse import quote
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import F, Q, Sum
+from django.db.models import F, Q
+from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as dj_filters
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -57,13 +60,16 @@ from messaging.models import Conversation, Favori, Message
 # compter), aucune dépendance de geo vers annonces en retour.
 from geo.models import RegionOfficielle
 
-from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee
 from .serializers import (
     AnnonceListSerializer,
     AnnonceDetailSerializer,
     AnnonceEcritureSerializer,
     MesStatistiquesSerializer,
     RechercheSauvegardeeSerializer,
+    WhatsAppLienSerializer,
+    _message_whatsapp,
+    _numero_whatsapp,
 )
 
 
@@ -290,7 +296,6 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
             .en_ligne()
             .dataset_actif()
             .with_relations()
-            .prefetch_related('parcelle__scores')
         )
 
     def perform_create(self, serializer):
@@ -374,7 +379,6 @@ class AnnonceDetailAPIView(generics.RetrieveAPIView):
             .en_ligne()
             .dataset_actif()
             .with_relations()
-            .prefetch_related('parcelle__scores')
         )
 
 
@@ -399,7 +403,6 @@ class MesAnnoncesListAPIView(generics.ListAPIView):
             Annonce.objects
             .filter(proprietaire=self.request.user)
             .with_relations()
-            .prefetch_related('parcelle__scores')
         )
 
 
@@ -408,15 +411,14 @@ class MesStatistiquesAPIView(APIView):
     GET /api/annonces/mes-annonces/statistiques/
 
     Statistiques du dashboard propriétaire — favoris reçus, conversations
-    reçues, messages non lus, vues totales. Volontairement PAS de décompte
-    par statut d'annonce ici (brouillon/en_ligne/archivee/vendue) : cette
-    donnée est déjà entièrement dérivable côté front depuis la réponse de
+    reçues, messages non lus. Volontairement PAS de décompte par statut
+    d'annonce ici (brouillon/en_ligne/archivee/vendue) : cette donnée est
+    déjà entièrement dérivable côté front depuis la réponse de
     GET /mes-annonces/ (liste déjà chargée par le dashboard, cf.
     compte/annonces/page.tsx::calculerKpis() côté front) — la dupliquer
-    serait un aller-retour réseau pour rien (revérifié le 2026-08-10 avant
-    l'ajout de vues_totales ci-dessous : toujours vrai, décision reconduite).
+    serait un aller-retour réseau pour rien.
 
-    5 requêtes simples, toutes indexées sur une FK (annonce/proprietaire,
+    3 requêtes simples, toutes indexées sur une FK (annonce/proprietaire,
     conversation) — pas de N+1, pas de préchargement nécessaire :
         - favoris_recus : Favori posés par d'autres sur les annonces de
           l'utilisateur (sens inverse de GET /api/favoris/).
@@ -427,15 +429,11 @@ class MesStatistiquesAPIView(APIView):
         - messages_non_lus : Message non lus dans ces conversations, jamais
           les messages de l'utilisateur lui-même (même filtre que
           ConversationListSerializer.get_messages_non_lus(), en agrégat).
-        - vues_totales : somme de StatistiqueAnnonce.vues sur toutes les
-          annonces de l'utilisateur. Ajout du 2026-08-10 — donnée réellement
-          nouvelle (pas dérivable de GET /mes-annonces/, contrairement au
-          décompte par statut ci-dessus) : StatistiqueAnnonce existe déjà en
-          base (modèle + admin) mais n'est encore incrémenté nulle part dans
-          le code — vaut donc 0 pour tout le monde tant qu'un mécanisme de
-          comptage de vues n'est pas construit ailleurs. Champ ajouté par
-          anticipation (forward-compatible), pas parce qu'il affiche déjà
-          une valeur utile aujourd'hui.
+
+    `vues_totales` RETIRÉ le 2026-08-30 (hardening pré-soutenance) : rien
+    n'incrémente StatistiqueAnnonce, le champ valait 0 pour tout le monde —
+    un compteur toujours nul est trompeur. Il reviendra avec un vrai
+    comptage de vues (le modèle StatistiqueAnnonce reste en base).
     """
 
     permission_classes = [IsAuthenticated]
@@ -457,15 +455,11 @@ class MesStatistiquesAPIView(APIView):
             conversation__annonce__proprietaire=request.user,
             is_lu=False,
         ).exclude(auteur=request.user).count()
-        vues_totales = StatistiqueAnnonce.objects.filter(
-            annonce__proprietaire=request.user,
-        ).aggregate(total=Sum('vues'))['total'] or 0
 
         serializer = MesStatistiquesSerializer({
             'favoris_recus': favoris_recus,
             'conversations_recues': conversations_recues,
             'messages_non_lus': messages_non_lus,
-            'vues_totales': vues_totales,
         })
         return Response(serializer.data)
 
@@ -723,3 +717,46 @@ class PhotoDeleteAPIView(generics.DestroyAPIView):
             Photo.objects.filter(
                 annonce_id=annonce_id, ordre__gt=ordre_supprime,
             ).update(ordre=F('ordre') - 1)
+
+
+# ──────────────────────────────────────────────
+# Lien WhatsApp — action authentifiée (hardening pré-soutenance, 2026-08-30)
+# ──────────────────────────────────────────────
+
+class WhatsAppLienAPIView(APIView):
+    """
+    GET /api/annonces/<uuid:pk>/whatsapp/
+
+    Retourne { "whatsapp_lien": "https://wa.me/<num>?text=..." } ou
+    { "whatsapp_lien": null } si le vendeur n'a pas de numéro exploitable.
+
+    Le lien contient le numéro du vendeur en clair (dans l'URL wa.me, seul
+    usage sanctionné du numéro — cf. _numero_whatsapp, serializers.py). Il
+    n'est donc plus dans le DTO public anonyme (AnnonceDetailSerializer, qui
+    n'expose plus qu'un booléen `whatsapp_disponible`) : le laisser sur la
+    fiche publique permettait de collecter tous les numéros de vendeurs via
+    GET /api/annonces/. Ici : authentification requise + scope de throttle
+    dédié 'whatsapp', pour qu'obtenir un numéro reste un geste ponctuel et
+    traçable, jamais un scraping de masse.
+
+    404 (pas 403) si l'annonce n'est pas publiquement visible (brouillon,
+    hors dataset actif) — même portée que la fiche publique AnnonceDetailAPIView.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [UserRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'whatsapp'
+    # Indice de schéma pour drf-spectacular (jamais instancié) — même motif
+    # que MesStatistiquesAPIView.
+    serializer_class = WhatsAppLienSerializer
+
+    def get(self, request, pk):
+        annonce = get_object_or_404(
+            Annonce.objects.en_ligne().dataset_actif().select_related('parcelle', 'proprietaire'),
+            pk=pk,
+        )
+        numero = _numero_whatsapp(getattr(annonce.proprietaire, 'telephone', None))
+        if not numero:
+            return Response({'whatsapp_lien': None})
+        lien = f"https://wa.me/{numero}?text={quote(_message_whatsapp(annonce))}"
+        return Response({'whatsapp_lien': lien})

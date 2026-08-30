@@ -6,6 +6,7 @@ Routes API REST (DRF) de l'app annonces.
     /api/annonces/mes-annonces/                       → GET toutes les annonces du propriétaire connecté, tous statuts (dashboard)
     /api/annonces/mes-annonces/statistiques/          → GET favoris/conversations reçus, messages non lus (dashboard)
     /api/annonces/<uuid:pk>/                          → GET/PATCH brouillon par son propriétaire (F03)
+    /api/annonces/<uuid:pk>/whatsapp/                 → GET lien wa.me (authentifié + throttlé) — le numéro n'est plus dans le DTO public
     /api/annonces/<uuid:annonce_id>/photos/<uuid:photo_id>/ → DELETE d'une photo de brouillon (F03)
     /api/annonces/<slug>/                             → GET détail complet (public, en_ligne)
 
@@ -32,6 +33,7 @@ from .api_views import (
     PhotoDeleteAPIView,
     RechercheSauvegardeeDetailAPIView,
     RechercheSauvegardeeListCreateAPIView,
+    WhatsAppLienAPIView,
 )
 
 app_name = 'annonces-api'
@@ -49,6 +51,7 @@ urlpatterns = [
     path('recherches-sauvegardees/', RechercheSauvegardeeListCreateAPIView.as_view(), name='recherches-sauvegardees-list'),
     path('recherches-sauvegardees/<uuid:pk>/', RechercheSauvegardeeDetailAPIView.as_view(), name='recherches-sauvegardees-detail'),
     path('<uuid:pk>/', AnnonceUpdateAPIView.as_view(), name='update'),
+    path('<uuid:pk>/whatsapp/', WhatsAppLienAPIView.as_view(), name='whatsapp'),
     path('<uuid:annonce_id>/photos/<uuid:photo_id>/', PhotoDeleteAPIView.as_view(), name='photo-delete'),
     path('<slug:slug>/', AnnonceDetailAPIView.as_view(), name='detail'),
 ]

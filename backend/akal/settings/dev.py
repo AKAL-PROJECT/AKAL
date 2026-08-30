@@ -30,8 +30,15 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 # fiche. 'all' montre les deux jeux à la fois (cf. SOURCES_PAR_DATASET,
 # annonces/managers.py) ; reste surchargeable via .env/variable d'env pour
 # revenir ponctuellement à 'simulated' ou 'scraped' seul en local.
+# 2026-08-30 (hardening pre-soutenance) : defaut local ramene de 'all' a
+# 'simulated' — la demo ne doit jamais afficher de contenu scrape (photos et
+# textes tiers, geoloc au centroide de commune, comptes bot). 'simulated'
+# montre quand meme toute annonce publiee localement via /publier
+# (source='interne') ; seul l'echantillon scrape est masque. Pour le voir en
+# local : `AKAL_DATASET=all ./manage.py runserver`. prod.py fige la meme
+# valeur en dur, non surchargeable.
 if 'test' not in sys.argv:
-    AKAL_DATASET = env('AKAL_DATASET', default='all')
+    AKAL_DATASET = env('AKAL_DATASET', default='simulated')
 
 # En dÃ©veloppement, autoriser toutes les origines CORS
 CORS_ALLOW_ALL_ORIGINS = True

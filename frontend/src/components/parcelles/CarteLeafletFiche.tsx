@@ -1,42 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { MapContainer, Circle, TileLayer } from "react-leaflet";
+import { MapContainer, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Parcelle } from "@/types/parcelle";
 import TuileOSM from "@/components/TuileOSM";
-import { Map as MapIcon } from "@/components/icons/Icons";
+import { TuileSatellite, BasculeFondCarte, type VueFond } from "./FondCarte";
 
 // Rayon affiché en mètres — masque la position exacte tout en situant la zone.
 const RAYON_M = 500;
 
-// Imagerie satellite — vue par défaut de cette carte (audit fiche du 19/08) :
-// une parcelle agricole se juge d'abord au terrain réel (état de la
-// végétation, accès, relief visible), que seule une vue satellite montre —
-// contrairement au style Positron (CartoCDN) utilisé ailleurs sur le site
-// (TuileOSM, cf. audit cartographie précédent), pensé pour un fond de carte
-// décoratif/de navigation, pas pour juger un terrain. Esri World Imagery :
-// gratuit, sans clé API, même contrainte que CartoDB Positron. Attribution
-// dédiée (Esri/Maxar/Earthstar — pas la même chaîne qu'OSM/CARTO).
-//
-// Ordre {z}/{y}/{x} — PAS {z}/{x}/{y} comme la plupart des serveurs de
-// tuiles (dont TuileOSM/CartoDB) : particularité connue des services REST
-// ArcGIS Online, à ne pas "corriger" par erreur.
-function TuileSatellite() {
-  return (
-    <TileLayer
-      attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
-      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-      maxZoom={19}
-    />
-  );
-}
-
-type Vue = "satellite" | "plan";
-
+// TuileSatellite/BasculeFondCarte extraits dans FondCarte.tsx (finalisation
+// §1.3) — réutilisés tels quels sur les cartes de navigation (catalogue,
+// carte plein écran, couverture Home). Satellite reste la vue par défaut
+// ICI (audit fiche du 19/08) : une parcelle agricole se juge d'abord au
+// terrain réel (état de la végétation, accès, relief visible), que seule
+// une vue satellite montre.
 export default function CarteLeafletFiche({ parcelle }: { parcelle: Parcelle }) {
   const { latitude, longitude } = parcelle.parcelle;
-  const [vue, setVue] = useState<Vue>("satellite");
+  const [vue, setVue] = useState<VueFond>("satellite");
+  // Depuis le hardening du 2026-08-30, la latitude/longitude reçue ici est
+  // DÉJÀ floutée côté serveur (~1 km, déterministe) quand loc_confidentielle
+  // est activé — la mention ci-dessous n'est donc plus trompeuse. Sinon,
+  // c'est l'emplacement indiqué par le vendeur (le cercle reste une zone
+  // visuelle, pas un point cadastral).
+  const confidentielle = parcelle.locConfidentielle ?? false;
 
   if (latitude == null || longitude == null) {
     return (
@@ -91,54 +79,7 @@ export default function CarteLeafletFiche({ parcelle }: { parcelle: Parcelle }) 
         />
       </MapContainer>
 
-      {/* Bascule Satellite / Plan — pastille flottante en haut à droite,
-          même langage visuel que les contrôles flottants de /carte
-          (app/carte/page.tsx). Deux boutons plutôt qu'un simple interrupteur
-          : l'état actif doit rester lisible d'un coup d'œil sans avoir à
-          interpréter la position d'un curseur. */}
-      <div
-        role="group"
-        aria-label="Fond de carte"
-        style={{
-          position: "absolute",
-          top: "12px",
-          right: "12px",
-          zIndex: 1000,
-          display: "flex",
-          gap: "2px",
-          padding: "3px",
-          backgroundColor: "white",
-          borderRadius: "var(--radius-full)",
-          boxShadow: "0 2px 8px rgba(27,58,45,0.18)",
-        }}
-      >
-        {(["satellite", "plan"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setVue(v)}
-            aria-pressed={vue === v}
-            className="akal-focusable"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              padding: "6px 12px",
-              borderRadius: "var(--radius-full)",
-              border: "none",
-              backgroundColor: vue === v ? "var(--color-foret)" : "transparent",
-              color: vue === v ? "white" : "var(--color-secondaire)",
-              fontSize: "12px",
-              fontWeight: 500,
-              cursor: "pointer",
-              transition: "background-color 150ms ease, color 150ms ease",
-            }}
-          >
-            <MapIcon size={12} />
-            {v === "satellite" ? "Satellite" : "Plan"}
-          </button>
-        ))}
-      </div>
+      <BasculeFondCarte vue={vue} onChange={setVue} />
 
       {/* Bandeau confidentialité — au-dessus de la carte via z-index Leaflet > 400 */}
       <div
@@ -163,8 +104,17 @@ export default function CarteLeafletFiche({ parcelle }: { parcelle: Parcelle }) 
       >
         <span style={{ fontSize: "14px", flexShrink: 0 }}>&#128274;</span>
         <span>
-          <strong style={{ color: "var(--color-texte)" }}>Localisation approximative</strong>
-          {" "}— la position exacte de la parcelle peut être communiquée directement par le vendeur après contact.
+          {confidentielle ? (
+            <>
+              <strong style={{ color: "var(--color-texte)" }}>Localisation approximative</strong>
+              {" "}— le vendeur a choisi de masquer l&apos;emplacement exact&nbsp;; il pourra vous le communiquer après contact.
+            </>
+          ) : (
+            <>
+              <strong style={{ color: "var(--color-texte)" }}>Emplacement indiqué par le vendeur</strong>
+              {" "}— zone approximative, à confirmer avec lui avant toute visite.
+            </>
+          )}
         </span>
       </div>
     </div>

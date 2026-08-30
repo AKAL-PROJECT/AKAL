@@ -14,8 +14,6 @@ Sous-serializers :
     - ProprietaireSerializer     → {id} (UUID uniquement, RGPD loi 09-08)
 """
 
-from urllib.parse import quote
-
 # pyrefly: ignore [missing-import]
 from django.contrib.gis.geos import Point, Polygon
 from django.db import transaction
@@ -23,7 +21,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from . import transitions
-from .models import Annonce, AgriScore, DonneesGeo, Parcelle, Photo, RechercheSauvegardee
+from .models import Annonce, DonneesGeo, Parcelle, Photo, RechercheSauvegardee
 
 # Sentinelle distincte de `None` : `_appliquer_parcelle` doit pouvoir
 # distinguer "le client n'a pas touché au champ `contour`" (ne rien changer)
@@ -55,20 +53,21 @@ class PhotoSerializer(serializers.ModelSerializer):
         return None
 
 
-class AgriScoreListSerializer(serializers.ModelSerializer):
-    """AgriScore allégé pour la vue liste — score_global uniquement."""
-
-    class Meta:
-        model = AgriScore
-        fields = ['score_global']
-
-
-class AgriScoreDetailSerializer(serializers.ModelSerializer):
-    """AgriScore complet pour la vue détail."""
-
-    class Meta:
-        model = AgriScore
-        fields = ['score_global', 'sous_scores', 'indice_confiance', 'version_ponderation', 'calculated_at']
+# AgriScore — RETIRÉ de l'API publique (hardening pré-soutenance, 2026-08-30).
+#
+# Le modèle AgriScore (annonces/models.py) et le composant front ScoreBar
+# restent en place, dormants (feature flag AGRISCORE_ACTIF=false côté front) :
+# la fonctionnalité reviendra quand un vrai moteur de calcul existera. En
+# attendant, les seules valeurs jamais produites étaient des random.uniform()
+# de seed — jamais un résultat calculé. Les exposer (même masquées dans l'UI)
+# via `score_courant` / `indice_confiance` / `version_ponderation` sur
+# GET /api/annonces/ et /api/annonces/<slug>/ revenait à présenter du hasard
+# comme une mesure. Les serializers AgriScoreListSerializer /
+# AgriScoreDetailSerializer et les SerializerMethodField `score_courant` ont
+# donc été supprimés d'AnnonceListSerializer / AnnonceDetailSerializer — pas
+# remplacés par un faux score constant, simplement absents du contrat public.
+# Réactivation : recréer un serializer nourri par un calcul réel, jamais par
+# un tirage aléatoire ni une constante.
 
 
 class RegionNestedSerializer(serializers.Serializer):
@@ -190,14 +189,20 @@ class ParcelleDetailSerializer(serializers.ModelSerializer):
 
 
 # ──────────────────────────────────────────────
-# Contact WhatsApp (MVP) — voir get_whatsapp_lien() sur AnnonceDetailSerializer.
+# Contact WhatsApp (MVP) — le LIEN wa.me n'est plus dans le DTO public.
 #
-# Ne JAMAIS exposer le numéro brut comme un champ à part : la seule sortie
-# possible est un lien https://wa.me/... déjà entièrement construit
-# (numéro + message préremplis dans l'URL, mécanisme officiel WhatsApp),
-# jamais un champ "numero_whatsapp" séparé — même contrainte RGPD que
-# ProprietaireSerializer.telephone_masque juste en dessous, qui reste
-# inchangé et continue de ne jamais renvoyer le numéro en clair.
+# Hardening pré-soutenance (2026-08-30) : `whatsapp_lien` a été retiré
+# d'AnnonceDetailSerializer. Le lien wa.me contient le numéro du vendeur en
+# clair dans l'URL — le laisser sur la fiche publique anonyme permettait de
+# collecter en masse tous les numéros de vendeurs via GET /api/annonces/.
+# Le lien est désormais servi par une action authentifiée et throttlée :
+# GET /api/annonces/<uuid>/whatsapp/ (WhatsAppLienAPIView, annonces/api_views.py),
+# qui réutilise _numero_whatsapp() / _message_whatsapp() ci-dessous.
+#
+# Le DTO public ne porte plus qu'un booléen `whatsapp_disponible`
+# (get_whatsapp_disponible sur AnnonceDetailSerializer) — « ce vendeur a un
+# numéro exploitable », jamais le numéro ni un lien construit dessus. Même
+# contrainte RGPD que ProprietaireSerializer.telephone_masque, inchangé.
 # ──────────────────────────────────────────────
 
 def _numero_whatsapp(telephone):
@@ -280,6 +285,86 @@ class ProprietaireSerializer(serializers.Serializer):
 
 
 # ──────────────────────────────────────────────
+# Confidentialité de la localisation (loc_confidentielle)
+# ──────────────────────────────────────────────
+#
+# Hardening pré-soutenance (2026-08-30) : `Annonce.loc_confidentielle` était
+# stocké et exposé mais AUCUN code ne l'appliquait — ParcelleDetail/List
+# Serializer renvoyaient toujours la latitude/longitude exactes, et la fiche
+# affichait « Localisation approximative » par-dessus une position exacte
+# (un simple curl donnait le vrai point).
+#
+# Politique retenue :
+#   - loc_confidentielle = True  → l'API publique (visiteur anonyme ou tout
+#     utilisateur qui n'est PAS le propriétaire) reçoit une position FLOUTÉE
+#     de façon déterministe (décalage fixe + arrondi, rayon ~1 km) ; jamais
+#     `geom` ni `contour` (déjà absents des serializers publics — inchangé).
+#   - loc_confidentielle = False → coordonnées exactes (le vendeur a
+#     explicitement choisi d'afficher l'emplacement).
+#   - propriétaire connecté regardant SA propre annonce → toujours exact.
+#
+# Déterministe (graine = parcelle_id) : la même parcelle garde la même
+# position approximative d'une requête à l'autre — impossible de moyenner
+# plusieurs réponses pour retrouver le vrai point.
+#
+# Limite connue (documentée, non corrigée ici) : AnnonceAPIFilter filtre la
+# bbox carte sur `parcelle__latitude`/`longitude` EXACTES en SQL — une
+# recherche dichotomique par bbox resserrée reste théoriquement possible sur
+# une annonce confidentielle. Correctif futur : colonnes lat/lng arrondies
+# dédiées, ou exclusion des annonces confidentielles du filtre bbox précis.
+
+import hashlib  # noqa: E402
+
+# ~0.009° ≈ 1 km en latitude ; à la latitude du Maroc (~31°N) ~0.010° en
+# longitude. On prend 0.008° comme rayon de décalage : le vrai point reste
+# à moins de ~1,1 km du point flouté, jamais récupérable par arrondi inverse.
+_RAYON_FLOU_DEG = 0.008
+
+
+def _flouter_position(latitude, longitude, graine):
+    """
+    Décale (latitude, longitude) d'un vecteur déterministe dérivé de `graine`
+    (parcelle_id) puis arrondit à 3 décimales (~100 m). Retourne le couple
+    inchangé si l'une des deux valeurs est None (brouillon non localisé).
+    """
+    if latitude is None or longitude is None:
+        return latitude, longitude
+    digest = hashlib.sha256(str(graine).encode()).digest()
+    # Deux fractions déterministes dans [-1, 1[
+    dx = (int.from_bytes(digest[0:4], 'big') / 2 ** 32) * 2 - 1
+    dy = (int.from_bytes(digest[4:8], 'big') / 2 ** 32) * 2 - 1
+    return (
+        round(latitude + dy * _RAYON_FLOU_DEG, 3),
+        round(longitude + dx * _RAYON_FLOU_DEG, 3),
+    )
+
+
+def _est_le_proprietaire(annonce, request):
+    """Vrai si `request` porte une session authentifiée qui est le propriétaire
+    de `annonce` — seul cas où l'API publique renvoie la position exacte d'une
+    annonce confidentielle."""
+    user = getattr(request, 'user', None)
+    return bool(user and user.is_authenticated and annonce.proprietaire_id == user.id)
+
+
+def _appliquer_confidentialite_localisation(data, annonce, request):
+    """
+    Mute `data['parcelle']['localisation']` en place : si l'annonce est
+    confidentielle et que le lecteur n'est pas son propriétaire, remplace
+    latitude/longitude par leur version floutée déterministe. `data` est le
+    dict déjà produit par le serializer (list ou détail).
+    """
+    if not annonce.loc_confidentielle or _est_le_proprietaire(annonce, request):
+        return
+    loc = (data.get('parcelle') or {}).get('localisation')
+    if not loc or loc.get('latitude') is None:
+        return
+    lat, lng = _flouter_position(loc['latitude'], loc['longitude'], annonce.parcelle_id)
+    loc['latitude'] = lat
+    loc['longitude'] = lng
+
+
+# ──────────────────────────────────────────────
 # Serializers principaux
 # ──────────────────────────────────────────────
 
@@ -292,26 +377,34 @@ class AnnonceListSerializer(serializers.ModelSerializer):
         - Prix : prix_mad
         - Statut : statut
         - Média : photo_principale (URL de la photo ordre=0 ou null)
-        - Score : score_courant (score_global seul ou null)
         - Date : created_at
 
     Sous-objet parcelle :
         - id, surface_ha, statut_foncier, acces_eau, region, localisation
 
-    Jamais DonneesGeo dans la liste.
+    Jamais DonneesGeo dans la liste. Plus d'AgriScore (`score_courant` retiré
+    le 2026-08-30, cf. bloc de commentaire en haut du fichier).
     """
 
     parcelle = ParcelleListSerializer(read_only=True)
     photo_principale = serializers.SerializerMethodField()
-    score_courant = serializers.SerializerMethodField()
 
     class Meta:
         model = Annonce
         fields = [
             'id', 'slug', 'titre', 'prix_mad', 'statut', 'source',
-            'score_courant', 'photo_principale', 'created_at',
+            'photo_principale', 'created_at',
             'parcelle',
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Floute la localisation d'une annonce confidentielle pour tout
+        # lecteur qui n'en est pas le propriétaire (cf. bloc « Confidentialité
+        # de la localisation » plus haut). Le catalogue/carte affiche alors
+        # un point approximatif stable, jamais la position exacte.
+        _appliquer_confidentialite_localisation(data, instance, self.context.get('request'))
+        return data
 
     def get_photo_principale(self, obj):
         """
@@ -330,21 +423,6 @@ class AnnonceListSerializer(serializers.ModelSerializer):
                     return photo.image.url
         return None
 
-    def get_score_courant(self, obj):
-        """
-        Retourne {score_global} du dernier AgriScore, ou null.
-
-        Utilise le prefetch_related('parcelle__scores') pour éviter N+1.
-        Sélectionne le score le plus récent par created_at (contrat §3.5) —
-        jamais calculated_at, qui est nullable et ne garantit pas l'ordre.
-        """
-        scores = obj.parcelle.scores.all()
-        if scores:
-            # Les scores sont déjà prefetchés, on trie en Python
-            latest = max(scores, key=lambda s: s.created_at)
-            return {'score_global': latest.score_global}
-        return None
-
 
 class AnnonceDetailSerializer(serializers.ModelSerializer):
     """
@@ -354,19 +432,24 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
         - description complète
         - sous-objet parcelle (données physiques + géo + localisation complète)
         - photos triées par ordre
-        - score_courant complet (score_global + sous_scores + indice_confiance)
         - informations du propriétaire (UUID uniquement, RGPD)
-        - whatsapp_lien : lien wa.me préconstruit vers le propriétaire, ou
-          null s'il n'a pas de numéro exploitable (jamais le numéro brut,
-          cf. get_whatsapp_lien() et _numero_whatsapp() ci-dessus)
+        - whatsapp_disponible : booléen « ce vendeur a un numéro exploitable ».
+          Le LIEN wa.me lui-même n'est plus ici (contenait le numéro en
+          clair) — il s'obtient via GET /api/annonces/<uuid>/whatsapp/,
+          authentifié + throttlé (WhatsAppLienAPIView).
+
+    Plus d'AgriScore : `score_courant` retiré le 2026-08-30 (cf. bloc de
+    commentaire en haut du fichier).
+
+    `loc_confidentielle=True` : la localisation renvoyée est floutée pour tout
+    lecteur non-propriétaire (cf. to_representation + bloc « Confidentialité »).
     """
 
     parcelle = ParcelleDetailSerializer(read_only=True)
     photos = PhotoSerializer(many=True, read_only=True)
-    score_courant = serializers.SerializerMethodField()
     proprietaire = ProprietaireSerializer(read_only=True)
     photo_principale = serializers.SerializerMethodField()
-    whatsapp_lien = serializers.SerializerMethodField()
+    whatsapp_disponible = serializers.SerializerMethodField()
 
     class Meta:
         model = Annonce
@@ -374,31 +457,14 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
             'id', 'slug', 'titre', 'description', 'prix_mad',
             'statut', 'loc_confidentielle', 'source',
             'date_publication', 'created_at', 'updated_at',
-            'parcelle', 'photos', 'score_courant', 'proprietaire',
-            'photo_principale', 'whatsapp_lien',
+            'parcelle', 'photos', 'proprietaire',
+            'photo_principale', 'whatsapp_disponible',
         ]
 
-    def get_whatsapp_lien(self, obj):
-        """https://wa.me/<numero>?text=<message prérempli>, ou None si le
-        propriétaire n'a pas de numéro exploitable — jamais le numéro seul."""
-        numero = _numero_whatsapp(getattr(obj.proprietaire, 'telephone', None))
-        if not numero:
-            return None
-        return f"https://wa.me/{numero}?text={quote(_message_whatsapp(obj))}"
-
-    def get_score_courant(self, obj):
-        """
-        Retourne l'AgriScore complet ou null.
-
-        Sélectionne le score le plus récent par created_at (contrat §3.5) —
-        jamais calculated_at, qui est nullable et ne garantit pas l'ordre.
-        Inclut score_global, sous_scores, indice_confiance, version_ponderation, calculated_at.
-        """
-        scores = obj.parcelle.scores.all()
-        if scores:
-            latest = max(scores, key=lambda s: s.created_at)
-            return AgriScoreDetailSerializer(latest).data
-        return None
+    def get_whatsapp_disponible(self, obj):
+        """True si le propriétaire a un numéro normalisable en lien wa.me —
+        jamais le numéro, jamais le lien (cf. WhatsAppLienAPIView)."""
+        return _numero_whatsapp(getattr(obj.proprietaire, 'telephone', None)) is not None
 
     def get_photo_principale(self, obj):
         """Retourne l'URL absolue de la photo avec ordre=0, ou null."""
@@ -411,6 +477,11 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
                 elif photo.image:
                     return photo.image.url
         return None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        _appliquer_confidentialite_localisation(data, instance, self.context.get('request'))
+        return data
 
 
 # ──────────────────────────────────────────────
@@ -694,18 +765,25 @@ class MesStatistiquesSerializer(serializers.Serializer):
                              ConversationListSerializer.get_messages_non_lus()
                              dans messaging/serializers.py, mais en agrégat
                              global plutôt que par conversation).
-    vues_totales           → somme de StatistiqueAnnonce.vues sur toutes les
-                             annonces du propriétaire. Ajout du 2026-08-10 —
-                             vaut 0 pour tout le monde tant qu'aucun
-                             mécanisme n'incrémente StatistiqueAnnonce (le
-                             modèle existe déjà, mais rien ne l'alimente
-                             encore) ; champ ajouté par anticipation.
+
+    `vues_totales` RETIRÉ le 2026-08-30 (hardening pré-soutenance) :
+    StatistiqueAnnonce n'est incrémenté nulle part, le champ valait donc 0
+    pour tout le monde — un compteur toujours nul est trompeur. Le modèle
+    StatistiqueAnnonce reste en base pour un futur comptage de vues réel ;
+    le champ reviendra quand quelque chose l'alimentera vraiment.
     """
 
     favoris_recus = serializers.IntegerField(read_only=True)
     conversations_recues = serializers.IntegerField(read_only=True)
     messages_non_lus = serializers.IntegerField(read_only=True)
-    vues_totales = serializers.IntegerField(read_only=True)
+
+
+class WhatsAppLienSerializer(serializers.Serializer):
+    """Réponse de GET /api/annonces/<uuid>/whatsapp/ (WhatsAppLienAPIView).
+    Jamais instancié par le framework — sert d'indice de schéma pour
+    drf-spectacular, même motif que MesStatistiquesSerializer ci-dessus."""
+
+    whatsapp_lien = serializers.CharField(read_only=True, allow_null=True)
 
 
 # ──────────────────────────────────────────────

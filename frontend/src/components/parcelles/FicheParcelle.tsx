@@ -11,6 +11,8 @@ import BlocCaracteristiques from "./BlocCaracteristiques";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { ContactVendeurPanel } from "@/components/messaging/ContactVendeurPanel";
+import { BanniereDemo } from "@/components/BanniereDemo";
+import { obtenirLienWhatsappAction } from "@/app/actions/whatsapp";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
 import { useComparateur } from "@/hooks/useComparateur";
 import { COMPARATEUR_MAX } from "./comparateurStorage";
@@ -86,6 +88,35 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
       setIsContactPanelOpen(true);
     } else {
       router.push(`/connexion?next=/parcelles/${a.slug}?contact=1`);
+    }
+  };
+
+  // Contact WhatsApp (hardening 2026-08-30) — le lien wa.me (qui contient le
+  // numéro du vendeur) n'est plus dans le DTO public : on le demande à la
+  // volée via une action authentifiée. `estConnecte` gate le clic côté
+  // client (même motif que « Contacter le vendeur » ci-dessus) ; l'action
+  // reste une seconde barrière côté serveur.
+  const [whatsappPending, setWhatsappPending] = useState(false);
+  const [whatsappErreur, setWhatsappErreur] = useState<string | null>(null);
+
+  const handleWhatsappClick = async () => {
+    if (!estConnecte) {
+      router.push(`/connexion?next=/parcelles/${a.slug}`);
+      return;
+    }
+    setWhatsappErreur(null);
+    setWhatsappPending(true);
+    try {
+      const lien = await obtenirLienWhatsappAction(a.id, `/parcelles/${a.slug}`);
+      if (lien) {
+        window.open(lien, "_blank", "noopener,noreferrer");
+      } else {
+        setWhatsappErreur("Le numéro WhatsApp de ce vendeur n'est pas exploitable.");
+      }
+    } catch {
+      setWhatsappErreur("Impossible d'ouvrir WhatsApp pour le moment. Réessayez.");
+    } finally {
+      setWhatsappPending(false);
     }
   };
 
@@ -168,6 +199,10 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
         <ChevronLeft size={16} />
         Retour au catalogue
       </Link>
+
+      <div style={{ marginBottom: "20px" }}>
+        <BanniereDemo compact />
+      </div>
 
       {/* ── Layout 2 colonnes ────────────────────────────────────── */}
       <div className="fiche-layout">
@@ -388,40 +423,47 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
                 Échange direct avec le vendeur, sans intermédiaire.
               </p>
 
-              {/* Contact WhatsApp (MVP) — second canal, en plus de la
-                  messagerie interne ci-dessus, jamais à sa place. Le numéro
-                  n'existe nulle part côté front : `whatsappLien` est un
-                  https://wa.me/... déjà entièrement construit par le back
-                  (cf. annonces/serializers.py::get_whatsapp_lien()), ou null
-                  si le vendeur n'a pas de numéro exploitable — dans ce cas
-                  le bouton reste visible mais désactivé, avec un message
-                  explicite, plutôt que de disparaître silencieusement. */}
-              {a.whatsappLien ? (
-                <a
-                  href={a.whatsappLien}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="akal-focusable"
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    padding: "10px",
-                    borderRadius: "var(--radius-sm)",
-                    border: "1px solid #25D366",
-                    backgroundColor: "#25D366",
-                    color: "white",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    textDecoration: "none",
-                    transition: "opacity 200ms ease",
-                  }}
-                >
-                  <WhatsAppIcon size={16} />
-                  Contacter via WhatsApp
-                </a>
+              {/* Contact WhatsApp — second canal, en plus de la messagerie
+                  interne ci-dessus. Le numéro n'existe nulle part côté front :
+                  `whatsappDisponible` dit seulement si le vendeur en a un ;
+                  le lien wa.me est demandé au clic via une action authentifiée
+                  (obtenirLienWhatsappAction → GET /api/annonces/<id>/whatsapp/).
+                  Sans numéro : bouton visible mais désactivé, message explicite,
+                  plutôt que de disparaître silencieusement. */}
+              {a.whatsappDisponible ? (
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleWhatsappClick}
+                    disabled={whatsappPending}
+                    className="akal-focusable"
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      padding: "10px",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid #25D366",
+                      backgroundColor: "#25D366",
+                      color: "white",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      cursor: whatsappPending ? "wait" : "pointer",
+                      opacity: whatsappPending ? 0.7 : 1,
+                      transition: "opacity 200ms ease",
+                    }}
+                  >
+                    <WhatsAppIcon size={16} />
+                    {whatsappPending ? "Ouverture…" : "Contacter via WhatsApp"}
+                  </button>
+                  {whatsappErreur && (
+                    <p role="alert" style={{ fontSize: "12px", color: "var(--color-terre-texte)", textAlign: "center", margin: "6px 0 0" }}>
+                      {whatsappErreur}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <div>
                   <button
@@ -584,16 +626,15 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
         >
           Contacter
         </button>
-        {/* Version compacte (icône seule) du bouton WhatsApp — même
-            `whatsappLien`/désactivation que la colonne desktop ci-dessus,
-            juste une largeur fixe plutôt que flex:1 pour laisser la priorité
-            visuelle à "Contacter" (messagerie interne) dans une barre déjà
-            à l'étroit sur mobile. */}
-        {a.whatsappLien ? (
-          <a
-            href={a.whatsappLien}
-            target="_blank"
-            rel="noopener noreferrer"
+        {/* Version compacte (icône seule) du bouton WhatsApp — même logique
+            que la colonne desktop (handleWhatsappClick), juste une largeur
+            fixe pour laisser la priorité visuelle à "Contacter" dans une
+            barre déjà à l'étroit sur mobile. */}
+        {a.whatsappDisponible ? (
+          <button
+            type="button"
+            onClick={handleWhatsappClick}
+            disabled={whatsappPending}
             aria-label="Contacter via WhatsApp"
             title="Contacter via WhatsApp"
             className="akal-focusable"
@@ -605,12 +646,15 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
               alignItems: "center",
               justifyContent: "center",
               borderRadius: "var(--radius-sm)",
+              border: "none",
               backgroundColor: "#25D366",
               color: "white",
+              cursor: whatsappPending ? "wait" : "pointer",
+              opacity: whatsappPending ? 0.7 : 1,
             }}
           >
             <WhatsAppIcon size={20} />
-          </a>
+          </button>
         ) : (
           <button
             type="button"

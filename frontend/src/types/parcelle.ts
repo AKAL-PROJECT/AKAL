@@ -76,12 +76,17 @@ export type ParcelleTerrain = {
   contour: { latitude: number; longitude: number }[] | null;
 };
 
-// AgriScore courant — nullable tant qu'aucun score n'a été calculé (§3.5).
-// `sousScores` : clés provisoires en attente de finalisation (MT4) — jamais
-// typées en dur, on itère dynamiquement sur l'objet.
+// AgriScore courant.
+//
+// 2026-08-30 (hardening pré-soutenance) : l'API PUBLIQUE n'expose plus
+// l'AgriScore — les seules valeurs jamais produites étaient des
+// random.uniform() de seed. `scoreCourant` est donc toujours `null` en
+// provenance du backend réel. Le type est conservé (dormant) : le composant
+// ScoreBar, les blocs conditionnés par AGRISCORE_ACTIF (config/features.ts)
+// et les mocks de dev (data/parcelles.ts) le référencent encore, et il
+// reviendra quand un vrai moteur de calcul existera.
 export type ScoreCourant = {
   scoreGlobal: number;
-  // Absent/vide dans la version liste (allégée à score_global seul).
   sousScores: Record<string, number> | null;
   versionPonderation: string | null;
 };
@@ -117,13 +122,18 @@ export type Parcelle = {
   createdAt: string;
   badge: string | null;
   parcelle: ParcelleTerrain;
-  scoreCourant: ScoreCourant | null;
+  scoreCourant: ScoreCourant | null; // toujours null de l'API réelle (cf. ScoreCourant)
   photoPrincipale: string | null;
   photos: string[]; // vide en liste, rempli en détail (§4.4 — trié par ordre croissant)
   proprietaire?: { id: string; telephoneMasque: string | null };
-  // Lien https://wa.me/... déjà entièrement construit côté back (numéro +
-  // message prérempli dans l'URL) — null si le propriétaire n'a pas de
-  // numéro exploitable. Absent en liste (comme proprietaire), jamais le
-  // numéro seul : voir annonces/serializers.py::get_whatsapp_lien().
-  whatsappLien?: string | null;
+  // Le vendeur a-t-il un numéro exploitable en lien WhatsApp ? Booléen
+  // uniquement — le lien wa.me (qui contient le numéro) s'obtient via une
+  // action authentifiée, GET /api/annonces/<id>/whatsapp/, jamais dans ce
+  // DTO public (hardening 2026-08-30). Absent en liste (comme proprietaire).
+  whatsappDisponible?: boolean;
+  // L'emplacement exact est-il masqué ? Si true, la latitude/longitude
+  // renvoyées par l'API sont déjà floutées côté serveur (~1 km, déterministe)
+  // pour tout visiteur non-propriétaire — cf. annonces/serializers.py.
+  // Sert seulement à adapter le libellé de la carte fiche.
+  locConfidentielle?: boolean;
 };

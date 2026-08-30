@@ -91,6 +91,9 @@ DEMO_ANNONCES = [
         'cultures': ['Blé', 'Olivier'], 'lat': 33.89, 'lon': -5.55,
         'has_agriscore': True, 'score': 82.5, 'sous_scores': {'sol': 85, 'eau': 90, 'climat': 75, 'acces': 80},
         'nb_photos': 3,
+        # Cas de démo « localisation confidentielle » : fiche/carte publiques
+        # ne montrent qu'une position floutée déterministe (cf. serializers.py).
+        'loc_confidentielle': True,
     },
     {
         'titre': 'Exploitation arboricole Haouz',
@@ -381,6 +384,7 @@ class Command(BaseCommand):
                 prix_mad=Decimal(str(data['prix'])),
                 statut='en_ligne',
                 date_publication=now,
+                loc_confidentielle=data.get('loc_confidentielle', False),
             )
 
             # AgriScore (si applicable)

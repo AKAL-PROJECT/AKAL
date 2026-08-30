@@ -9,7 +9,7 @@ import io
 
 from django.contrib import admin
 from django.contrib.auth.models import Group
-from django.contrib.gis.geos import MultiPolygon, Polygon
+from django.contrib.gis.geos import MultiPolygon, Point, Polygon
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.core.cache import cache
@@ -25,7 +25,7 @@ from messaging.models import Conversation, Favori, Message, Notification
 from . import transitions
 from .admin import publier_selection, rejeter_selection
 from .alertes import notifier_recherches_correspondantes
-from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee
 from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
 ANNONCES_URL = '/api/annonces/'
@@ -768,11 +768,14 @@ class MesAnnoncesTests(AnnoncesTestBase):
 class MesStatistiquesTests(AnnoncesTestBase):
     """
     GET /api/annonces/mes-annonces/statistiques/ — favoris/conversations
-    reçus, messages non lus, vues totales (dashboard propriétaire). Les
-    fixtures Favori/Conversation/Message/StatistiqueAnnonce sont créées
-    directement en base (comme MessagingTestBase.creer_annonce) plutôt que
-    via l'API : ce endpoint n'agrège que des compteurs, peu importe comment
-    les lignes sont nées.
+    reçus, messages non lus (dashboard propriétaire). Les fixtures
+    Favori/Conversation/Message sont créées directement en base (comme
+    MessagingTestBase.creer_annonce) plutôt que via l'API : ce endpoint
+    n'agrège que des compteurs, peu importe comment les lignes sont nées.
+
+    `vues_totales` retiré de l'API le 2026-08-30 (compteur toujours nul,
+    trompeur — cf. MesStatistiquesAPIView) : les tests de vues associés ont
+    été supprimés avec le champ.
     """
 
     def setUp(self):
@@ -814,7 +817,7 @@ class MesStatistiquesTests(AnnoncesTestBase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {
-            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0, 'vues_totales': 0,
+            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
         })
 
     def test_compte_les_favoris_recus_sur_ses_annonces(self):
@@ -884,32 +887,20 @@ class MesStatistiquesTests(AnnoncesTestBase):
         # Toute l'activité créée ci-dessus porte sur l'annonce du vendeur A,
         # pas du vendeur B connecté ici — rien ne doit lui être attribué.
         self.assertEqual(response.data, {
-            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0, 'vues_totales': 0,
+            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
         })
 
-    def test_somme_les_vues_de_toutes_ses_annonces(self):
+    def test_vues_totales_nest_plus_expose(self):
+        # Retiré le 2026-08-30 : StatistiqueAnnonce n'est incrémenté nulle
+        # part, le champ valait toujours 0 (trompeur). Le champ ne doit plus
+        # apparaître dans la réponse.
         vendeur = self.authentifier('vendeur@akal.ma')
-        annonce_a = self.creer_annonce_en_ligne(vendeur, titre='Annonce A')
-        annonce_b = self.creer_annonce_en_ligne(vendeur, titre='Annonce B')
-        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-01', vues=3)
-        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-02', vues=2)
-        StatistiqueAnnonce.objects.create(annonce=annonce_b, date='2026-08-01', vues=5)
+        self.creer_annonce_en_ligne(vendeur)
 
         response = self.statistiques()
 
-        self.assertEqual(response.data['vues_totales'], 10)
-
-    def test_n_inclut_pas_les_vues_dun_autre_proprietaire(self):
-        vendeur_a = self.authentifier('vendeur-a@akal.ma')
-        annonce_a = self.creer_annonce_en_ligne(vendeur_a)
-        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-01', vues=7)
-        self.client.logout()
-        vendeur_b = self.authentifier('vendeur-b@akal.ma')
-        self.creer_annonce_en_ligne(vendeur_b, titre='Annonce du vendeur B')
-
-        response = self.statistiques()
-
-        self.assertEqual(response.data['vues_totales'], 0)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn('vues_totales', response.data)
 
 
 # ──────────────────────────────────────────────
@@ -2045,8 +2036,13 @@ class NumeroWhatsAppTests(SimpleTestCase):
 
 
 class MessageWhatsAppTests(AnnoncesTestBase):
-    """_message_whatsapp() / get_whatsapp_lien() — nécessitent une vraie
-    Annonce+Parcelle (localisation, surface, prix) en base."""
+    """_message_whatsapp() (fonction pure) + endpoint authentifié
+    GET /api/annonces/<uuid>/whatsapp/ (WhatsAppLienAPIView).
+
+    Hardening 2026-08-30 : le lien wa.me (qui contient le numéro en clair)
+    n'est PLUS dans AnnonceDetailSerializer — le DTO public ne porte qu'un
+    booléen `whatsapp_disponible`. Le lien s'obtient via l'endpoint dédié,
+    authentifié et throttlé."""
 
     def creer_annonce(self, **overrides):
         proprietaire = overrides.pop('proprietaire', None) or User.objects.create_user(
@@ -2098,38 +2094,89 @@ class MessageWhatsAppTests(AnnoncesTestBase):
         self.assertNotIn("Localisation", message)
         self.assertNotIn("None", message)
 
-    def test_lien_whatsapp_encode_le_message_pour_lurl(self):
+    def whatsapp_url(self, annonce):
+        return f'{ANNONCES_URL}{annonce.id}/whatsapp/'
+
+    def test_endpoint_whatsapp_refuse_lanonyme(self):
         annonce = self.creer_annonce()
 
-        data = AnnonceDetailSerializer(annonce).data
-        lien = data['whatsapp_lien']
+        response = self.client.get(self.whatsapp_url(annonce))
 
+        # Un visiteur anonyme ne doit jamais pouvoir récupérer un numéro de
+        # vendeur — c'est tout l'objet du déplacement du lien hors du DTO public.
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_endpoint_whatsapp_construit_le_lien_pour_un_utilisateur_connecte(self):
+        annonce = self.creer_annonce()  # propriétaire : téléphone +212612345678
+        self.authentifier('acheteur@akal.ma')  # appelant : un autre compte, connecté
+
+        response = self.client.get(self.whatsapp_url(annonce))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        lien = response.data['whatsapp_lien']
         self.assertTrue(lien.startswith('https://wa.me/212612345678?text='))
-        # Le message contient des retours à la ligne et des espaces — un lien
-        # correctement encodé (urllib.parse.quote) ne doit jamais en laisser
-        # passer un littéral dans la query string.
+        # Message encodé pour l'URL (urllib.parse.quote) : aucun retour à la
+        # ligne ni espace littéral, accent "è" encodé %C3%A8.
         self.assertNotIn('\n', lien)
         self.assertNotIn(' ', lien)
-        # Accent correctement encodé (%C3%A8 = "è" en UTF-8) plutôt que perdu
-        # ou laissé brut (invalide dans une URL).
         self.assertIn('%C3%A8', lien)
 
-    def test_pas_de_numero_exploitable_retourne_lien_none(self):
+    def test_endpoint_whatsapp_retourne_none_si_vendeur_sans_numero(self):
         proprietaire = User.objects.create_user(
             email='sans-tel@akal.ma', password='un-mot-de-passe-solide-2026',
             nom='Z', prenom='W', telephone='',
         )
         annonce = self.creer_annonce(proprietaire=proprietaire)
+        self.authentifier('acheteur@akal.ma')
+
+        response = self.client.get(self.whatsapp_url(annonce))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data['whatsapp_lien'])
+
+    def test_endpoint_whatsapp_404_sur_annonce_non_publiee(self):
+        proprietaire = User.objects.create_user(
+            email='vendeur-brouillon@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='B', prenom='R', telephone='+212612345678',
+        )
+        annonce = self.creer_annonce(proprietaire=proprietaire, statut=Annonce.StatutAnnonce.BROUILLON)
+        self.authentifier('acheteur@akal.ma')
+
+        response = self.client.get(self.whatsapp_url(annonce))
+
+        # Même portée que la fiche publique : un brouillon n'existe pas pour
+        # un tiers → 404, jamais 403.
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_serializer_public_nexpose_ni_lien_ni_numero(self):
+        annonce = self.creer_annonce()
 
         data = AnnonceDetailSerializer(annonce).data
 
-        self.assertIsNone(data['whatsapp_lien'])
+        # Plus de champ `whatsapp_lien` (contenait le numéro dans l'URL).
+        self.assertNotIn('whatsapp_lien', data)
+        # Le numéro ne doit apparaître nulle part dans la représentation.
+        import json
+        corps = json.dumps(data, default=str)
+        self.assertNotIn('wa.me', corps)
+        self.assertNotIn(str(annonce.proprietaire.telephone).replace('+', ''), corps)
+        # Le DTO ne porte plus qu'un booléen de disponibilité.
+        self.assertIs(data['whatsapp_disponible'], True)
+
+    def test_whatsapp_disponible_false_si_vendeur_sans_numero(self):
+        proprietaire = User.objects.create_user(
+            email='no-tel@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='N', prenom='T', telephone='',
+        )
+        annonce = self.creer_annonce(proprietaire=proprietaire)
+
+        data = AnnonceDetailSerializer(annonce).data
+
+        self.assertIs(data['whatsapp_disponible'], False)
 
     def test_numero_brut_du_proprietaire_najamais_fuite_dans_le_serializer_public(self):
-        # RGPD (loi 09-08) — seul un lien wa.me déjà construit est un usage
-        # sanctionné du numéro (cf. commentaire au-dessus de _numero_whatsapp,
-        # annonces/serializers.py) ; ProprietaireSerializer ne doit exposer
-        # que l'UUID et une version masquée, jamais un champ `telephone` brut.
+        # RGPD (loi 09-08) — ProprietaireSerializer ne doit exposer que l'UUID
+        # et une version masquée, jamais un champ `telephone` brut.
         annonce = self.creer_annonce()
 
         data = AnnonceDetailSerializer(annonce).data
@@ -2139,3 +2186,174 @@ class MessageWhatsAppTests(AnnoncesTestBase):
         self.assertNotEqual(data['proprietaire']['telephone_masque'], annonce.proprietaire.telephone)
         self.assertTrue(data['proprietaire']['telephone_masque'].startswith('+212 6 '))
         self.assertIn('**', data['proprietaire']['telephone_masque'])
+
+
+# ──────────────────────────────────────────────
+# AgriScore — RETIRÉ de l'API publique (hardening 2026-08-30)
+# ──────────────────────────────────────────────
+
+class AgriScoreAbsentDeLAPITests(AnnoncesTestBase):
+    """
+    Le modèle AgriScore reste en base, mais l'API publique ne doit plus
+    exposer `score_courant` / `indice_confiance` / `version_ponderation` :
+    les seules valeurs jamais produites étaient des random.uniform() de seed,
+    pas un résultat calculé.
+    """
+
+    def _annonce_en_ligne_avec_score(self):
+        from .models import AgriScore
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, commune_geom=self.commune_geom, surface_ha=3.0,
+            statut_foncier='melkia', acces_eau='irriguee', topographie='plat',
+            acces_routier='goudron', latitude=33.5, longitude=-5.5,
+        )
+        annonce = Annonce.objects.create(
+            parcelle=parcelle,
+            proprietaire=User.objects.create_user(
+                email='v-score@akal.ma', password='un-mot-de-passe-solide-2026',
+                nom='S', prenom='C',
+            ),
+            titre='Parcelle avec score', description='Description suffisamment longue.',
+            prix_mad=200000, statut=Annonce.StatutAnnonce.EN_LIGNE,
+        )
+        AgriScore.objects.create(
+            parcelle=parcelle, score_global=87.3,
+            sous_scores={'sol': 90}, indice_confiance=0.91, version_ponderation='v1.0-seed',
+        )
+        return annonce
+
+    def test_detail_public_nexpose_aucun_champ_agriscore(self):
+        annonce = self._annonce_en_ligne_avec_score()
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for champ in ('score_courant', 'indice_confiance', 'version_ponderation'):
+            self.assertNotIn(champ, response.data)
+        import json
+        corps = json.dumps(response.data, default=str)
+        self.assertNotIn('v1.0-seed', corps)
+        self.assertNotIn('indice_confiance', corps)
+
+    def test_liste_publique_nexpose_aucun_champ_agriscore(self):
+        self._annonce_en_ligne_avec_score()
+
+        response = self.client.get(ANNONCES_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['results'])
+        for annonce_data in response.data['results']:
+            self.assertNotIn('score_courant', annonce_data)
+
+
+# ──────────────────────────────────────────────
+# Localisation confidentielle (hardening 2026-08-30)
+# ──────────────────────────────────────────────
+
+class LocalisationConfidentielleTests(AnnoncesTestBase):
+    """
+    loc_confidentielle=True → l'API publique renvoie une position FLOUTÉE
+    (déterministe, ~1 km) à tout lecteur non-propriétaire ; jamais `geom` ni
+    `contour`. loc_confidentielle=False → coordonnées exactes.
+    """
+
+    LAT_EXACTE = 33.512345
+    LNG_EXACTE = -5.487654
+
+    def _creer(self, *, confidentielle, proprietaire=None):
+        proprietaire = proprietaire or User.objects.create_user(
+            email=f'v-conf-{confidentielle}@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='C', prenom='L',
+        )
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, commune_geom=self.commune_geom, surface_ha=4.0,
+            statut_foncier='melkia', acces_eau='irriguee', topographie='plat',
+            acces_routier='goudron',
+            latitude=self.LAT_EXACTE, longitude=self.LNG_EXACTE,
+            geom=Point(self.LNG_EXACTE, self.LAT_EXACTE, srid=4326),
+        )
+        return Annonce.objects.create(
+            parcelle=parcelle, proprietaire=proprietaire,
+            titre='Parcelle confidentielle' if confidentielle else 'Parcelle ouverte',
+            description='Description suffisamment longue.', prix_mad=300000,
+            statut=Annonce.StatutAnnonce.EN_LIGNE, loc_confidentielle=confidentielle,
+        )
+
+    def test_non_confidentielle_expose_les_coordonnees_exactes(self):
+        annonce = self._creer(confidentielle=False)
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        loc = response.data['parcelle']['localisation']
+        self.assertEqual(loc['latitude'], self.LAT_EXACTE)
+        self.assertEqual(loc['longitude'], self.LNG_EXACTE)
+
+    def test_confidentielle_floute_la_position_pour_lanonyme(self):
+        from .serializers import _flouter_position
+        annonce = self._creer(confidentielle=True)
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        loc = response.data['parcelle']['localisation']
+        # Ni la latitude ni la longitude exacte ne doit sortir.
+        self.assertNotEqual(loc['latitude'], self.LAT_EXACTE)
+        self.assertNotEqual(loc['longitude'], self.LNG_EXACTE)
+        # Reste dans un rayon raisonnable (~1,5 km) du vrai point.
+        self.assertLess(abs(loc['latitude'] - self.LAT_EXACTE), 0.015)
+        self.assertLess(abs(loc['longitude'] - self.LNG_EXACTE), 0.015)
+        # Déterministe : exactement la valeur de _flouter_position(parcelle_id).
+        lat_attendue, lng_attendue = _flouter_position(
+            self.LAT_EXACTE, self.LNG_EXACTE, annonce.parcelle_id,
+        )
+        self.assertEqual(loc['latitude'], lat_attendue)
+        self.assertEqual(loc['longitude'], lng_attendue)
+
+    def test_confidentielle_position_stable_entre_deux_requetes(self):
+        annonce = self._creer(confidentielle=True)
+
+        r1 = self.client.get(f'{ANNONCES_URL}{annonce.slug}/').data['parcelle']['localisation']
+        r2 = self.client.get(f'{ANNONCES_URL}{annonce.slug}/').data['parcelle']['localisation']
+
+        self.assertEqual((r1['latitude'], r1['longitude']), (r2['latitude'], r2['longitude']))
+
+    def test_confidentielle_floutee_aussi_dans_la_liste(self):
+        annonce = self._creer(confidentielle=True)
+
+        response = self.client.get(ANNONCES_URL)
+
+        cible = next(a for a in response.data['results'] if a['id'] == str(annonce.id))
+        loc = cible['parcelle']['localisation']
+        self.assertNotEqual(loc['latitude'], self.LAT_EXACTE)
+        self.assertNotEqual(loc['longitude'], self.LNG_EXACTE)
+
+    def test_proprietaire_connecte_voit_ses_coordonnees_exactes(self):
+        proprietaire = self.authentifier('proprio-conf@akal.ma')
+        annonce = self._creer(confidentielle=True, proprietaire=proprietaire)
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        loc = response.data['parcelle']['localisation']
+        self.assertEqual(loc['latitude'], self.LAT_EXACTE)
+        self.assertEqual(loc['longitude'], self.LNG_EXACTE)
+
+    def test_autre_utilisateur_connecte_ne_voit_pas_les_coordonnees_exactes(self):
+        annonce = self._creer(confidentielle=True)
+        self.authentifier('curieux@akal.ma')  # connecté, mais pas le propriétaire
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        loc = response.data['parcelle']['localisation']
+        self.assertNotEqual(loc['latitude'], self.LAT_EXACTE)
+
+    def test_ni_geom_ni_contour_dans_la_fiche_publique(self):
+        annonce = self._creer(confidentielle=True)
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        import json
+        corps = json.dumps(response.data, default=str)
+        self.assertNotIn('geom', response.data['parcelle'])
+        self.assertNotIn('contour', response.data['parcelle'])
+        # Aucune trace de la coordonnée exacte nulle part dans le corps.
+        self.assertNotIn(str(self.LAT_EXACTE), corps)
+        self.assertNotIn(str(self.LNG_EXACTE), corps)

@@ -130,26 +130,22 @@ export type MesStatistiquesDTO = {
   favoris_recus: number;
   conversations_recues: number;
   messages_non_lus: number;
-  // Ajout du 2026-08-10 — somme des vues sur toutes les annonces du
-  // propriétaire. Vaut 0 pour tout le monde tant qu'aucun mécanisme ne
-  // compte réellement les vues côté backend (StatistiqueAnnonce existe en
-  // base mais n'est encore incrémenté nulle part) : champ typé par
-  // anticipation, pas encore affiché dans une carte KPI ici.
-  vues_totales: number;
+  // `vues_totales` retiré le 2026-08-30 : StatistiqueAnnonce n'était
+  // incrémenté nulle part, le compteur valait toujours 0 (trompeur). Le
+  // champ reviendra avec un vrai comptage de vues côté backend.
 };
 
-// Favoris/conversations reçus, messages non lus, vues totales (dashboard
-// propriétaire) — tout à 0 si non authentifié ou en cas d'échec, même
-// convention que getMesAnnonces() ci-dessus (bloc de stats non bloquant,
-// jamais de throw). Appelée uniquement par app/compte/annonces/page.tsx
-// (Server Component) : PAS de fetchWithAuth, même raison que
-// getMesAnnonces() ci-dessus.
+// Favoris/conversations reçus, messages non lus (dashboard propriétaire) —
+// tout à 0 si non authentifié ou en cas d'échec, même convention que
+// getMesAnnonces() ci-dessus (bloc de stats non bloquant, jamais de throw).
+// Appelée uniquement par app/compte/annonces/page.tsx (Server Component) :
+// PAS de fetchWithAuth, même raison que getMesAnnonces() ci-dessus.
 export async function getMesStatistiques(): Promise<MesStatistiquesDTO> {
   const res = await fetch(`${API_URL}/annonces/mes-annonces/statistiques/`, {
     headers: { Cookie: await cookieHeader() },
     cache: "no-store",
   });
-  if (!res.ok) return { favoris_recus: 0, conversations_recues: 0, messages_non_lus: 0, vues_totales: 0 };
+  if (!res.ok) return { favoris_recus: 0, conversations_recues: 0, messages_non_lus: 0 };
   return (await res.json()) as MesStatistiquesDTO;
 }
 
@@ -162,4 +158,15 @@ export async function supprimerPhoto(annonceId: string, photoId: string): Promis
     method: "DELETE",
   });
   if (!res.ok) await lireOuLeverErreur(res);
+}
+
+// Lien wa.me pré-construit vers le vendeur (numéro + message dans l'URL), ou
+// null si le vendeur n'a pas de numéro exploitable. Endpoint authentifié
+// (hardening 2026-08-30) : le numéro n'est plus dans le DTO public.
+// Appelée uniquement depuis app/actions/whatsapp.ts (Server Action).
+export async function obtenirLienWhatsapp(annonceId: string): Promise<string | null> {
+  const res = await fetchWithAuth(`${API_URL}/annonces/${annonceId}/whatsapp/`);
+  if (!res.ok) await lireOuLeverErreur(res);
+  const data = (await res.json()) as { whatsapp_lien: string | null };
+  return data.whatsapp_lien;
 }
