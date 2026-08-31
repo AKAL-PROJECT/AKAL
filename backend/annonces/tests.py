@@ -14,7 +14,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, override_settings
 from PIL import Image
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
@@ -993,6 +993,66 @@ class PhotoUploadThrottleTests(AnnoncesTestBase):
             format='multipart', **self.csrf_headers(),
         )
         self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+# ──────────────────────────────────────────────
+# Résilience Redis — le throttling ne doit jamais faire 500 (hardening 2026-08-31)
+# ──────────────────────────────────────────────
+#
+# cf. docs/plans/2026-08-31-redis-fail-open.md. check_throttles() s'exécute
+# dans initial(), AVANT le handler de vue (rest_framework/views.py) ; les
+# throttles DRF lisent le cache par défaut dans allow_request(). Sans
+# IGNORE_EXCEPTIONS (base.py), une panne Redis lève ConnectionInterrupted à
+# cet endroit → 500 sur presque toute l'API, avant toute logique métier.
+# Ce test verrouille le fail-open : Redis HS → le throttling laisse passer,
+# jamais un 500. Même fixture que geo/tests.py::CacheLimitesGeoTests.
+_CACHE_REDIS_MORT = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6399/0',  # port fermé = panne Redis
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True,  # réplique exacte de base.py
+        },
+        'KEY_PREFIX': 'akal-test-redis-mort',
+    }
+}
+
+
+@override_settings(CACHES=_CACHE_REDIS_MORT)
+class ResilienceRedisThrottlingTests(AnnoncesTestBase):
+    """
+    Panne Redis → le throttling DRF échoue « ouvert », jamais un 500.
+
+    `django.core.cache.cache` (donc `SimpleRateThrottle.cache`) est un proxy
+    ré-résolu à chaque accès : override_settings suffit à basculer les
+    throttles sur le faux cache. `assertLogs` vérifie au passage que
+    l'incident RESTE VISIBLE : django-redis logue chaque exception ignorée
+    via `logger.exception` (niveau ERROR) sur `django_redis.cache` quand
+    DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS est vrai — donc console (Render) et,
+    en prod, Sentry (LoggingIntegration event_level='ERROR').
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+
+    def test_ecriture_throttlee_repond_malgre_redis_hs(self):
+        # POST /api/annonces/ : UserRateThrottle + ScopedRateThrottle
+        # ('annonce_create'), les deux lisent le cache dans allow_request().
+        with self.assertLogs('django_redis.cache', level='ERROR'):
+            response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_lecture_publique_anonyme_repond_malgre_redis_hs(self):
+        # Le catalogue public passe par AnonRateThrottle (plancher global
+        # base.py) — c'est lui qui 500-erait toute la navigation anonyme.
+        anon = APIClient()
+        with self.assertLogs('django_redis.cache', level='ERROR'):
+            response = anon.get(ANNONCES_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 # ──────────────────────────────────────────────
