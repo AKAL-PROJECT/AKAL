@@ -21,9 +21,17 @@ from django.db.models import Q
 # ses propres annonces quel que soit AKAL_DATASET (la séparation par
 # propriétaire — comptes bot dédiés pour les sources scrapées — suffit déjà
 # à ne jamais mélanger les deux dans un contexte "mes annonces").
+#
+# 'all' ajouté le 2026-08-17 (audit final, piège de démo) : une annonce
+# 'interne' fraîchement publiée en local retournait 404 sur sa propre fiche
+# publique dès que AKAL_DATASET valait 'scraped' — cf. akal/settings/dev.py,
+# qui l'utilise désormais comme défaut local pour voir les deux jeux à la
+# fois (l'échantillon scrapé ET les annonces réellement publiées) sans avoir
+# à re-basculer manuellement selon ce qu'on teste.
 SOURCES_PAR_DATASET = {
     'simulated': ['interne'],
     'scraped': ['avito', 'mubawab'],
+    'all': ['interne', 'avito', 'mubawab'],
 }
 
 

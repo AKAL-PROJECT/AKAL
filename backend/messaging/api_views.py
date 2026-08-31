@@ -164,6 +164,40 @@ class ConversationMessagesAPIView(generics.ListCreateAPIView):
         return super().list(request, *args, **kwargs)
 
 
+class ConversationsNonLuesAPIView(APIView):
+    """
+    GET /api/conversations/non-lues/
+
+    Nombre total de messages non lus, toutes conversations confondues (les
+    deux rôles, cf. _conversations_de) — pour le badge de la Navbar
+    (SiteChrome.tsx → messagesNonLus).
+
+    Ajouté le 19/08 : jusque-là, ce total était calculé côté front en
+    sommant `messages_non_lus` sur la seule PREMIÈRE PAGE de l'inbox
+    (fetchNombreMessagesNonLus() appelait fetchInbox(), qui consomme
+    GET /api/conversations/ — paginé par défaut, PAGE_SIZE=12, cf.
+    REST_FRAMEWORK dans settings). Un utilisateur avec plus de 12
+    conversations et un message non lu dans une conversation retombée
+    au-delà de la page 1 (triée par -updated_at : une conversation ancienne
+    jamais rouverte peut y rester alors que d'autres, plus récentes,
+    remontent devant) voyait un badge sous-compté — même défaut de principe
+    que le bug des pins de la carte de couverture (1ace292/9510d6c) : un
+    total affiché dérivé d'une page/d'un échantillon plutôt que du vrai total.
+
+    Même définition d'"non lu" que ConversationListSerializer.get_messages_non_lus()
+    et ConversationMessagesAPIView.list() (marquage lu) : is_lu=False et pas
+    auteur de l'utilisateur courant.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        count = Message.objects.filter(
+            conversation__in=_conversations_de(request.user), is_lu=False,
+        ).exclude(auteur=request.user).count()
+        return Response({'messages_non_lus': count})
+
+
 # ──────────────────────────────────────────────
 # Favoris
 # ──────────────────────────────────────────────

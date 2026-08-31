@@ -27,7 +27,13 @@ import {
 import type { AccesEau, Parcelle, StatutFoncier } from "@/types/parcelle";
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
-const PAGE_SIZE_DEFAUT = 12;
+export const PAGE_SIZE_DEFAUT = 12;
+
+// P1-02 — tailles de page proposées à l'utilisateur (sélecteur catalogue).
+// 48 ≤ max_page_size côté backend (50, cf. AnnoncePagination,
+// annonces/api_views.py) : aucune des 3 valeurs ne dépasse la borne serveur.
+export const TAILLES_PAGE_DISPONIBLES = [12, 24, 48] as const;
+export type TaillePage = (typeof TAILLES_PAGE_DISPONIBLES)[number];
 
 export const PARCELLES: Parcelle[] = [
   {
@@ -51,7 +57,10 @@ export const PARCELLES: Parcelle[] = [
       longitude: -7.6694,
       regionCode: "fes-meknes",
       regionNom: "Fès-Meknès",
+      province: "El Hajeb",
+      commune: "Aït Ourir",
       adresseApproximative: "Aït Ourir, Maroc",
+      contour: null,
     },
     scoreCourant: { scoreGlobal: 82, sousScores: null, versionPonderation: null },
     photoPrincipale:
@@ -83,7 +92,10 @@ export const PARCELLES: Parcelle[] = [
       longitude: -9.37,
       regionCode: "souss-massa",
       regionNom: "Souss-Massa",
+      province: "Chtouka-Aït Baha",
+      commune: "Biougra",
       adresseApproximative: "Biougra, Maroc",
+      contour: null,
     },
     scoreCourant: { scoreGlobal: 67, sousScores: null, versionPonderation: null },
     photoPrincipale:
@@ -115,7 +127,10 @@ export const PARCELLES: Parcelle[] = [
       longitude: -5.3711,
       regionCode: "fes-meknes",
       regionNom: "Fès-Meknès",
+      province: "El Hajeb",
+      commune: "El Hajeb",
       adresseApproximative: "El Hajeb, Maroc",
+      contour: null,
     },
     scoreCourant: { scoreGlobal: 54, sousScores: null, versionPonderation: null },
     photoPrincipale:
@@ -147,7 +162,10 @@ export const PARCELLES: Parcelle[] = [
       longitude: -7.1228,
       regionCode: "casablanca-settat",
       regionNom: "Casablanca-Settat",
+      province: "Benslimane",
+      commune: "Benslimane",
       adresseApproximative: "Benslimane, Maroc",
+      contour: null,
     },
     scoreCourant: { scoreGlobal: 91, sousScores: null, versionPonderation: null },
     photoPrincipale:
@@ -179,7 +197,10 @@ export const PARCELLES: Parcelle[] = [
       longitude: -5.7081,
       regionCode: "rabat-sale-kenitra",
       regionNom: "Rabat-Salé-Kénitra",
+      province: "Sidi Kacem",
+      commune: "Sidi Kacem",
       adresseApproximative: "Sidi Kacem, Maroc",
+      contour: null,
     },
     scoreCourant: { scoreGlobal: 73, sousScores: null, versionPonderation: null },
     photoPrincipale:
@@ -211,7 +232,10 @@ export const PARCELLES: Parcelle[] = [
       longitude: -2.8975,
       regionCode: "oriental",
       regionNom: "Oriental",
+      province: "Taourirt",
+      commune: "Taourirt",
       adresseApproximative: "Taourirt, Maroc",
+      contour: null,
     },
     scoreCourant: { scoreGlobal: 41, sousScores: null, versionPonderation: null },
     photoPrincipale:
@@ -253,6 +277,30 @@ export async function getRegions(): Promise<Region[]> {
   return regions.map((r) => ({ code: r.slug, nom: r.nom }));
 }
 
+export type StatRegion = { code: string; count: number };
+
+type StatsRegionDTO = { region: string; count: number };
+
+// GET /api/annonces/stats/regions/ (ajouté le 2026-08-18) — nombre réel
+// d'annonces en_ligne par région, sur tout le catalogue. Distinct des
+// compteurs dérivés d'un échantillon de parcelles déjà chargées (ex.
+// l'ancien statsParRegion de CouvertureSection.tsx, qui ne portait que sur
+// les 50 premières résultats et ne pouvait donc jamais sommer au vrai total
+// dès que le catalogue dépassait 50 annonces) : à utiliser pour tout
+// compteur/somme affiché comme un total, jamais un centre de carte (qui,
+// lui, reste dérivé des parcelles réellement chargées — cf.
+// CouvertureSection.tsx).
+export async function getStatsParRegion(): Promise<StatRegion[]> {
+  if (USE_MOCKS) {
+    return REGIONS_MOCK.map((r) => ({
+      code: r.code,
+      count: PARCELLES.filter((p) => p.parcelle.regionCode === r.code).length,
+    }));
+  }
+  const stats = await apiFetch<StatsRegionDTO[]>("/annonces/stats/regions/");
+  return stats.map((s) => ({ code: s.region, count: s.count }));
+}
+
 export const STATUTS: StatutFoncier[] = [
   "immatricule",
   "melkia",
@@ -272,13 +320,27 @@ export const ACCES_EAU_OPTIONS: { value: AccesEau; label: string }[] = [
 // ---------------------------------------------------------------------------
 
 export type ParcellesQueryParams = {
+  q?: string; // recherche texte (titre + description, AnnonceAPIFilter.q)
   region?: string; // code
+  // Cascade P0-04 — id ProvinceGeom / CommuneGeom (référentiel officiel,
+  // cf. lib/geo-api.ts), jamais les id du référentiel legacy (backend
+  // AnnonceAPIFilter.province/.commune ne filtrent que sur commune_geom).
+  province?: number;
+  commune?: number;
   statut_foncier?: StatutFoncier;
   acces_eau?: AccesEau;
   prix_min?: number;
   prix_max?: number;
   surface_min?: number;
   surface_max?: number;
+  // Bbox carte ("Rechercher cette zone", 2026-08-17, CarteLeaflet.tsx) —
+  // pas géré en mode mock (filtrerParcellesParams), même limite déjà
+  // assumée pour province/commune ci-dessus : le mock n'a jamais couvert
+  // les filtres géographiques avancés, réservé au dev sans backend.
+  lat_min?: number;
+  lat_max?: number;
+  lng_min?: number;
+  lng_max?: number;
   ordering?: string; // "date_publication" | "prix_mad" | "surface_ha", préfixe "-" pour desc
   page?: number;
   page_size?: number; // défaut 12, max 50 (borné côté back)
@@ -307,7 +369,10 @@ function paramsVersRecherche(params: ParcellesQueryParams): URLSearchParams {
 
 function rechercheVersParams(sp: URLSearchParams): ParcellesQueryParams {
   const params: ParcellesQueryParams = {};
+  if (sp.has("q")) params.q = sp.get("q")!;
   if (sp.has("region")) params.region = sp.get("region")!;
+  if (sp.has("province")) params.province = Number(sp.get("province"));
+  if (sp.has("commune")) params.commune = Number(sp.get("commune"));
   if (sp.has("statut_foncier")) params.statut_foncier = sp.get("statut_foncier") as StatutFoncier;
   if (sp.has("acces_eau")) params.acces_eau = sp.get("acces_eau") as AccesEau;
   if (sp.has("prix_min")) params.prix_min = Number(sp.get("prix_min"));
@@ -321,7 +386,11 @@ function rechercheVersParams(sp: URLSearchParams): ParcellesQueryParams {
 }
 
 function filtrerParcellesParams(liste: Parcelle[], params: ParcellesQueryParams): Parcelle[] {
-  return liste.filter((p) => {
+  // `province`/`commune` (cascade P0-04) ne sont pas filtrables ici : PARCELLES
+  // (jeu de mock) ne porte que regionCode, pas d'id province/commune du
+  // référentiel officiel — mode mock de toute façon réservé au dev sans
+  // backend (NEXT_PUBLIC_USE_MOCKS), jamais le chemin par défaut.
+  const filtrees = liste.filter((p) => {
     if (params.region && p.parcelle.regionCode !== params.region) return false;
     if (params.statut_foncier && p.parcelle.statutFoncier !== params.statut_foncier) return false;
     if (params.acces_eau && p.parcelle.accesEau !== params.acces_eau) return false;
@@ -331,6 +400,10 @@ function filtrerParcellesParams(liste: Parcelle[], params: ParcellesQueryParams)
     if (params.surface_max != null && p.parcelle.surface > params.surface_max) return false;
     return true;
   });
+  // `q` : même logique de correspondance que le `?q=` réel (titre —
+  // + description non disponible dans le jeu de mock, cf. filtrerRecherche),
+  // réutilisée telle quelle plutôt que dupliquée.
+  return filtrerRecherche(filtrees, params.q ?? "");
 }
 
 function trierParcellesParOrdering(liste: Parcelle[], ordering?: string): Parcelle[] {
@@ -410,11 +483,23 @@ export async function getParcelleBySlug(slug: string): Promise<Parcelle | null> 
 export type AccesEauFiltre = "tous" | AccesEau;
 
 export type FiltresState = {
-  // Recherche texte : aucun paramètre `q=` documenté côté API (§4.2). Filtre
-  // donc UNIQUEMENT la page actuellement chargée, pas l'ensemble du catalogue
-  // — limitation connue, suivi proposé côté back (issue api-mismatch).
+  // Recherche texte — envoyée au backend via `q=` (AnnonceAPIFilter.q,
+  // annonces/api_views.py : recherche sur titre + description, toute la
+  // base). Corrigé le 2026-08-18 : jusque-là filtrée UNIQUEMENT côté client
+  // sur la page déjà chargée (filtrerRecherche, toujours utilisée en mode
+  // mock ci-dessous) — une annonce absente de cette page (ex. au-delà des
+  // 12 premières résultats triés par défaut) restait introuvable même en
+  // tapant son titre exact, alors qu'elle apparaissait bien sur la carte
+  // (page de 50 résultats, cf. TAILLE_CARTE dans app/parcelles/page.tsx).
   recherche: string;
   region: string; // "" = pas de filtre, sinon code (ex. "casablanca-settat")
+  // Cascade P0-04 — id ProvinceGeom/CommuneGeom (référentiel officiel) en
+  // string ("" = pas de filtre), même convention que `region` ci-dessus ;
+  // converti en number seulement à la frontière API (filtresVersParams).
+  // Remis à "" en cascade dès que le parent change (région → vide province
+  // et commune, province → vide commune) — géré côté FiltresSidebar, pas ici.
+  province: string;
+  commune: string;
   // Select unique : le contrat ne documente pas de multi-valeurs pour
   // statut_foncier (contrairement à l'ancienne hypothèse), donc plus de
   // sélection multiple ici.
@@ -429,6 +514,8 @@ export type FiltresState = {
 export const FILTRES_INITIAUX: FiltresState = {
   recherche: "",
   region: "",
+  province: "",
+  commune: "",
   statutFoncier: "",
   eau: "tous",
   prixMin: null,
@@ -456,20 +543,32 @@ export function triVersOrdering(tri: Tri): string {
   }
 }
 
+// Zone visible de la carte au moment du clic "Rechercher cette zone" —
+// cf. CarteLeaflet.tsx (BoutonRechercherZone) et app/parcelles/page.tsx.
+export type BboxCarte = { latMin: number; latMax: number; lngMin: number; lngMax: number };
+
 export function filtresVersParams(
   f: FiltresState,
   tri: Tri,
   page: number,
   pageSize: number = PAGE_SIZE_DEFAUT,
+  bbox: BboxCarte | null = null,
 ): ParcellesQueryParams {
   return {
+    q: f.recherche.trim() || undefined,
     region: f.region || undefined,
+    province: f.province ? Number(f.province) : undefined,
+    commune: f.commune ? Number(f.commune) : undefined,
     statut_foncier: f.statutFoncier || undefined,
     acces_eau: f.eau === "tous" ? undefined : f.eau,
     prix_min: f.prixMin ?? undefined,
     prix_max: f.prixMax ?? undefined,
     surface_min: f.surfaceMin ?? undefined,
     surface_max: f.surfaceMax ?? undefined,
+    lat_min: bbox?.latMin,
+    lat_max: bbox?.latMax,
+    lng_min: bbox?.lngMin,
+    lng_max: bbox?.lngMax,
     ordering: triVersOrdering(tri),
     page,
     page_size: pageSize,
@@ -480,6 +579,8 @@ export function filtresActifs(f: FiltresState): boolean {
   return (
     f.recherche.trim() !== "" ||
     f.region !== "" ||
+    f.province !== "" ||
+    f.commune !== "" ||
     f.statutFoncier !== "" ||
     f.eau !== "tous" ||
     f.prixMin != null ||
@@ -487,6 +588,29 @@ export function filtresActifs(f: FiltresState): boolean {
     f.surfaceMin != null ||
     f.surfaceMax != null
   );
+}
+
+// Critères d'une recherche sauvegardée (alertes, 2026-08-19) — même clés
+// que AnnonceAPIFilter côté backend (region/province/commune/statut_foncier/
+// acces_eau/prix_min/prix_max/surface_min/surface_max), volontairement un
+// sous-ensemble de filtresVersParams() ci-dessus : ni la recherche texte
+// (`q`) ni le tri/la pagination/la bbox carte n'ont de sens pour une alerte
+// qui doit rester valide indéfiniment après cette visite précise. Toutes
+// les valeurs en chaîne (jamais un nombre natif) — c'est la forme que
+// AnnonceAPIFilter(data=...) attend côté backend (mêmes query params qu'une
+// vraie requête HTTP, jamais des types Python natifs).
+export function filtresVersCriteresAlerte(f: FiltresState): Record<string, string> {
+  const criteres: Record<string, string> = {};
+  if (f.region) criteres.region = f.region;
+  if (f.province) criteres.province = f.province;
+  if (f.commune) criteres.commune = f.commune;
+  if (f.statutFoncier) criteres.statut_foncier = f.statutFoncier;
+  if (f.eau !== "tous") criteres.acces_eau = f.eau;
+  if (f.prixMin != null) criteres.prix_min = String(f.prixMin);
+  if (f.prixMax != null) criteres.prix_max = String(f.prixMax);
+  if (f.surfaceMin != null) criteres.surface_min = String(f.surfaceMin);
+  if (f.surfaceMax != null) criteres.surface_max = String(f.surfaceMax);
+  return criteres;
 }
 
 // Normalise une chaîne pour comparaison insensible à la casse / aux accents.
@@ -497,8 +621,12 @@ function normaliser(s: string): string {
     .replace(/[̀-ͯ]/g, "");
 }
 
-// Recherche texte côté client — voir le commentaire sur FiltresState.recherche.
-export function filtrerRecherche(liste: Parcelle[], recherche: string): Parcelle[] {
+// Recherche texte — équivalent mock du `?q=` réel (AnnonceAPIFilter.q, cf.
+// FiltresState.recherche), utilisée uniquement par filtrerParcellesParams
+// ci-dessus (NEXT_PUBLIC_USE_MOCKS). Plus utilisée côté page.tsx depuis le
+// câblage du `q=` serveur (2026-08-18) — l'API réelle fait déjà cette
+// recherche sur l'ensemble du catalogue, pas seulement la page chargée.
+function filtrerRecherche(liste: Parcelle[], recherche: string): Parcelle[] {
   if (!recherche.trim()) return liste;
   const q = normaliser(recherche.trim());
   return liste.filter((p) => normaliser(`${p.titre} ${p.parcelle.regionNom}`).includes(q));

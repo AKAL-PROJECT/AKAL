@@ -1,16 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ViewTransition } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import type { AccesEau, Parcelle } from "@/types/parcelle";
 import BadgeStatut from "./BadgeStatut";
 import ScoreBar from "./ScoreBar";
-import { MapPin } from "@/components/icons/Icons";
+import { MapPin, X } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
-import { lireParcellesComparees } from "./comparateurStorage";
+import { useComparateur } from "@/hooks/useComparateur";
 import { AGRISCORE_ACTIF } from "@/config/features";
-import { formatMAD } from "@/lib/format";
+import { formatMAD, formatPrixM2 } from "@/lib/format";
+
+// Leaflet a besoin de `window`, absent au rendu serveur — même contrainte
+// que CarteParcelles.tsx.
+const CarteComparateur = dynamic(() => import("./CarteComparateur"), {
+  ssr: false,
+  loading: () => (
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "var(--color-menthe)",
+        borderRadius: "var(--radius-card)",
+        color: "var(--color-foret)",
+        fontSize: "14px",
+      }}
+    >
+      Chargement de la carte…
+    </div>
+  ),
+});
 
 const ACCES_EAU_LABEL: Record<AccesEau, string> = {
   irriguee: "Irriguée",
@@ -28,7 +51,7 @@ type Ligne = {
 
 const LIGNES: Ligne[] = [
   { label: "Prix", valeur: (p) => p.prix, meilleure: "min", render: (p) => `${formatMAD.format(p.prix)} MAD` },
-  { label: "Prix au m²", valeur: (p) => p.prixM2, meilleure: "min", render: (p) => `${formatMAD.format(p.prixM2)} MAD/m²` },
+  { label: "Prix au m²", valeur: (p) => p.prixM2, meilleure: "min", render: (p) => formatPrixM2(p.prixM2) },
   { label: "Surface", valeur: (p) => p.parcelle.surface, meilleure: "max", render: (p) => `${p.parcelle.surface} ha` },
   // AgriScore hors périmètre produit actuel (cf. src/config/features.ts) —
   // ligne conservée, simplement exclue du tableau tant que le flag est faux.
@@ -56,20 +79,13 @@ function meilleureValeur(ligne: Ligne, parcelles: Parcelle[]): number | null {
 }
 
 export default function ComparateurScreen() {
-  // null = pas encore lu. Volontairement dans un effet plutôt que lu
-  // directement au rendu (ou via un initialiseur paresseux useState) : le
-  // rendu serveur n'a pas de sessionStorage, donc lire la valeur réelle dès
-  // le premier rendu client créerait une désync serveur/client (hydration
-  // mismatch). Exception délibérée à react-hooks/set-state-in-effect —
-  // cf. https://react.dev/reference/react/useEffect#displaying-different-content-on-the-server-and-the-client.
-  const [parcelles, setParcelles] = useState<Parcelle[] | null>(null);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setParcelles(lireParcellesComparees());
-  }, []);
-
-  if (parcelles === null) return null;
+  // useComparateur() lit sessionStorage dans un effet (absent au rendu
+  // serveur, cf. son propre commentaire) : `parcelles` démarre à [] avant ce
+  // premier effet, indiscernable ici d'un "vraiment vide" — l'état vide ci-
+  // dessous s'affiche donc brièvement même quand une sélection existe, avant
+  // de basculer sur le tableau dès que l'effet a tourné (un seul tick,
+  // jamais perceptible).
+  const { parcelles, retirer } = useComparateur();
 
   if (parcelles.length === 0) {
     return (
@@ -80,7 +96,7 @@ export default function ComparateurScreen() {
         <h1 style={{ fontSize: "24px", fontWeight: 500, margin: 0 }}>Comparateur</h1>
         <EtatVide
           titre="Aucune parcelle à comparer"
-          description="Sélectionnez 2 ou 3 parcelles depuis le catalogue pour les comparer côte à côte. La sélection ne se transmet pas via un lien partagé — reviens au catalogue pour la refaire."
+          description="Sélectionnez 2 ou 3 parcelles depuis le catalogue, vos favoris ou une fiche annonce pour les comparer côte à côte. La sélection ne se transmet pas via un lien partagé — elle est à refaire dans ce cas."
           action={
             <Link href="/parcelles" className="btn-primary" style={{ textDecoration: "none" }}>
               Explorer le catalogue
@@ -94,6 +110,23 @@ export default function ComparateurScreen() {
   return (
     <div className="akal-fade-in" style={{ maxWidth: "1000px", margin: "0 auto", padding: "32px 20px 64px" }}>
       <h1 style={{ fontSize: "24px", fontWeight: 500, margin: "0 0 24px" }}>Comparateur</h1>
+
+      {/* Carte — visualise la position relative des parcelles comparées
+          (P1-01) : un même prix/ha peut recouvrir une parcelle repliée sur
+          elle-même ou éclatée sur 3 régions différentes, invisible dans le
+          tableau seul. */}
+      <div
+        style={{
+          height: "320px",
+          marginBottom: "28px",
+          borderRadius: "var(--radius-card)",
+          overflow: "hidden",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        <CarteComparateur parcelles={parcelles} />
+      </div>
+
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: `${280 + parcelles.length * 220}px` }}>
           <thead>
@@ -103,28 +136,60 @@ export default function ComparateurScreen() {
                 const image = p.photoPrincipale ?? p.photos[0] ?? null;
                 return (
                   <th key={p.id} style={{ textAlign: "left", padding: "0 12px 16px", verticalAlign: "bottom" }}>
-                    <Link href={`/parcelles/${p.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
-                      <div
+                    <div style={{ position: "relative" }}>
+                      {/* Bouton retirer en dehors du <Link> (fiche annonce) —
+                          jamais un bouton imbriqué dans un lien. */}
+                      <button
+                        type="button"
+                        onClick={() => retirer(p.id)}
+                        aria-label={`Retirer ${p.titre} de la comparaison`}
+                        className="akal-focusable"
                         style={{
-                          position: "relative",
-                          width: "100%",
-                          height: "120px",
-                          borderRadius: "var(--radius-card)",
-                          overflow: "hidden",
-                          backgroundColor: "var(--color-menthe)",
-                          marginBottom: "8px",
+                          position: "absolute",
+                          top: "6px",
+                          right: "6px",
+                          zIndex: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "26px",
+                          height: "26px",
+                          borderRadius: "50%",
+                          border: "none",
+                          backgroundColor: "rgba(17,26,21,0.55)",
+                          color: "white",
+                          cursor: "pointer",
                         }}
                       >
-                        {image && <Image src={image} alt={p.titre} fill sizes="220px" style={{ objectFit: "cover" }} />}
-                      </div>
-                      <div style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)", lineHeight: 1.3 }}>
-                        {p.titre}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--color-tertiaire)", marginTop: "2px" }}>
-                        <MapPin size={12} />
-                        {p.parcelle.regionNom}
-                      </div>
-                    </Link>
+                        <X size={13} />
+                      </button>
+                      <Link href={`/parcelles/${p.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
+                        <div
+                          style={{
+                            position: "relative",
+                            width: "100%",
+                            height: "120px",
+                            borderRadius: "var(--radius-card)",
+                            overflow: "hidden",
+                            backgroundColor: "var(--color-menthe)",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          {image && (
+                            <ViewTransition name={`parcelle-photo-${p.id}`} share="morph">
+                              <Image src={image} alt={p.titre} fill sizes="220px" style={{ objectFit: "cover" }} />
+                            </ViewTransition>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)", lineHeight: 1.3 }}>
+                          {p.titre}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--color-tertiaire)", marginTop: "2px" }}>
+                          <MapPin size={12} />
+                          {p.parcelle.regionNom}
+                        </div>
+                      </Link>
+                    </div>
                   </th>
                 );
               })}

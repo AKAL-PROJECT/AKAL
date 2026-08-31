@@ -13,11 +13,11 @@ import type {
   AccesEau,
   AnnonceProprietaire,
   Parcelle,
-  ScoreCourant,
   StatutAnnonce,
   StatutFoncier,
   Topographie,
 } from "@/types/parcelle";
+import type { SourceAnnonce } from "@/lib/annonce-source";
 
 type RegionDTO = {
   code: string;
@@ -39,26 +39,29 @@ type ParcelleListDTO = {
   statut_foncier: StatutFoncier;
   acces_eau: AccesEau;
   topographie?: Topographie | null;
-  region: RegionDTO;
+  region: RegionDTO | null;
   localisation: LocalisationListDTO;
 };
 
 type ParcelleDetailDTO = Omit<ParcelleListDTO, "localisation"> & {
   localisation: LocalisationDetailDTO;
   metadata?: Record<string, unknown>;
+  // Déjà envoyés par ParcelleDetailSerializer, jusque-là jamais mappés côté
+  // front (P2-01 : besoin d'identification réelle pour le Passeport
+  // Agronomique). Optionnels ici (pas seulement nullable) : la fixture de
+  // test mapAnnonceToParcelle.test.ts est un JSON verbatim du contrat
+  // v1.2 §4.4, gelé — absent de ce contrat d'origine, jamais retouché pour
+  // matcher un ajout ultérieur au serializer réel. `contour` volontairement
+  // absent d'ici : la fiche publique ne l'expose pas (confidentialité, cf.
+  // types/parcelle.ts) — n'existe donc pas dans ce DTO, jamais à ajouter
+  // sans une décision explicite qui changerait ce choix côté back.
+  province?: string | null;
+  commune?: string | null;
 };
 
-// Liste : allégé à score_global seul (§4.4).
-type ScoreCourantListDTO = {
-  score_global: number;
-} | null;
-
-// Détail : objet complet.
-type ScoreCourantDetailDTO = {
-  score_global: number;
-  sous_scores: Record<string, number>;
-  version_ponderation: string;
-} | null;
+// AgriScore — RETIRÉ de l'API publique le 2026-08-30 (cf. types/parcelle.ts,
+// backend annonces/serializers.py). Plus de `score_courant` dans aucun DTO ;
+// `scoreCourant` est mappé en dur à `null`.
 
 export type AnnonceListDTO = {
   id: string;
@@ -66,8 +69,8 @@ export type AnnonceListDTO = {
   titre: string;
   prix_mad: number;
   statut: StatutAnnonce;
+  source?: SourceAnnonce; // optionnel : absent de la fixture contrat v1.2 figée
   parcelle: ParcelleListDTO;
-  score_courant: ScoreCourantListDTO;
   photo_principale: string | null;
   created_at: string;
 };
@@ -87,9 +90,19 @@ export type AnnonceDetailDTO = {
   statut: StatutAnnonce;
   date_publication: string | null;
   parcelle: ParcelleDetailDTO;
-  score_courant: ScoreCourantDetailDTO;
   photos: PhotoDTO[]; // toujours triées par ordre croissant, [] si vide
-  proprietaire: { id: string }; // anonymisé — RGPD/loi 09-08, §4.5
+  proprietaire: { id: string; telephone_masque: string | null }; // anonymisé - RGPD/loi 09-08, §4.5
+  // Booléen : le vendeur a-t-il un numéro exploitable ? Le lien wa.me lui-même
+  // (qui contient le numéro) s'obtient via GET /api/annonces/<id>/whatsapp/,
+  // authentifié — jamais dans ce DTO public (hardening 2026-08-30). Optionnel
+  // (pas seulement nullable) : la fixture de test mapAnnonceToParcelle.test.ts
+  // en tient compte.
+  whatsapp_disponible?: boolean;
+  // L'emplacement exact est-il masqué ? Si true, la localisation renvoyée ici
+  // est déjà floutée côté serveur pour un lecteur non-propriétaire.
+  loc_confidentielle?: boolean;
+  source?: SourceAnnonce; // optionnel : absent de la fixture contrat v1.2 figée
+  source_url?: string | null; // renseigné pour une source externe (lien annonce d'origine)
   created_at: string;
   updated_at: string;
 };
@@ -106,17 +119,16 @@ function calculerBadge(createdAt: string): string | null {
 }
 
 function calculerPrixM2(prix: number, surfaceHa: number): number {
+  // Valeur BRUTE, non arrondie (audit final du 20/08, P4) — l'arrondi
+  // vivait ici avant et produisait un 0 trompeur pour tout prix réel
+  // inférieur à 0,5 MAD/m² une fois affiché. L'arrondi (et le "< 1 MAD/m²"
+  // en dessous) est désormais la responsabilité de l'affichage
+  // (formatPrixM2, lib/format.ts), jamais de ce calcul — ComparateurScreen
+  // compare aussi cette valeur brute pour désigner la "meilleure" offre
+  // (meilleure: "min"), qu'un arrondi prématuré aurait pu fausser entre deux
+  // parcelles très proches sous 1 MAD/m².
   const surfaceM2 = surfaceHa * 10_000;
-  return surfaceM2 > 0 ? Math.round(prix / surfaceM2) : 0;
-}
-
-function mapScoreCourant(dto: ScoreCourantListDTO | ScoreCourantDetailDTO): ScoreCourant | null {
-  if (dto == null) return null;
-  return {
-    scoreGlobal: dto.score_global,
-    sousScores: "sous_scores" in dto ? dto.sous_scores : null,
-    versionPonderation: "version_ponderation" in dto ? dto.version_ponderation : null,
-  };
+  return surfaceM2 > 0 ? prix / surfaceM2 : 0;
 }
 
 // Réponse de GET /api/annonces/ (un élément de `results[]`).
@@ -142,11 +154,25 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       topographie: dto.parcelle.topographie ?? null,
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
-      regionCode: dto.parcelle.region.code,
-      regionNom: dto.parcelle.region.nom,
+      // `region` est typé nullable côté DTO (RegionDTO | null — reflète
+      // get_region(), un SerializerMethodField qui peut techniquement
+      // renvoyer null) mais garanti non-null en pratique pour toute annonce
+      // en_ligne : get_region() ne renvoie null que si ni commune_geom ni le
+      // commune legacy ne résolvent, un cas qu'Annonce.can_publish() /
+      // Parcelle.is_geolocated() rendent impossible pour une annonce
+      // en_ligne (vérifié empiriquement, cf. types/parcelle.ts et le
+      // rapport d'audit du 2026-08-15 — 0/147 annonces en_ligne concernées).
+      // Assertion non-null délibérée : un vrai null ici trahirait un bug
+      // backend à corriger, pas un état normal à absorber en silence.
+      regionCode: dto.parcelle.region!.code,
+      regionNom: dto.parcelle.region!.nom,
+      province: null, // absent en liste (ParcelleListSerializer)
+      commune: null, // absent en liste
       adresseApproximative: null, // absent en liste
+      contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
-    scoreCourant: mapScoreCourant(dto.score_courant),
+    scoreCourant: null, // AgriScore retiré de l'API publique (cf. haut du fichier)
+    source: dto.source,
     photoPrincipale: dto.photo_principale,
     photos: [],
   };
@@ -192,13 +218,25 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       topographie: dto.parcelle.topographie ?? null,
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
-      regionCode: dto.parcelle.region.code,
-      regionNom: dto.parcelle.region.nom,
+      // Même raisonnement que mapAnnonceToParcelle() ci-dessus.
+      regionCode: dto.parcelle.region!.code,
+      regionNom: dto.parcelle.region!.nom,
+      province: dto.parcelle.province ?? null,
+      commune: dto.parcelle.commune ?? null,
       adresseApproximative: dto.parcelle.localisation.adresse_approximative,
+      contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
-    scoreCourant: mapScoreCourant(dto.score_courant),
+    scoreCourant: null, // AgriScore retiré de l'API publique (cf. haut du fichier)
+    source: dto.source,
+    sourceUrl: dto.source_url ?? null,
     // photos toujours triées par ordre croissant côté API (§4.4) ; ordre 0 = principale.
     photoPrincipale: dto.photos[0]?.url ?? null,
     photos: dto.photos.map((p) => p.url),
+    proprietaire: {
+      id: dto.proprietaire.id,
+      telephoneMasque: dto.proprietaire.telephone_masque,
+    },
+    whatsappDisponible: dto.whatsapp_disponible ?? false,
+    locConfidentielle: dto.loc_confidentielle ?? false,
   };
 }

@@ -49,3 +49,32 @@ CSRF_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000  # 1 an
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
+
+
+# ──────────────────────────────────────────────
+# DATASET DE DÉMONSTRATION — figé (hardening pré-soutenance, 2026-08-30)
+# ──────────────────────────────────────────────
+#
+# base.py lit AKAL_DATASET depuis l'environnement (défaut 'simulated'). Ici
+# on le FIGE en dur : l'environnement de démo/soutenance ne sert QUE le jeu
+# de démonstration interne (seed_demo/seed_parcelles, source='interne') —
+# jamais les annonces scrapées Avito/Mubawab (photos et contenus tiers,
+# géolocalisation au centroïde de commune, comptes bot, attributs manquants).
+# Non surchargeable par variable d'env pour éviter tout basculement
+# accidentel côté Render. Les scripts d'import restent dans le dépôt pour le
+# travail futur ; c'est seulement leur EXPOSITION publique qui est coupée.
+# Pour revenir à un comportement configurable, retirer cette ligne.
+AKAL_DATASET = 'simulated'
+
+
+# ──────────────────────────────────────────────
+# OpenAPI / Swagger — réservé au staff en production
+# ──────────────────────────────────────────────
+#
+# Le schéma complet de l'API n'a pas à être public en prod (surface d'attaque
+# inutilement large). Reste ouvert en dev (base.py inchangé). N'affecte que
+# /api/schema/ et /api/schema/swagger-ui/.
+SPECTACULAR_SETTINGS = {
+    **SPECTACULAR_SETTINGS,
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAdminUser'],
+}

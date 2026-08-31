@@ -80,6 +80,58 @@ AWS_S3_ENDPOINT_URL=http://localhost:9000
 
 > **Attention** : Assurez-vous d'avoir créé la base de données `akal_db` et d'y avoir activé l'extension PostGIS (`CREATE EXTENSION postgis;`).
 
+#### Firebase (authentification téléphone) & Google OAuth
+
+`PhoneLoginVerifyView` (SMS OTP) a besoin de `firebase_admin`, initialisé
+paresseusement au premier appel réel de cette vue à partir d'un fichier de
+credentials — **jamais au démarrage du serveur** : son absence n'empêche ni
+`manage.py runserver`, ni `check`, ni `test` de fonctionner ; seule cette
+vue répond alors `503 Connexion par téléphone temporairement indisponible`
+(`GoogleLoginView`, elle, n'utilise pas `firebase_admin` et n'est pas
+concernée).
+
+- **En local** : générer une clé de compte de service depuis la [console
+  Firebase](https://console.firebase.google.com/) → Paramètres du projet →
+  Comptes de service → Générer une nouvelle clé privée, puis déposer le
+  fichier téléchargé à la racine de `backend/` sous le nom
+  `firebase-service-account.json` (déjà exclu par `.gitignore` — ne jamais
+  le committer).
+- **Sur Render** : utiliser la fonctionnalité *Secret Files* du service
+  (Dashboard → service `akal-backend` → Environment → Secret Files) pour
+  monter un fichier à `/app/firebase-service-account.json` (le service
+  tourne dans `/app`, cf. `Dockerfile`) — aucune modification de code ou de
+  `render.yaml` requise.
+- **Avec Docker (hors Render)** : monter le fichier en volume au démarrage
+  du conteneur, par exemple `-v ./firebase-service-account.json:/app/firebase-service-account.json:ro`
+  (ou l'équivalent `volumes:` dans un `docker-compose.yml` de déploiement).
+
+`GoogleLoginView`, elle, lit simplement la variable d'env `GOOGLE_CLIENT_ID`
+(mécanisme `django-environ` standard, cf. `akal/settings/base.py`) — même
+Client ID OAuth 2.0 que `NEXT_PUBLIC_GOOGLE_CLIENT_ID` côté frontend (les
+deux **doivent être identiques** : c'est l'audience contre laquelle le
+backend vérifie le jeton renvoyé par Google). Absente, la vue répond
+`503 Connexion Google temporairement indisponible` plutôt que de vérifier
+les jetons contre une valeur codée en dur.
+
+- **En local** : `GOOGLE_CLIENT_ID=...` dans `backend/.env` (cf. `.env.example`).
+- **Sur Render** : déclarée dans `render.yaml` avec `sync: false` — Render
+  affiche le champ dans son dashboard (service `akal-backend` → Environment
+  → Environment Variables) mais aucune valeur n'y est versionnée ; à saisir
+  une fois manuellement.
+
+> **Collaborateurs qui testent en local contre le backend Render partagé**
+> (plutôt que de faire tourner Postgres/Redis/MinIO chez eux) : leur
+> frontend local tourne sur `http://localhost:3000`, une origine différente
+> du domaine de `akal-backend`. Il faut alors aussi ajouter
+> `http://localhost:3000` aux variables d'env `CORS_ALLOWED_ORIGINS` et
+> `CSRF_TRUSTED_ORIGINS` de ce service Render (cf. `akal/settings/prod.py`,
+> toutes deux surchargeables par env var sans toucher au code) — sans ça,
+> le navigateur bloque les requêtes cross-origin et Django rejette les
+> POST (connexion, dépôt d'annonce…) faute d'origine de confiance. À ne
+> faire que si `akal-backend` sert de bac à sable d'équipe et non le
+> service de prod réel (`akal.ma`) : ouvrir le CORS/CSRF d'un backend
+> public à n'importe quel `localhost` élargit sa surface d'attaque.
+
 ### 5. Application des migrations
 
 Générez la structure de la base de données :

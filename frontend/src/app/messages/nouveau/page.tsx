@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-api";
 import { getParcelleBySlug } from "@/data/parcelles";
+import { estSourceExterne } from "@/lib/annonce-source";
 import { NouvelleConversationForm } from "@/components/messaging/NouvelleConversationForm";
 
 export const metadata: Metadata = { title: "Nouveau message • AKAL" };
@@ -22,6 +23,11 @@ export default async function NouvelleConversationPage({
 
   const parcelle = await getParcelleBySlug(slug);
   if (!parcelle) notFound();
+  // Annonce importée d'une source externe : pas de messagerie AKAL (le
+  // « propriétaire » est un compte bot d'import). Le backend refuse déjà la
+  // création de conversation (EnvoyerMessageSerializer) ; on évite ici
+  // d'afficher un formulaire qui échouerait à l'envoi.
+  if (estSourceExterne(parcelle.source)) notFound();
 
   return <NouvelleConversationForm parcelle={parcelle} />;
 }

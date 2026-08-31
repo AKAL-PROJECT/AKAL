@@ -29,3 +29,14 @@
 //     remplacée par "prix au m²" — remettre la mention si souhaité, ce n'est
 //     pas un simple bascule de flag (texte éditorial, pas un composant)
 export const AGRISCORE_ACTIF = false;
+
+// Bandeau « données de démonstration » (hardening pré-soutenance, 2026-08-30).
+//
+// L'environnement de soutenance ne sert que le jeu interne (seed_demo /
+// seed_parcelles, AKAL_DATASET='simulated' figé en prod) : des annonces
+// d'exemple créées par l'équipe, jamais de vrais dépôts de vendeurs ni les
+// annonces scrapées. Ce bandeau le dit clairement sur le catalogue et la
+// fiche, pour que personne — jury compris — ne prenne ces annonces pour de
+// vraies offres. À repasser à `false` le jour où le catalogue contient de
+// vraies annonces d'utilisateurs.
+export const BANNIERE_DEMO = true;

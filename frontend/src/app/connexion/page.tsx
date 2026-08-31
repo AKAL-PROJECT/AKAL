@@ -13,11 +13,17 @@ export default async function ConnexionPage({
 }: {
   searchParams: Promise<{ next?: string; reinitialise?: string }>;
 }) {
-  const { next, reinitialise } = await searchParams;
+  // `reinitialise` (posé par app/actions/auth.ts après un changement de mot
+  // de passe réussi, ?reinitialise=1) n'est volontairement pas déstructuré
+  // ici : rien ne le consomme aujourd'hui (aucun message de confirmation
+  // câblé sur ConnexionScreen) — cf. audit final du 20/08, nettoyage P15,
+  // hors périmètre de le construire ici. Le paramètre reste néanmoins dans
+  // le type ci-dessous pour documenter que la route l'accepte.
+  const { next } = await searchParams;
   const cheminSuivant = next && next.startsWith("/") ? next : "/compte";
 
   const utilisateur = await getCurrentUser();
   if (utilisateur) redirect(cheminSuivant);
 
-  return <ConnexionScreen next={cheminSuivant} motDePasseReinitialise={reinitialise === "1"} />;
+  return <ConnexionScreen next={cheminSuivant} />;
 }

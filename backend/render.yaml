@@ -28,3 +28,22 @@ services:
         
       - key: PYTHONUNBUFFERED
         value: "1"
+
+      # Connexion Google (GoogleLoginView) — même Client ID OAuth 2.0 que
+      # NEXT_PUBLIC_GOOGLE_CLIENT_ID côté frontend (doivent matcher, cf.
+      # README.md section "Firebase (authentification téléphone) & Google
+      # OAuth"). sync: false : Render affiche le champ dans son dashboard
+      # (Environment → Environment Variables) mais ne fixe ni ne versionne
+      # de valeur ici — à saisir une fois manuellement, jamais dans ce
+      # fichier. Sans elle, le reste du service tourne normalement ; seul
+      # l'endpoint de connexion Google répond 503 (cf. accounts/auth_api_views.py).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+
+    # Authentification par téléphone (SMS OTP) : nécessite un secret
+    # firebase-service-account.json monté via l'onglet Secret Files de ce
+    # service (Dashboard → akal-backend → Environment → Secret Files) à
+    # /app/firebase-service-account.json — pas une envVar, non configurable
+    # ici. Voir README.md, section "Firebase (authentification téléphone) &
+    # Google OAuth". Sans ce fichier, le reste du service tourne normalement ;
+    # seul l'endpoint de connexion par téléphone répond 503.

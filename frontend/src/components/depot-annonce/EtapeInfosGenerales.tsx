@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { enregistrerInfosGeneralesAction, type DepotFormState } from "@/app/actions/depot-annonce";
+import { hectaresVersM2 } from "@/lib/format";
 import type { AnnonceEcriture } from "@/types/depot-annonce";
 
 const champLabelStyle: React.CSSProperties = { display: "block", fontSize: 14, fontWeight: 500, marginBottom: 6 };
@@ -45,6 +46,18 @@ export function EtapeInfosGenerales({
   const [state, formAction, pending] = useActionState<DepotFormState, FormData>(
     enregistrerInfosGeneralesAction,
     null,
+  );
+
+  // Saisie assistée de la surface (audit du 19/08) — l'input reste
+  // non-contrôlé (defaultValue, comme le reste de ce formulaire piloté par
+  // Server Action) : cet état ne sert qu'à l'aperçu m², jamais à la valeur
+  // réellement soumise. Seule la conversion ha → m² est implémentée (unité
+  // SI, 1 ha = 10 000 m², aucune ambiguïté) — le kheddam, unité
+  // traditionnelle dont la valeur varie selon la région, en a été délibérément
+  // exclu plutôt que d'afficher un chiffre qui aurait pu être faux pour la
+  // région réelle de l'utilisateur.
+  const [apercuSurfaceM2, setApercuSurfaceM2] = useState<string | null>(
+    annonce?.parcelle.surface_ha ? hectaresVersM2(annonce.parcelle.surface_ha) : null,
   );
 
   // useActionState ne redonne la main qu'après résolution de l'action : à ce
@@ -123,8 +136,17 @@ export function EtapeInfosGenerales({
             step="0.01"
             required
             defaultValue={annonce?.parcelle.surface_ha}
+            onChange={(e) => {
+              const ha = parseFloat(e.target.value);
+              setApercuSurfaceM2(Number.isFinite(ha) && ha > 0 ? hectaresVersM2(ha) : null);
+            }}
             className="input"
           />
+          {apercuSurfaceM2 && (
+            <p style={{ fontSize: 12, color: "var(--color-tertiaire)", margin: "6px 0 0" }}>
+              Soit environ {apercuSurfaceM2} m²
+            </p>
+          )}
           {state?.fieldErrors?.parcelle?.[0] && <p style={champErreurStyle}>{state.fieldErrors.parcelle[0]}</p>}
         </div>
       </div>
@@ -133,11 +155,19 @@ export function EtapeInfosGenerales({
           scrapées/importées : souvent aucune de ces données structurées).
           Ni required ni astérisque : le backend accepte déjà l'absence
           (Parcelle.statut_foncier/acces_eau/topographie/acces_routier sont
-          null=True/blank=True, can_publish() ne les vérifie pas) — seul le
-          `required` HTML ci-dessous bloquait réellement la saisie/publication. */}
-      <p style={{ fontSize: 13, color: "var(--color-secondaire)", margin: "-8px 0 0" }}>
-        Facultatif — vous pourrez compléter ces informations plus tard.
-      </p>
+          null=True/blank=True, can_publish() ne les vérifie pas).
+          Regroupées visuellement (bordure + titre dédié, audit du 16/08) :
+          la mention "Facultatif" flottait auparavant juste sous Prix/Surface
+          — au premier coup d'œil, rien ne l'empêchait d'être lue comme
+          s'appliquant à CES champs (qui restent, eux, réellement requis),
+          plutôt qu'au groupe ci-dessous auquel elle est destinée. */}
+      <div style={{ borderTop: "1px solid var(--color-bordure)", paddingTop: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <p style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>Caractéristiques du terrain</p>
+          <p style={{ fontSize: 13, color: "var(--color-secondaire)", margin: "2px 0 0" }}>
+            Facultatif — vous pourrez compléter ces informations plus tard.
+          </p>
+        </div>
 
       <div style={{ display: "flex", gap: 16 }}>
         <div style={{ flex: 1 }}>
@@ -199,6 +229,7 @@ export function EtapeInfosGenerales({
             ))}
           </select>
         </div>
+      </div>
       </div>
 
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>

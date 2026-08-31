@@ -236,6 +236,10 @@ PARCELLES_DATA = [
         'culture': ['Olivier'],
         'proprietaire_idx': 0,
         'num_photos': 2,
+        # Localisation confidentielle : la fiche publique / la carte n'exposent
+        # qu'une position floutée (~1 km), déterministe. Sert de cas de démo
+        # pour le parcours « confidentialité ». cf. serializers.py.
+        'loc_confidentielle': True,
     },
     # ── 3. Parcelle céréalière Fès ──
     {
@@ -488,6 +492,7 @@ PARCELLES_DATA = [
         'culture': ['Vigne'],
         'proprietaire_idx': 0,
         'num_photos': 2,
+        'loc_confidentielle': True,  # cf. entrée « Ferme oléicole El Hajeb »
     },
     # ── 15. Terrain pastoral Taroudant ──
     {
@@ -754,6 +759,7 @@ class Command(BaseCommand):
                 prix_mad=Decimal(data['prix']),
                 statut='en_ligne',
                 date_publication=timezone.now(),
+                loc_confidentielle=data.get('loc_confidentielle', False),
             )
             annonce.save()  # Le save() génère le slug automatiquement
 

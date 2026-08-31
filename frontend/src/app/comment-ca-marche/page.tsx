@@ -8,11 +8,12 @@ export const metadata: Metadata = {
   description: "Le parcours acheteur et le parcours vendeur sur AKAL, étape par étape.",
 };
 
-// Page dédiée (P1-04) — le contenu détaillé vit ici plutôt que dans la
-// homepage, qui ne garde qu'un teaser léger + lien vers cette page
-// (CommentCaMarcheTeaser.tsx, cf. app/page.tsx). Le composant à onglets
-// lui-même (CommentCaMarcheSection) est réutilisé tel quel : même logique,
-// juste un nouvel emplacement — aucune duplication de code.
+// Page dédiée (P1-04) — le contenu détaillé vit ici, plus du tout sur la
+// homepage : son ancien teaser léger (CommentCaMarcheTeaser.tsx) a été
+// retiré le 2026-08-17, la home ne garde plus qu'un lien direct vers cette
+// page (Hero + footer). Le composant à onglets lui-même
+// (CommentCaMarcheSection) est réutilisé tel quel : même logique, juste un
+// seul emplacement désormais — aucune duplication de code.
 export default function CommentCaMarchePage() {
   return (
     <div>

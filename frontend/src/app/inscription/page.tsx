@@ -1,22 +1,20 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth-api";
-import InscriptionScreen from "@/components/inscription/InscriptionScreen";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata = {
-  title: "Créer un compte • AKAL",
-  description: "Créez votre compte AKAL pour explorer, comparer et suivre des parcelles agricoles au Maroc.",
-};
-
+// Inscription et connexion sont unifiées sur /connexion (style Avito) :
+// il n'y a plus de distinction entre "créer un compte" et "se connecter" —
+// si le numéro/email n'existe pas, le compte est créé automatiquement.
+// Cette route est conservée pour ne pas casser les liens existants.
+// `permanentRedirect` (308, pas `redirect` qui répond en 307) : la fusion
+// des deux routes est une décision d'architecture définitive, pas un
+// détour temporaire (audit UX du 19/08 — cf. suppression du composant
+// InscriptionScreen.tsx, qui n'était plus rendu par aucune route depuis
+// cette même fusion, jamais nettoyé jusqu'ici).
 export default async function InscriptionPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
-  const cheminSuivant = next && next.startsWith("/") ? next : "/compte";
-
-  const utilisateur = await getCurrentUser();
-  if (utilisateur) redirect(cheminSuivant);
-
-  return <InscriptionScreen next={cheminSuivant} />;
+  const params = next ? `?next=${encodeURIComponent(next)}` : "";
+  permanentRedirect(`/connexion${params}`);
 }

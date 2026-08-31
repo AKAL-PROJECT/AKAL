@@ -1,22 +1,10 @@
 import Link from "next/link";
-import Image from "next/image";
-import { getParcelles } from "@/data/parcelles";
+import { getParcelles, getRegions } from "@/data/parcelles";
 import { Reveal } from "@/components/Reveal";
 import CouvertureSection from "@/components/home/CouvertureSection";
-import CommentCaMarcheTeaser from "@/components/home/CommentCaMarcheTeaser";
 import SelectionTerrainsSlider from "@/components/home/SelectionTerrainsSlider";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
-
-// cf. REGIONS_MOCK dans data/parcelles.ts — mêmes codes/libellés. Sert
-// uniquement au <select> du formulaire de recherche du Hero ci-dessous
-// (aucune interactivité region→carte ici, cf. CouvertureSection pour ça).
-const REGIONS = [
-  { code: "casablanca-settat", nom: "Casablanca-Settat" },
-  { code: "fes-meknes", nom: "Fès-Meknès" },
-  { code: "souss-massa", nom: "Souss-Massa" },
-  { code: "rabat-sale-kenitra", nom: "Rabat-Salé-Kénitra" },
-  { code: "oriental", nom: "Oriental" },
-];
+import { BanniereDemo } from "@/components/BanniereDemo";
 
 const CONFIANCE = [
   { icone: Shield, titre: "Statut foncier déclaré", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — informations déclarées par le vendeur sur chaque annonce." },
@@ -35,11 +23,28 @@ export default async function Home() {
   // (app/parcelles/[slug]/page.tsx) — page_size au max autorisé par le
   // contrat (§4.2), aucun flux de données spécifique à la Home. `count` est
   // le vrai total serveur (peut dépasser 50), jamais recalculé côté client.
-  const { results: parcelles, count: totalCount } = await getParcelles({ page_size: 50 });
+  // `ordering: "-date_publication"` (finalisation §3) — déjà garanti par
+  // Meta.ordering côté modèle (annonces/models.py, audit du 2026-07-30) même
+  // sans ce paramètre, mais explicite ici pour la même raison de clarté que
+  // app/carte/page.tsx : cet échantillon alimente à la fois
+  // SelectionTerrainsSlider ("dernières annonces") et CouvertureSection.
+  // `getRegions()` (référentiel des 12 régions officielles, même source que
+  // FiltresSidebar/CouvertureSection) alimente le <select> du formulaire de
+  // recherche du Hero ci-dessous — remplace l'ancienne liste de 5 régions
+  // codée en dur ici (incomplète, désynchronisée du vrai référentiel).
+  const [{ results: parcelles, count: totalCount }, regions] = await Promise.all([
+    getParcelles({ page_size: 50, ordering: "-date_publication" }),
+    getRegions(),
+  ]);
 
   return (
     <div>
       {/* ═══════════════════════ Hero — Découverte ═══════════════════════ */}
+      {/* Version sobre (2026-08-17) : ancienne colonne photo plein bleed
+          retirée (jamais de fichier fourni pour /images/hero-parcelles.jpg
+          en pratique, cf. historique git) — une seule colonne centrée,
+          posée sur les textures de marque déjà utilisées ailleurs sur la
+          page (topo + trame cadastrale), sans dépendre d'une image. */}
       <section
         style={{
           position: "relative",
@@ -47,181 +52,92 @@ export default async function Home() {
           backgroundColor: "var(--color-fond)",
         }}
       >
-        <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.4 }} />
+        <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.35 }} />
+        <div className="akal-texture-cadastre" aria-hidden />
 
         <div
-          className="akal-hero-grid"
           style={{
             position: "relative",
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)",
-            alignItems: "stretch",
+            maxWidth: "720px",
+            margin: "0 auto",
+            textAlign: "center",
+            padding: "clamp(72px, 12vw, 132px) clamp(24px, 6vw, 64px) clamp(64px, 9vw, 96px)",
           }}
         >
-          {/* Colonne texte — posée sur une trame parcellaire cadastrale
-              ultra-discrète (grille de bornage + bornes), cf. .akal-texture-cadastre. */}
-          <div
+          <span className="eyebrow akal-push-up" style={{ justifyContent: "center", animationDelay: "0ms" }}>
+            Marketplace foncière — Maroc
+          </span>
+
+          <h1
+            className="display-1 akal-push-up"
+            style={{ color: "var(--color-nuit)", margin: "18px 0 20px", animationDelay: "80ms" }}
+          >
+            La terre, sans zones d&apos;ombre.
+          </h1>
+
+          <p
+            className="lede akal-push-up"
+            style={{ maxWidth: "480px", margin: "0 auto 32px", animationDelay: "160ms" }}
+          >
+            AKAL réunit statut foncier déclaré, données agronomiques et échanges directs — pour
+            aborder la terre agricole marocaine en toute clarté.
+          </p>
+
+          {/* Objet posé — fond plein (rosée) + ombre courte, cohérent avec
+              le reste d'une page désormais sans photo à se fondre dedans. */}
+          <form
+            action="/parcelles"
+            method="GET"
+            className="akal-push-up"
             style={{
-              position: "relative",
-              padding: "clamp(48px, 8vw, 96px) clamp(28px, 5vw, 64px) clamp(56px, 8vw, 88px) clamp(24px, 6vw, 64px)",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "8px",
+              padding: "8px",
+              maxWidth: "540px",
+              margin: "0 auto",
+              backgroundColor: "var(--color-rosee)",
+              borderRadius: "var(--radius-lg)",
+              boxShadow: "var(--shadow-1)",
+              animationDelay: "240ms",
             }}
           >
-            <div className="akal-texture-cadastre" aria-hidden />
-
-            <div style={{ position: "relative", maxWidth: "620px" }}>
-              <span className="eyebrow akal-push-up" style={{ animationDelay: "0ms" }}>
-                Marketplace foncière — Maroc
-              </span>
-
-              <h1
-                className="display-1 akal-push-up"
-                style={{ color: "var(--color-nuit)", margin: "18px 0 20px", animationDelay: "80ms" }}
-              >
-                La terre, sans zones d&apos;ombre.
-              </h1>
-
-              <p
-                className="lede akal-push-up"
-                style={{ maxWidth: "460px", margin: "0 0 32px", animationDelay: "160ms" }}
-              >
-                AKAL réunit statut foncier déclaré, données agronomiques et échanges directs — pour
-                aborder la terre agricole marocaine en toute clarté.
-              </p>
-
-              {/* Objet posé — fond translucide + ombre longue, sans bordure dure
-                  (remplace le liseré .color-bordure par un ring via box-shadow). */}
-              <form
-                action="/parcelles"
-                method="GET"
-                className="akal-push-up"
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                  padding: "8px",
-                  maxWidth: "540px",
-                  backgroundColor: "rgba(255,255,255,0.85)",
-                  backdropFilter: "blur(6px)",
-                  borderRadius: "var(--radius-lg)",
-                  boxShadow: "0 24px 56px -24px rgba(27,58,45,0.38), 0 0 0 1px rgba(27,58,45,0.07)",
-                  animationDelay: "240ms",
-                }}
-              >
-                <label style={{ display: "block", flex: "1 1 140px" }}>
-                  <span className="sr-only">Région</span>
-                  <select name="region" className="select-chevron akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} defaultValue="">
-                    <option value="">Région</option>
-                    {REGIONS.map((r) => (
-                      <option key={r.code} value={r.code}>{r.nom}</option>
-                    ))}
-                  </select>
-                </label>
-                <div style={{ width: "1px", alignSelf: "stretch", backgroundColor: "var(--color-bordure)" }} className="hidden-mobile" />
-                <label style={{ display: "block", flex: "1 1 140px" }}>
-                  <span className="sr-only">Budget maximum en dirhams</span>
-                  <input name="prix_max" type="number" placeholder="Budget max (MAD)" className="akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} />
-                </label>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  <Search size={16} />
-                  Rechercher
-                </button>
-              </form>
-
-              <Link
-                href="#comment-ca-marche"
-                className="akal-push-up"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  color: "var(--color-foret)",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  marginTop: "24px",
-                  textDecoration: "none",
-                  animationDelay: "300ms",
-                }}
-              >
-                Comment ça marche
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-          </div>
-
-          {/* Colonne visuelle — photo aérienne plein bleed, fondue vers la
-              colonne texte (cf. .akal-hero-fondu). Visible aussi en mobile
-              (pleine largeur, empilée sous le texte via .akal-hero-grid en
-              1 colonne sous 900px). */}
-          <div className="akal-hero-visuel akal-push-up" style={{ animationDelay: "200ms" }}>
-            {/* Fichier à déposer par vos soins : frontend/public/images/hero-parcelles.jpg
-                (non versionné ici, cf. compte-rendu). */}
-            <Image
-              src="/images/hero-parcelles.jpg"
-              alt="Vue aérienne de parcelles agricoles marocaines, cultures et chemins délimitant les propriétés"
-              fill
-              priority
-              sizes="(max-width: 900px) 100vw, 48vw"
-              style={{ objectFit: "cover" }}
-            />
-
-            {/* Teinte de marque — unifie la photo à la palette AKAL. */}
-            <div
-              aria-hidden
-              style={{ position: "absolute", inset: 0, backgroundColor: "var(--color-foret)", mixBlendMode: "multiply", opacity: 0.28 }}
-            />
-
-            {/* Fondu gauche — raccorde le bord de l'image au fond de la colonne texte. */}
-            <div className="akal-hero-fondu" aria-hidden />
-
-            {/* Voile bas — asseoit la carte catalogue ancrée, transparent en haut, nuit ~82% en bas. */}
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "linear-gradient(180deg, rgba(27,58,45,0) 0%, rgba(27,58,45,0.25) 55%, rgba(27,58,45,0.82) 100%)",
-              }}
-            />
-
-            {/* Lignes de relief — signature de marque, conservée en léger overlay au-dessus de la photo. */}
-            <svg
-              aria-hidden
-              viewBox="0 0 520 640"
-              width="100%"
-              height="100%"
-              preserveAspectRatio="xMidYMid slice"
-              style={{ position: "absolute", inset: 0 }}
+            <label style={{ display: "block", flex: "1 1 140px" }}>
+              <span className="sr-only">Région</span>
+              <select name="region" className="select-chevron akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} defaultValue="">
+                <option value="">Région</option>
+                {regions.map((r) => (
+                  <option key={r.code} value={r.code}>{r.nom}</option>
+                ))}
+              </select>
+            </label>
+            <div style={{ width: "1px", alignSelf: "stretch", backgroundColor: "var(--color-bordure)" }} className="hidden-mobile" />
+            <label style={{ display: "block", flex: "1 1 140px" }}>
+              <span className="sr-only">Budget maximum en dirhams</span>
+              <input name="prix_max" type="number" placeholder="Budget max (MAD)" className="akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} />
+            </label>
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "8px" }}
             >
-              <g fill="none" stroke="var(--color-menthe)" strokeOpacity={0.35} strokeWidth={1.2}>
-                <path d="M-30 90 C 90 40,190 140,290 90 S 470 30,560 100" />
-                <path d="M-30 190 C 100 145,200 245,300 195 S 480 130,560 200" />
-                <path d="M-30 300 C 110 255,210 355,310 305 S 490 240,560 310" />
-                <path d="M-30 420 C 120 375,220 475,320 425 S 500 360,560 430" />
-                <path d="M-30 540 C 130 495,230 595,330 545 S 510 480,560 550" />
-              </g>
-            </svg>
+              <Search size={16} />
+              Rechercher
+            </button>
+          </form>
 
-            {/* Pastilles de statut foncier (positions indicatives — à ajuster
-                une fois la vraie photo en place pour tomber sur des parcelles
-                visibles). Vert = Immatriculé, terre = autre statut. */}
-            <span
-              aria-hidden
-              style={{ position: "absolute", left: "38%", top: "30%", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--color-prairie)", transform: "translate(-50%,-50%)", boxShadow: "0 0 0 2px rgba(255,255,255,0.5)" }}
-            />
-            <span
-              className="akal-pulse"
-              aria-hidden
-              style={{ position: "absolute", left: "38%", top: "30%", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--color-prairie)", opacity: 0.5, transform: "translate(-50%,-50%)" }}
-            />
-            <span
-              aria-hidden
-              style={{ position: "absolute", left: "63%", top: "58%", width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "var(--color-terre)", transform: "translate(-50%,-50%)", boxShadow: "0 0 0 2px rgba(255,255,255,0.5)" }}
-            />
-          </div>
+          {/* Pointe désormais vers la page dédiée (/comment-ca-marche) —
+              plus d'ancre #comment-ca-marche sur cette page depuis que son
+              teaser en a été retiré (cf. section Fonctionnalités plus bas). */}
+          <Link
+            href="/comment-ca-marche"
+            className="akal-push-up akal-link-fleche"
+            style={{ justifyContent: "center", marginTop: "24px", animationDelay: "300ms" }}
+          >
+            Comment ça marche
+            <ArrowRight size={14} style={{ marginLeft: "6px" }} />
+          </Link>
         </div>
       </section>
 
@@ -253,13 +169,22 @@ export default async function Home() {
         </section>
       </Reveal>
 
+      {/* Bandeau "données de démonstration" — cohérence avec le catalogue et
+          la fiche (cf. config/features.ts::BANNIERE_DEMO), les sections
+          "Couverture" et "Sélection de terrains" ci-dessous affichant les
+          mêmes annonces d'exemple. */}
+      <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 20px 8px" }}>
+        <BanniereDemo />
+      </div>
+
       {/* ═══════════════════════ Valeur — couverture ═══════════════════════ */}
       <CouvertureSection parcelles={parcelles} totalCount={totalCount} />
 
-      {/* ═══════════════════════ Fonctionnalités ═══════════════════════ */}
-      <CommentCaMarcheTeaser />
-
       {/* ═══════════════════════ Mission ═══════════════════════ */}
+      {/* "Fonctionnement / Comment ça marche" retiré d'ici le 2026-08-17 —
+          doublon avec sa page dédiée (/comment-ca-marche,
+          CommentCaMarcheSection.tsx), désormais le seul endroit où ce
+          contenu vit. Toujours atteignable depuis le Hero et le footer. */}
       <section style={{ maxWidth: "1000px", margin: "0 auto clamp(64px, 10vw, 120px)", padding: "0 24px" }}>
         <Reveal>
           <div style={{ textAlign: "center", marginBottom: "48px" }}>

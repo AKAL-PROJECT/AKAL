@@ -33,9 +33,12 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
       d'annonces déjà en_ligne reste hors périmètre F03.
 """
 
+from urllib.parse import quote
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import F, Q, Sum
+from django.db.models import F, Q
+from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as dj_filters
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -51,12 +54,22 @@ from rest_framework.views import APIView
 # annonces.Annonce sont déjà en référence string ('annonces.Annonce').
 from messaging.models import Conversation, Favori, Message
 
-from .models import Annonce, Parcelle, Photo, StatistiqueAnnonce
+# Import cross-app annonces -> geo (même sens que l'existant annonces ->
+# geo dans import_scraped_data.py/AnnonceAPIFilter, jamais l'inverse) —
+# uniquement pour AnnonceStatsRegionAPIView ci-dessous (liste des régions à
+# compter), aucune dépendance de geo vers annonces en retour.
+from geo.models import RegionOfficielle
+
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee
 from .serializers import (
     AnnonceListSerializer,
     AnnonceDetailSerializer,
     AnnonceEcritureSerializer,
     MesStatistiquesSerializer,
+    RechercheSauvegardeeSerializer,
+    WhatsAppLienSerializer,
+    _message_whatsapp,
+    _numero_whatsapp,
 )
 
 
@@ -71,12 +84,15 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
     Paramètres query string :
         ?q=                → Recherche texte sur le titre et la description
         ?region=           → Code slug de la région (ex: casablanca-settat)
+        ?province=         → Id ProvinceGeom (référentiel officiel, cascade P0-04)
+        ?commune=          → Id CommuneGeom (référentiel officiel, cascade P0-04)
         ?statut_foncier=   → Statut foncier exact
         ?acces_eau=        → Accès eau exact
         ?prix_min=         → Prix minimum (>=)
         ?prix_max=         → Prix maximum (<=)
         ?surface_min=      → Surface minimum en ha (>=)
         ?surface_max=      → Surface maximum en ha (<=)
+        ?lat_min=/?lat_max=/?lng_min=/?lng_max= → Bbox carte ("Rechercher cette zone")
         ?ordering=         → Tri : date_publication, prix_mad, surface_ha (préfixe - pour desc)
     """
 
@@ -87,6 +103,30 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
     region = dj_filters.CharFilter(
         method='filter_region',
         label='Région (code slug)',
+    )
+    # Ajout P0-04 (cascade région/province/commune du catalogue) — même
+    # remarque de périmètre que filter_region ci-dessous : ce référentiel
+    # appartient normalement à Ibrahim, ajouté ici par nécessité (la
+    # cascade frontend consomme déjà /api/geo/limites/provinces/ et
+    # /communes/ via lib/geo-api.ts pour le dépôt d'annonce, il ne manquait
+    # que le filtre côté recherche). À signaler pour relecture.
+    #
+    # Filtre uniquement sur `commune_geom` (référentiel officiel), jamais en
+    # OR avec le `commune` legacy comme le fait filter_region pour `region` :
+    # Province/Commune (legacy) et ProvinceGeom/CommuneGeom (officiel) sont
+    # deux tables distinctes dont les id ne coïncident pas (même id = deux
+    # lieux différents) — un OR sur `commune__province_id=value` matcherait
+    # une province arbitraire du petit jeu de démo legacy à chaque fois que
+    # son id coïncide avec celui, sans rapport, d'une ProvinceGeom. Le
+    # référentiel legacy n'est de toute façon quasiment plus alimenté par de
+    # nouvelles annonces (cf. commentaire Parcelle.commune_geom, geo/models.py).
+    province = dj_filters.NumberFilter(
+        field_name='parcelle__commune_geom__province_id',
+        label='Province (id ProvinceGeom, référentiel officiel)',
+    )
+    commune = dj_filters.NumberFilter(
+        field_name='parcelle__commune_geom_id',
+        label='Commune (id CommuneGeom, référentiel officiel)',
     )
     statut_foncier = dj_filters.ChoiceFilter(
         field_name='parcelle__statut_foncier',
@@ -118,6 +158,18 @@ class AnnonceAPIFilter(dj_filters.FilterSet):
         lookup_expr='lte',
         label='Surface maximum (ha)',
     )
+
+    # ── Bbox carte ("Rechercher cette zone", 2026-08-17) — filtre sur les
+    # latitude/longitude déjà exposées en FloatField (pas de lookup GIS sur
+    # `geom` : mêmes gte/lte simples que prix_min/max ci-dessus, cohérent
+    # avec le reste de ce FilterSet plutôt qu'une syntaxe à part pour cette
+    # seule feature). Les 4 bornes sont indépendantes : un appelant peut n'en
+    # passer qu'une partie, mais le frontend les envoie toujours ensemble
+    # (cf. CarteLeaflet.tsx, moveend → bounds du MapContainer).
+    lat_min = dj_filters.NumberFilter(field_name='parcelle__latitude', lookup_expr='gte', label='Latitude minimum')
+    lat_max = dj_filters.NumberFilter(field_name='parcelle__latitude', lookup_expr='lte', label='Latitude maximum')
+    lng_min = dj_filters.NumberFilter(field_name='parcelle__longitude', lookup_expr='gte', label='Longitude minimum')
+    lng_max = dj_filters.NumberFilter(field_name='parcelle__longitude', lookup_expr='lte', label='Longitude maximum')
 
     # ── T4 : Ordering conforme au contrat §4.2 ──
     ordering = dj_filters.OrderingFilter(
@@ -193,8 +245,9 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
     Réponse : { count, next, previous, results: [...] }
 
     Filtres query params :
-        q, region, statut_foncier, acces_eau,
-        prix_min, prix_max, surface_min, surface_max
+        q, region, province, commune, statut_foncier, acces_eau,
+        prix_min, prix_max, surface_min, surface_max,
+        lat_min, lat_max, lng_min, lng_max
 
     Ordering (tri) — paramètre ?ordering= :
         date_publication, prix_mad, surface_ha
@@ -243,7 +296,6 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
             .en_ligne()
             .dataset_actif()
             .with_relations()
-            .prefetch_related('parcelle__scores')
         )
 
     def perform_create(self, serializer):
@@ -268,6 +320,48 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
         return annonce
 
 
+class AnnonceStatsRegionAPIView(APIView):
+    """
+    GET /api/annonces/stats/regions/
+
+    Nombre d'annonces publiques (en_ligne, dataset_actif()) par région
+    officielle, sur l'ENSEMBLE du catalogue — jamais un échantillon paginé.
+
+    Ajouté le 2026-08-18 : la section "Couverture nationale" de la Home
+    (CouvertureSection.tsx) calculait jusque-là ses compteurs par région à
+    partir du même échantillon de 50 annonces que la vue carte/vedettes — la
+    somme des régions ne pouvait donc jamais correspondre au vrai total dès
+    que le catalogue dépassait 50 annonces (constaté à 147, puis 203).
+
+    Réponse : [{"region": "<slug RegionOfficielle>", "count": <int>}, ...],
+    une entrée par région (y compris à 0, jamais un résultat manquant) —
+    ordonnées comme RegionOfficielleListAPIView (/api/geo/limites/regions/),
+    pour un appariement direct côté front par index si besoin (le slug
+    suffit de toute façon à apparier explicitement).
+
+    Même définition d'appartenance qu'AnnonceAPIFilter.filter_region (OR
+    entre le référentiel legacy `commune` et l'officiel `commune_geom`, cf.
+    ce filtre pour le pourquoi des deux chaînes) — appliquée ici région par
+    région plutôt qu'à un seul `?region=` demandé par l'appelant.
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        queryset = Annonce.objects.en_ligne().dataset_actif()
+        resultats = [
+            {
+                'region': region.slug,
+                'count': queryset.filter(
+                    Q(parcelle__commune__province__region__code=region.slug)
+                    | Q(parcelle__commune_geom__province__region_id=region.pk)
+                ).count(),
+            }
+            for region in RegionOfficielle.objects.all().order_by('code')
+        ]
+        return Response(resultats)
+
+
 class AnnonceDetailAPIView(generics.RetrieveAPIView):
     """
     GET /api/annonces/<slug>/
@@ -285,7 +379,6 @@ class AnnonceDetailAPIView(generics.RetrieveAPIView):
             .en_ligne()
             .dataset_actif()
             .with_relations()
-            .prefetch_related('parcelle__scores')
         )
 
 
@@ -310,7 +403,6 @@ class MesAnnoncesListAPIView(generics.ListAPIView):
             Annonce.objects
             .filter(proprietaire=self.request.user)
             .with_relations()
-            .prefetch_related('parcelle__scores')
         )
 
 
@@ -319,15 +411,14 @@ class MesStatistiquesAPIView(APIView):
     GET /api/annonces/mes-annonces/statistiques/
 
     Statistiques du dashboard propriétaire — favoris reçus, conversations
-    reçues, messages non lus, vues totales. Volontairement PAS de décompte
-    par statut d'annonce ici (brouillon/en_ligne/archivee/vendue) : cette
-    donnée est déjà entièrement dérivable côté front depuis la réponse de
+    reçues, messages non lus. Volontairement PAS de décompte par statut
+    d'annonce ici (brouillon/en_ligne/archivee/vendue) : cette donnée est
+    déjà entièrement dérivable côté front depuis la réponse de
     GET /mes-annonces/ (liste déjà chargée par le dashboard, cf.
     compte/annonces/page.tsx::calculerKpis() côté front) — la dupliquer
-    serait un aller-retour réseau pour rien (revérifié le 2026-08-10 avant
-    l'ajout de vues_totales ci-dessous : toujours vrai, décision reconduite).
+    serait un aller-retour réseau pour rien.
 
-    5 requêtes simples, toutes indexées sur une FK (annonce/proprietaire,
+    3 requêtes simples, toutes indexées sur une FK (annonce/proprietaire,
     conversation) — pas de N+1, pas de préchargement nécessaire :
         - favoris_recus : Favori posés par d'autres sur les annonces de
           l'utilisateur (sens inverse de GET /api/favoris/).
@@ -338,15 +429,11 @@ class MesStatistiquesAPIView(APIView):
         - messages_non_lus : Message non lus dans ces conversations, jamais
           les messages de l'utilisateur lui-même (même filtre que
           ConversationListSerializer.get_messages_non_lus(), en agrégat).
-        - vues_totales : somme de StatistiqueAnnonce.vues sur toutes les
-          annonces de l'utilisateur. Ajout du 2026-08-10 — donnée réellement
-          nouvelle (pas dérivable de GET /mes-annonces/, contrairement au
-          décompte par statut ci-dessus) : StatistiqueAnnonce existe déjà en
-          base (modèle + admin) mais n'est encore incrémenté nulle part dans
-          le code — vaut donc 0 pour tout le monde tant qu'un mécanisme de
-          comptage de vues n'est pas construit ailleurs. Champ ajouté par
-          anticipation (forward-compatible), pas parce qu'il affiche déjà
-          une valeur utile aujourd'hui.
+
+    `vues_totales` RETIRÉ le 2026-08-30 (hardening pré-soutenance) : rien
+    n'incrémente StatistiqueAnnonce, le champ valait 0 pour tout le monde —
+    un compteur toujours nul est trompeur. Il reviendra avec un vrai
+    comptage de vues (le modèle StatistiqueAnnonce reste en base).
     """
 
     permission_classes = [IsAuthenticated]
@@ -368,17 +455,63 @@ class MesStatistiquesAPIView(APIView):
             conversation__annonce__proprietaire=request.user,
             is_lu=False,
         ).exclude(auteur=request.user).count()
-        vues_totales = StatistiqueAnnonce.objects.filter(
-            annonce__proprietaire=request.user,
-        ).aggregate(total=Sum('vues'))['total'] or 0
 
         serializer = MesStatistiquesSerializer({
             'favoris_recus': favoris_recus,
             'conversations_recues': conversations_recues,
             'messages_non_lus': messages_non_lus,
-            'vues_totales': vues_totales,
         })
         return Response(serializer.data)
+
+
+# ──────────────────────────────────────────────
+# RECHERCHE SAUVEGARDÉE — Alertes (2026-08-19)
+# ──────────────────────────────────────────────
+
+class RechercheSauvegardeeListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET  /api/annonces/recherches-sauvegardees/  → recherches de l'utilisateur connecté
+    POST /api/annonces/recherches-sauvegardees/  → en créer une nouvelle
+
+    `criteres` (payload POST) : mêmes clés que les query params envoyés à
+    GET /api/annonces/ (region, province, commune, statut_foncier,
+    acces_eau, prix_min, prix_max, surface_min, surface_max) — le frontend
+    envoie directement l'état courant de ses filtres, cf.
+    data/parcelles.ts::filtresVersParams(). Pas de pagination : le volume
+    par utilisateur reste faible pour le MVP (même choix que
+    MesAnnoncesListAPIView/Favori).
+    """
+
+    serializer_class = RechercheSauvegardeeSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return RechercheSauvegardee.objects.filter(utilisateur=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(utilisateur=self.request.user)
+
+
+class RechercheSauvegardeeDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET/PATCH/DELETE /api/annonces/recherches-sauvegardees/<uuid:pk>/
+
+    PATCH sert surtout à `{"actif": false}` (mettre en pause sans supprimer,
+    ex. le temps de conclure un achat) — mais rien n'empêche de modifier
+    `nom`/`criteres` aussi via le même endpoint générique.
+    """
+
+    serializer_class = RechercheSauvegardeeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Scope à l'utilisateur connecté directement dans la queryset (pas
+        # une vérification a posteriori) : une recherche d'un autre
+        # utilisateur renvoie 404, jamais 403 — n'en révèle pas même
+        # l'existence, même principe que EstProprietaire plus bas pour les
+        # annonces.
+        return RechercheSauvegardee.objects.filter(utilisateur=self.request.user)
 
 
 # ──────────────────────────────────────────────
@@ -584,3 +717,46 @@ class PhotoDeleteAPIView(generics.DestroyAPIView):
             Photo.objects.filter(
                 annonce_id=annonce_id, ordre__gt=ordre_supprime,
             ).update(ordre=F('ordre') - 1)
+
+
+# ──────────────────────────────────────────────
+# Lien WhatsApp — action authentifiée (hardening pré-soutenance, 2026-08-30)
+# ──────────────────────────────────────────────
+
+class WhatsAppLienAPIView(APIView):
+    """
+    GET /api/annonces/<uuid:pk>/whatsapp/
+
+    Retourne { "whatsapp_lien": "https://wa.me/<num>?text=..." } ou
+    { "whatsapp_lien": null } si le vendeur n'a pas de numéro exploitable.
+
+    Le lien contient le numéro du vendeur en clair (dans l'URL wa.me, seul
+    usage sanctionné du numéro — cf. _numero_whatsapp, serializers.py). Il
+    n'est donc plus dans le DTO public anonyme (AnnonceDetailSerializer, qui
+    n'expose plus qu'un booléen `whatsapp_disponible`) : le laisser sur la
+    fiche publique permettait de collecter tous les numéros de vendeurs via
+    GET /api/annonces/. Ici : authentification requise + scope de throttle
+    dédié 'whatsapp', pour qu'obtenir un numéro reste un geste ponctuel et
+    traçable, jamais un scraping de masse.
+
+    404 (pas 403) si l'annonce n'est pas publiquement visible (brouillon,
+    hors dataset actif) — même portée que la fiche publique AnnonceDetailAPIView.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [UserRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'whatsapp'
+    # Indice de schéma pour drf-spectacular (jamais instancié) — même motif
+    # que MesStatistiquesAPIView.
+    serializer_class = WhatsAppLienSerializer
+
+    def get(self, request, pk):
+        annonce = get_object_or_404(
+            Annonce.objects.en_ligne().dataset_actif().select_related('parcelle', 'proprietaire'),
+            pk=pk,
+        )
+        numero = _numero_whatsapp(getattr(annonce.proprietaire, 'telephone', None))
+        if not numero:
+            return Response({'whatsapp_lien': None})
+        lien = f"https://wa.me/{numero}?text={quote(_message_whatsapp(annonce))}"
+        return Response({'whatsapp_lien': lien})

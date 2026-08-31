@@ -167,10 +167,23 @@ async function fetchMe(): Promise<Response> {
   return fetch(`${API_URL}/auth/me/`, {
     headers: { Cookie: await cookieHeader() },
     cache: "no-store",
+    // Borne le temps d'attente (même convention que apiFetch, cf. lib/api.ts)
+    // : sans ça, un backend qui ne répond pas du tout (au lieu de refuser la
+    // connexion) bloquerait indéfiniment le rendu du layout racine, qui
+    // attend cet appel sur CHAQUE page.
+    signal: AbortSignal.timeout(10000),
   });
 }
 
-// Utilisateur courant, ou null si non authentifié.
+// Utilisateur courant, ou null si non authentifié — et aussi null si son
+// statut n'a pas pu être déterminé (backend injoignable/en timeout). Ce
+// second cas est traité comme "non connecté" plutôt que par une exception :
+// getCurrentUser() est appelée sans garde depuis le layout racine (chaque
+// page), donc une exception ici ferait planter l'application entière au
+// lieu de dégrader vers un simple état déconnecté (cf. audit du 17/08/2026,
+// même logique déjà appliquée à fetchNombreMessagesNonLus() juste à côté
+// dans app/layout.tsx). Un seul essai, aucune retentative : un backend
+// indisponible ne doit pas se traduire par des requêtes en boucle.
 //
 // Simplifié le 2026-07-30 : ne tente plus de refresh ici. Pour les routes
 // protégées, proxy.ts a déjà rafraîchi la session AVANT que ce Server
@@ -188,9 +201,68 @@ export async function getCurrentUser(): Promise<User | null> {
   const jar = await cookies();
   if (!jar.get("access_token") && !jar.get("refresh_token")) return null;
 
-  const res = await fetchMe();
+  let res: Response;
+  try {
+    res = await fetchMe();
+  } catch {
+    // fetch a rejeté : backend injoignable, DNS, timeout (AbortError),
+    // connexion refusée... Traité comme non connecté, pas comme un crash.
+    return null;
+  }
   if (!res.ok) return null;
-  return (await res.json()) as User;
+
+  try {
+    return (await res.json()) as User;
+  } catch {
+    // 200 mais corps illisible (backend qui répond de façon incohérente) :
+    // même traitement, impossible d'affirmer qui est l'utilisateur courant.
+    return null;
+  }
 }
 
 export type { FieldErrors };
+
+export async function phoneLoginRequest(telephone: string): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/phone/request/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ telephone }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
+}
+
+export async function phoneLoginVerify(token: string, prenom?: string, nom?: string): Promise<User> {
+  const res = await fetch(`${API_URL}/auth/phone/verify/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, prenom, nom }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
+  await suivreCookies(res);
+  return (await res.json()) as User;
+}
+
+export async function googleLogin(token: string): Promise<User> {
+  const res = await fetch(`${API_URL}/auth/google/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const { message, fieldErrors } = await lireErreur(res);
+    throw new ApiError(res.status, message, fieldErrors);
+  }
+  await suivreCookies(res);
+  return (await res.json()) as User;
+}
+
+

@@ -1,5 +1,12 @@
-# Base image optimisée (slim) pour Python
-FROM python:3.14-slim
+# Base image optimisée (slim) pour Python.
+#
+# 2026-08-30 (hardening pré-soutenance) : aligné sur 3.13 — la CI
+# (.github/workflows/ci.yml) et l'environnement de dev local tournent tous
+# deux sur 3.13, et un ancien venv `akal_env.broken-py314-backup` signale
+# que 3.14 a déjà posé problème sur ce projet. Builder l'image de prod sur
+# une version que la CI ne valide jamais, c'est un « CI verte mais deploy
+# cassé » en puissance. psycopg2/GDAL/Django 6.0 sont tous OK en 3.13.
+FROM python:3.13-slim
 
 # Empêche Python d'écrire des fichiers .pyc (gain de place)
 ENV PYTHONDONTWRITEBYTECODE=1

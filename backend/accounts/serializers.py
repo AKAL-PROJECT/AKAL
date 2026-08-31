@@ -7,7 +7,7 @@ from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from .models import User
+from .models import DOMAINE_EMAIL_TELEPHONE, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -44,14 +44,12 @@ MAX_AVATAR_OCTETS = 2 * 1024 * 1024
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Édition du profil (PATCH /auth/me, cf. MeView.update()) — page /compte
-    (mission « avatar + téléphone »). Volontairement restreint à ces deux
-    champs : nom/prénom/email/rôle n'ont pas d'UI d'édition prévue par cette
-    mission, donc pas exposés en écriture ici (contrairement à UserSerializer
-    ci-dessus, qui les expose en lecture)."""
+    (mission « avatar + téléphone »). Ajout de prenom et nom pour permettre
+    à la ProfilCompletionGate de remplir les informations manquantes."""
 
     class Meta:
         model = User
-        fields = ['telephone', 'avatar']
+        fields = ['telephone', 'avatar', 'prenom', 'nom']
 
     def validate_avatar(self, value):
         if value and value.size > MAX_AVATAR_OCTETS:
@@ -77,6 +75,22 @@ class SignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email', 'password', 'nom', 'prenom', 'telephone']
+
+    def validate_email(self, value):
+        # Audit final du 20/08 (P3) : @tel.akal.local est réservé aux
+        # comptes créés par PhoneLoginVerifyView (auth_api_views.py) — un
+        # email choisi librement ici dans ce même domaine préempterait le
+        # compte que la connexion SMS du vrai propriétaire du numéro
+        # correspondant créerait plus tard (cf. DOMAINE_EMAIL_TELEPHONE,
+        # accounts/models.py, pour le détail du scénario). Comparaison
+        # insensible à la casse : un email est déjà normalisé en minuscules
+        # par EmailField/normalize_email, mais on ne fait pas reposer une
+        # règle de sécurité sur cet ordre d'exécution implicite.
+        if value.lower().endswith(f'@{DOMAINE_EMAIL_TELEPHONE}'):
+            raise serializers.ValidationError(
+                "Ce domaine d'adresse email est réservé et ne peut pas être utilisé pour un compte."
+            )
+        return value
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)

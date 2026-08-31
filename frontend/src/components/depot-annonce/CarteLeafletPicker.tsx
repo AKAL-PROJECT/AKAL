@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { MapContainer, Marker, Polygon, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import TuileOSM from "@/components/TuileOSM";
@@ -49,11 +50,26 @@ function GestionnaireClics({
   return null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function GeoJSONFocus({ geojson }: { geojson: any }) {
+  const map = useMapEvents({});
+  useEffect(() => {
+    if (geojson) {
+      const layer = L.geoJSON(geojson);
+      if (layer.getBounds().isValid()) {
+        map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+      }
+    }
+  }, [geojson, map]);
+  return null;
+}
+
 export default function CarteLeafletPicker({
   mode,
   position,
   onChangePosition,
   contour,
+  geojsonCommune,
   onAjouterSommet,
   onDeplacerSommet,
 }: {
@@ -61,6 +77,8 @@ export default function CarteLeafletPicker({
   position: [number, number] | null;
   onChangePosition: (position: [number, number]) => void;
   contour: [number, number][];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  geojsonCommune?: any;
   // Ajout/déplacement d'un sommet : délégués au parent sous forme de mises à
   // jour fonctionnelles de state (setContour(prev => ...)), jamais
   // recalculés ici à partir du prop `contour` — deux clics/glissers
@@ -78,6 +96,7 @@ export default function CarteLeafletPicker({
       style={{ height: "100%", width: "100%", borderRadius: "var(--radius-card)" }}
     >
       <TuileOSM />
+      <GeoJSONFocus geojson={geojsonCommune} />
       <GestionnaireClics mode={mode} onAjouterPoint={onChangePosition} onAjouterSommet={onAjouterSommet} />
 
       {position && (

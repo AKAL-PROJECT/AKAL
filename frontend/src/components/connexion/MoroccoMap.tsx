@@ -13,7 +13,12 @@ type Region = {
 
 const REGIONS: Region[] = [
   { name: "Tanger-Tétouan-Al Hoceïma", x: "60%", y: "18%", side: "above" },
-  { name: "l'Oriental", x: "73%", y: "24%", side: "right" },
+  // "L'Oriental", capital L — nom officiel exact renvoyé par l'API
+  // (/api/geo/limites/regions/, cf. import_geo_officiel.py). Corrigé le
+  // 19/08 : un "l'Oriental" en minuscule ici cassait silencieusement le
+  // rapprochement par nom avec regionCounts (cf. AuthMapPanel.tsx) — cette
+  // seule région se serait toujours affichée sans compteur au survol.
+  { name: "L'Oriental", x: "73%", y: "24%", side: "right" },
   { name: "Rabat-Salé-Kénitra", x: "54%", y: "23%", side: "left" },
   { name: "Fès-Meknès", x: "63%", y: "27%", side: "above" },
   { name: "Béni Mellal-Khénifra", x: "61%", y: "34%", side: "right" },
@@ -26,10 +31,14 @@ const REGIONS: Region[] = [
   { name: "Dakhla-Oued Ed-Dahab", x: "17%", y: "82%", side: "below" },
 ];
 
-// Réutilisé par AuthMapPanel.tsx pour le micro-label sous la carte compacte
-// (les libellés de région étant masqués à cette taille, cf. plus bas) — un
-// seul décompte, jamais désynchronisé du contenu réel de REGIONS.
-export const NOMBRE_REGIONS = REGIONS.length;
+// Régions "hub" — halo permanent plus marqué (cf. .akal-hub-ring), en plus
+// du cycle automatique commun à toutes les régions ci-dessous. Bassins
+// historiques du foncier agricole marocain (périurbain de Casablanca,
+// plaine du Haouz autour de Marrakech, vallée du Souss autour d'Agadir),
+// pas un choix arbitraire — mais pas non plus dérivé de regionCounts : ce
+// dernier reflète le catalogue AKAL à un instant T (encore restreint), pas
+// l'importance agricole réelle d'une région, qui elle ne bouge pas.
+const HUBS = new Set(["Casablanca-Settat", "Marrakech-Safi", "Souss-Massa"]);
 
 const LABEL_STYLE: Record<Side, React.CSSProperties> = {
   above: { position: "absolute", left: 0, top: "-11px", transform: "translate(-50%,-100%)", textAlign: "center", whiteSpace: "nowrap" },
@@ -40,13 +49,15 @@ const LABEL_STYLE: Record<Side, React.CSSProperties> = {
 
 const CYCLE_SECONDS = 4;
 
-// `compact` : version réduite pour le bandeau mobile (cf. .connexion-map-mobile,
-// globals.css) — les libellés de région sont illisibles à cette taille et
-// disparaissent, les points animés restent seuls porteurs de l'identité
-// (« couverture nationale vivante »), pas besoin de nommer chaque région.
-export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "compact" }) {
-  const isCompact = variant === "compact";
+// `regionCounts` (nom → nombre d'annonces en_ligne, cf. getStatsParRegion) —
+// optionnel et purement additif : au survol d'une région, complète son
+// libellé par son vrai compteur plutôt que de laisser le survol muet. Sans
+// prop (ou tant que le fetch n'a pas répondu côté AuthMapPanel.tsx), le
+// survol reste silencieux sur le chiffre — jamais de nombre inventé (cf.
+// commit "fix(trust): remove fabricated content from the frontend").
+export default function MoroccoMap({ regionCounts }: { regionCounts?: Record<string, number> }) {
   const [active, setActive] = useState(0);
+  const [survolee, setSurvolee] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -56,7 +67,7 @@ export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "c
   }, []);
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: isCompact ? "200px" : "480px", aspectRatio: "1282 / 1299" }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: "480px", aspectRatio: "1282 / 1299" }}>
       <div
         className="akal-drift"
         style={{
@@ -92,8 +103,22 @@ export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "c
 
       {REGIONS.map((r, i) => {
         const isActive = i === active;
+        const isHub = HUBS.has(r.name);
+        const isSurvolee = survolee === r.name;
+        const count = regionCounts?.[r.name];
         return (
-          <div key={r.name} style={{ position: "absolute", left: r.x, top: r.y, width: 0, height: 0 }}>
+          <div
+            key={r.name}
+            style={{ position: "absolute", left: r.x, top: r.y, width: 0, height: 0, cursor: "default" }}
+            // Survol uniquement (pas de onClick) — repère visuel, pas une
+            // navigation : on est sur l'écran de connexion, tout détour vers
+            // le catalogue ferait perdre la saisie en cours (numéro/email
+            // déjà tapé). Sans incidence tactile : ce composant n'est jamais
+            // rendu sous 820px (cf. .connexion-map-col, globals.css), donc
+            // jamais sur un appareil sans souris.
+            onMouseEnter={() => setSurvolee(r.name)}
+            onMouseLeave={() => setSurvolee((v) => (v === r.name ? null : v))}
+          >
             <div
               className="akal-pulse"
               style={{
@@ -108,6 +133,20 @@ export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "c
                 transform: "translate(-50%,-50%)",
               }}
             />
+            {isHub && (
+              <div
+                className="akal-hub-ring"
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  width: "16px",
+                  height: "16px",
+                  borderRadius: "50%",
+                  border: "1px solid rgba(45,106,79,0.45)",
+                }}
+              />
+            )}
             {isActive && (
               <>
                 <div
@@ -142,35 +181,39 @@ export default function MoroccoMap({ variant = "full" }: { variant?: "full" | "c
                 position: "absolute",
                 left: 0,
                 top: 0,
-                width: isActive ? "13px" : "8px",
-                height: isActive ? "13px" : "8px",
+                width: isActive || isSurvolee ? "13px" : "8px",
+                height: isActive || isSurvolee ? "13px" : "8px",
                 borderRadius: "50%",
                 background: "#C4622D",
-                opacity: isActive ? 1 : 0.55,
+                opacity: isActive || isSurvolee ? 1 : 0.55,
                 transform: "translate(-50%,-50%)",
                 transition: "width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out",
               }}
             />
-            {!isCompact && (
-              <div style={LABEL_STYLE[r.side]}>
-                <div
-                  style={{
-                    display: "inline-block",
-                    background: "rgba(248,245,240,0.92)",
-                    borderRadius: "5px",
-                    padding: "1px 6px",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    letterSpacing: "0.3px",
-                    color: "#1B3A2D",
-                    opacity: isActive ? 1 : 0.72,
-                    transition: "opacity 0.4s ease-out",
-                  }}
-                >
-                  {r.name}
-                </div>
+            <div style={LABEL_STYLE[r.side]}>
+              <div
+                style={{
+                  display: "inline-block",
+                  background: "rgba(248,245,240,0.92)",
+                  borderRadius: "5px",
+                  padding: "1px 6px",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  letterSpacing: "0.3px",
+                  color: "#1B3A2D",
+                  opacity: isActive || isSurvolee ? 1 : 0.72,
+                  transition: "opacity 0.4s ease-out",
+                  boxShadow: isSurvolee ? "0 2px 8px rgba(27,58,45,0.18)" : "none",
+                }}
+              >
+                {r.name}
+                {isSurvolee && count !== undefined && (
+                  <div style={{ fontSize: "10px", fontWeight: 500, color: "#2D6A4F", marginTop: "1px" }}>
+                    {count} annonce{count > 1 ? "s" : ""}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         );
       })}

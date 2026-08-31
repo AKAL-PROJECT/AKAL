@@ -6,7 +6,7 @@ import {
   Droplets,
   TrendingUp,
 } from "@/components/icons/Icons";
-import { formatMAD } from "@/lib/format";
+import { formatMAD, formatPrixM2, hectaresVersM2 } from "@/lib/format";
 
 type Groupe = {
   titre: string;
@@ -30,7 +30,7 @@ const ACCES_EAU_LABEL: Record<AccesEau, string> = {
 // (§ "regrouper l'information de façon plus logique", refonte Phase 2).
 function buildGroupes(a: Parcelle): Groupe[] {
   const prixHa = a.prixM2 * 10_000;
-  const surfaceM2 = Math.round(a.parcelle.surface * 10_000).toLocaleString("fr-MA");
+  const surfaceM2 = hectaresVersM2(a.parcelle.surface);
 
   return [
     {
@@ -83,7 +83,7 @@ function buildGroupes(a: Parcelle): Groupe[] {
           type: "texte",
           icon: <TrendingUp size={13} />,
           label: "Prix au m²",
-          valeur: `${a.prixM2} MAD/m²`,
+          valeur: formatPrixM2(a.prixM2),
         },
         {
           type: "texte",
@@ -148,7 +148,7 @@ export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle 
 
   return (
     <section>
-      <h2 className="fiche-section-titre">Passeport de la parcelle</h2>
+      <h2 className="fiche-section-titre">Caractéristiques de la parcelle</h2>
 
       <div
         style={{
@@ -166,7 +166,13 @@ export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle 
               overflow: "hidden",
             }}
           >
-            {/* En-tête du groupe */}
+            {/* En-tête du groupe — bordure d'accent adoucie (audit fiche du
+                19/08) : color-mix() plutôt que la couleur de la palette en
+                pleine intensité, pour rester un simple séparateur discret
+                et non un bloc de couleur qui tire l'œil plus que les
+                données elles-mêmes. Le point + le libellé ci-dessous
+                gardent, eux, la couleur pleine (assez petits pour ne pas
+                surcharger). */}
             <div
               style={{
                 display: "flex",
@@ -174,7 +180,7 @@ export default function BlocCaracteristiques({ parcelle }: { parcelle: Parcelle 
                 gap: "8px",
                 padding: "9px 14px",
                 backgroundColor: "var(--color-fond)",
-                borderBottom: `2px solid ${g.accent}`,
+                borderBottom: `2px solid color-mix(in srgb, ${g.accent} 45%, transparent)`,
               }}
             >
               <span

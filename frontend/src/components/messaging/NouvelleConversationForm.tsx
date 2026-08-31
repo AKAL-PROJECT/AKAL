@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { demarrerConversationAction, type MessagingFormState } from "@/app/actions/messaging";
@@ -37,7 +37,9 @@ export function NouvelleConversationForm({ parcelle }: { parcelle: Parcelle }) {
             }}
           >
             {parcelle.photoPrincipale && (
-              <Image src={parcelle.photoPrincipale} alt="" fill style={{ objectFit: "cover" }} sizes="64px" />
+              <ViewTransition name={`parcelle-photo-${parcelle.id}`} share="morph">
+                <Image src={parcelle.photoPrincipale} alt="" fill style={{ objectFit: "cover" }} sizes="64px" />
+              </ViewTransition>
             )}
           </div>
           <div>

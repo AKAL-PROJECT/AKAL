@@ -58,6 +58,9 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
     'django_filters',
+    # django-axes (audit final du 20/08, correction du P1 sécurité admin) —
+    # cf. AUTHENTICATION_BACKENDS et bloc AXES_* plus bas pour la config.
+    'axes',
 
     # Apps du projet
     'accounts',
@@ -76,6 +79,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # django-axes — DOIT être le dernier middleware (recommandation du
+    # package) : il traduit un verrouillage détecté plus haut dans la pile
+    # (AUTHENTICATION_BACKENDS, cf. bloc AXES_* plus bas) en réponse HTTP 403
+    # lisible, une fois que la vue a déjà tenté de répondre.
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'akal.urls'
@@ -255,6 +263,11 @@ REST_FRAMEWORK = {
         'annonce_create': '20/hour',
         'photo_upload': '30/hour',
         'message': '40/hour',
+        # Lien WhatsApp (WhatsAppLienAPIView, hardening 2026-08-30) — chaque
+        # appel révèle un numéro de vendeur (dans l'URL wa.me). Authentifié
+        # déjà, mais scope dédié pour qu'un compte ne puisse pas énumérer
+        # tous les numéros du catalogue en boucle.
+        'whatsapp': '60/hour',
     },
 }
 
@@ -272,12 +285,88 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_COOKIE_ACCESS': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token',
-    'AUTH_COOKIE_REFRESH_PATH': '/api/auth/',
+    # '/' et non '/api/auth/' (audit du 16/08) : frontend/src/proxy.ts lit ce
+    # cookie sur CHAQUE navigation de page (config.matcher y couvre tout le
+    # site) pour rafraîchir la session en silence — avec Path='/api/auth/',
+    # le navigateur ne l'attachait jamais à une requête vers /publier,
+    # /favoris, etc., et le refresh échouait systématiquement (401 côté
+    # /api/auth/refresh/, faute de cookie transmis), pas seulement lors d'une
+    # requête ponctuelle. Reproduit et confirmé par inspection directe des
+    # cookies du navigateur, pas supposé.
+    'AUTH_COOKIE_REFRESH_PATH': '/',
     # Défauts sûrs pour la prod (frontend et backend sur des sites
     # différents, cf. prod.py) ; dev.py les assouplit pour localhost en HTTP.
     'AUTH_COOKIE_SECURE': True,
     'AUTH_COOKIE_SAMESITE': 'None',
 }
+
+
+# ──────────────────────────────────────────────
+# DJANGO-AXES — anti-brute-force sur /admin/ (audit final du 20/08, P1)
+# ──────────────────────────────────────────────
+#
+# L'audit a constaté que le throttling DRF ci-dessus (login/signup/...) ne
+# couvre que les endpoints DRF de accounts/ — la vue de connexion Django
+# Admin classique (/admin/login/) n'en a jamais bénéficié et peut être
+# attaquée par force brute sans aucun ralentissement.
+#
+# AxesBackend s'insère AVANT ModelBackend dans la chaîne d'authentification
+# Django (authenticate()) : il bloque une tentative déjà verrouillée avant
+# même que ModelBackend ne vérifie le mot de passe. Il n'authentifie jamais
+# lui-même — cf. axes/backends.py.
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# Portée strictement limitée à /admin/ (AXES_ONLY_ADMIN_SITE) : la connexion
+# JWT de l'app (LoginView, accounts/views.py) passe elle aussi par
+# authenticate() — donc par AxesBackend — mais dispose déjà de son propre
+# throttle_scope 'login' (5/min, cf. REST_FRAMEWORK ci-dessus). Sans cette
+# restriction, axes suivrait EN PLUS les tentatives sur la connexion grand
+# public et pourrait la verrouiller (par défaut, un verrou axes est
+# permanent tant qu'un staff ne le lève pas manuellement en admin — cf.
+# AXES_COOLOFF_TIME plus bas) : une dégradation du mécanisme existant,
+# jamais voulue ici. Vérifié dans axes/handlers/base.py::is_allowed() —
+# AXES_ONLY_ADMIN_SITE=True exempte totalement les requêtes hors admin du
+# suivi, pas seulement de la réponse de verrouillage.
+AXES_ONLY_ADMIN_SITE = True
+
+# 5 échecs avant verrouillage — légèrement plus permissif que le défaut du
+# package (3) : un admin qui se trompe deux fois de mot de passe ne doit pas
+# se verrouiller lui-même pour la journée.
+AXES_FAILURE_LIMIT = 5
+
+# Verrou temporaire (30 min), jamais permanent : contrairement au défaut du
+# package (AXES_COOLOFF_TIME=None => verrou permanent, levé uniquement par
+# un staff en base), un verrou qui s'auto-résout après une pause raisonnable
+# ne rend jamais le panel injoignable pour un administrateur légitime en
+# pleine démo/soutenance.
+AXES_COOLOFF_TIME = timedelta(minutes=30)
+
+# Verrouille sur CHACUN des deux critères indépendamment (liste à plat, pas
+# imbriquée — sémantique "OR" du package) : une IP qui teste beaucoup de
+# comptes différents est bloquée par IP, un compte attaqué depuis plusieurs
+# IP (botnet) est bloqué par identifiant — les deux protections demandées
+# par l'audit, pas une combinaison stricte des deux qui laisserait passer
+# l'un ou l'autre cas isolément.
+AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']
+
+# Une connexion réussie remet le compteur d'échecs à zéro — un admin qui se
+# trompe puis réussit ne doit pas rester à un échec de la limite.
+AXES_RESET_ON_SUCCESS = True
+
+# Historique des tentatives visible dans /admin/ elle-même (modèles axes
+# AccessAttempt/AccessLog) — logs exploitables sans dépendre d'un outil
+# externe, cf. exigence de l'audit.
+AXES_ENABLE_ADMIN = True
+
+# Messages explicitement en français (le package les fournit par défaut en
+# anglais) — même convention que SignupSerializer/UniqueValidator
+# (accounts/serializers.py) : ce projet n'a jamais compté sur la traduction
+# automatique d'un message tiers pour un texte visible par un humain.
+AXES_COOLOFF_MESSAGE = 'Compte verrouillé : trop de tentatives de connexion. Réessayez dans quelques minutes.'
+AXES_PERMALOCK_MESSAGE = 'Compte verrouillé : trop de tentatives de connexion. Contactez un administrateur pour le déverrouiller.'
 
 
 # ──────────────────────────────────────────────
@@ -309,6 +398,20 @@ CORS_ALLOW_CREDENTIALS = True
 # ci-dessus (qui liste des origines API-side autorisées) : ici une seule
 # valeur, celle vers laquelle rediriger un humain.
 FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
+
+
+# ──────────────────────────────────────────────
+# GOOGLE OAUTH — connexion Google (GoogleLoginView, accounts/auth_api_views.py)
+# ──────────────────────────────────────────────
+#
+# Client ID OAuth 2.0 (Google Cloud Console → APIs et services →
+# Identifiants), distinct de Firebase : GoogleLoginView vérifie le jeton
+# directement via google-auth (id_token.verify_oauth2_token), sans passer par
+# firebase_admin (cf. section Firebase du README backend). Vide par défaut
+# pour ne pas faire planter manage.py check/test/runserver tant que la
+# variable n'est pas provisionnée — GoogleLoginView répond alors 503 plutôt
+# que de vérifier les jetons contre un client ID codé en dur.
+GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
 
 
 # ──────────────────────────────────────────────
@@ -358,11 +461,34 @@ CACHES = {
         'LOCATION': env('REDIS_URL', default='redis://127.0.0.1:6379/1'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            # Résilience Redis (hardening 2026-08-31) : si Redis est
+            # injoignable, cache.get() renvoie None et cache.set() est un
+            # no-op, AU LIEU de lever ConnectionInterrupted. Sans ça, une
+            # panne Redis fait tomber TOUTE l'API en 500 dès la couche de
+            # throttling DRF (check_throttles s'exécute avant la vue, cf.
+            # rest_framework/throttling.py) — le cache, une simple
+            # optimisation, deviendrait une dépendance dure.
+            #
+            # Conséquence assumée : pendant une panne Redis, le throttling
+            # échoue "ouvert" (les compteurs ne sont plus lus → requêtes
+            # laissées passer). C'est le compromis standard : Redis éteint
+            # est déjà un incident qui alerte, mieux vaut servir du trafic
+            # non throttlé quelques minutes que renvoyer 500 partout. Le
+            # cache des limites GIS (geo/api_views.py) retombe lui sur PostGIS.
+            'IGNORE_EXCEPTIONS': True,
         },
         'KEY_PREFIX': 'akal',
         'TIMEOUT': 60,  # TTL par défaut : 60 secondes
     }
 }
+
+# L'incident Redis reste visible : django-redis logue chaque exception
+# ignorée sur le logger 'django_redis.cache' (WARNING) — donc dans la
+# console (settings.LOGGING) et, si SENTRY_DSN est défini, dans Sentry
+# (LoggingIntegration capture WARNING+ ? non, ERROR+ — mais le repli GIS
+# logue lui en WARNING aussi, cf. geo/api_views.py). Sans cette ligne les
+# exceptions seraient ignorées SILENCIEUSEMENT.
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 
 
 # ──────────────────────────────────────────────

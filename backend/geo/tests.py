@@ -14,8 +14,11 @@ tests ; l'import réel a été vérifié manuellement, cf. docs/plans).
 """
 
 from django.contrib.gis.geos import MultiPolygon, Point, Polygon
+from django.core.cache import cache, caches
 from django.core.management import CommandError
-from django.test import SimpleTestCase, TestCase
+from django.db import connection
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -92,6 +95,13 @@ class CommuneListTests(GeoReferentielTestBase):
 
 class GeoOfficielTestBase(APITestCase):
     def setUp(self):
+        # Les endpoints /api/geo/limites/ sont désormais mis en cache Redis
+        # (hardening 2026-08-31, cf. geo/api_views.py::_CacheLimitesMixin).
+        # Le cache par défaut est un VRAI Redis, partagé entre tests et entre
+        # exécutions — sans ce reset, un test verrait la réponse mise en
+        # cache par un autre (fixtures différentes). Même précaution que
+        # AnnoncesTestBase/MessagingTestBase pour le cache de throttling.
+        cache.clear()
         self.region_1 = RegionOfficielle.objects.create(code=3, slug='fes-meknes', nom='Fès-Meknès')
         self.region_2 = RegionOfficielle.objects.create(code=6, slug='casablanca-settat', nom='Casablanca-Settat')
         self.province_1 = ProvinceGeom.objects.create(
@@ -201,6 +211,117 @@ class CommuneGeomDetailTests(GeoOfficielTestBase):
         response = self.client.get('/api/geo/limites/communes/999999/')
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+# ──────────────────────────────────────────────
+# Cache Redis des limites administratives (hardening 2026-08-31)
+# ──────────────────────────────────────────────
+
+class CacheLimitesGeoTests(GeoOfficielTestBase):
+    """
+    /api/geo/limites/{regions,provinces,communes}/ — cache Redis
+    (geo/api_views.py::_CacheLimitesMixin). GeoOfficielTestBase.setUp fait
+    déjà cache.clear() ; chaque test part donc d'un cache vide.
+    """
+
+    URL_REGIONS = '/api/geo/limites/regions/'
+    URL_PROVINCES = '/api/geo/limites/provinces/'
+    URL_COMMUNES = '/api/geo/limites/communes/'
+
+    def _requetes_db(self, fn):
+        with CaptureQueriesContext(connection) as ctx:
+            resultat = fn()
+        return resultat, len(ctx)
+
+    def test_miss_puis_stockage_en_cache(self):
+        from geo.api_views import RegionOfficielleListAPIView
+        cle = RegionOfficielleListAPIView().cle_cache(None)
+        self.assertIsNone(cache.get(cle))  # MISS
+
+        response = self.client.get(self.URL_REGIONS)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # La réponse est désormais en cache, à l'identique.
+        self.assertIsNotNone(cache.get(cle))
+        self.assertEqual(cache.get(cle), response.data)
+
+    def test_hit_ne_refait_aucune_requete_db(self):
+        # 1er appel : peuple le cache (avec requêtes DB).
+        self.client.get(self.URL_PROVINCES, {'region': 'fes-meknes'})
+        # 2e appel : doit être servi depuis Redis, 0 requête sur les tables geo.
+        (r2, nb) = self._requetes_db(
+            lambda: self.client.get(self.URL_PROVINCES, {'region': 'fes-meknes'})
+        )
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
+        self.assertEqual(nb, 0, f"HIT cache mais {nb} requête(s) DB — le cache n'est pas utilisé")
+
+    def test_contenu_identique_cache_vs_frais(self):
+        frais = self.client.get(self.URL_COMMUNES, {'province': self.province_1.id}).data
+        depuis_cache = self.client.get(self.URL_COMMUNES, {'province': self.province_1.id}).data
+        self.assertEqual(frais, depuis_cache)
+
+    def test_cles_distinctes_regions_provinces_communes(self):
+        from geo.api_views import (
+            CommuneGeomListAPIView,
+            ProvinceGeomListAPIView,
+            RegionOfficielleListAPIView,
+        )
+
+        class _FauxRequest:
+            def __init__(self, params):
+                self.query_params = params
+
+        cle_regions = RegionOfficielleListAPIView().cle_cache(None)
+        cle_provinces = ProvinceGeomListAPIView().cle_cache(_FauxRequest({'region': 'fes-meknes'}))
+        cle_communes = CommuneGeomListAPIView().cle_cache(_FauxRequest({'province': '1'}))
+
+        self.assertEqual(len({cle_regions, cle_provinces, cle_communes}), 3)
+        self.assertTrue(cle_regions.startswith('geo:limites:regions'))
+        self.assertTrue(cle_provinces.startswith('geo:limites:provinces'))
+        self.assertTrue(cle_communes.startswith('geo:limites:communes'))
+        # Deux régions différentes → deux clés provinces différentes.
+        autre = ProvinceGeomListAPIView().cle_cache(_FauxRequest({'region': 'casablanca-settat'}))
+        self.assertNotEqual(cle_provinces, autre)
+
+    # Cache pointé sur un port Redis fermé (127.0.0.1:6399) + IGNORE_EXCEPTIONS
+    # (comme la config réelle, base.py) : reproduit fidèlement une panne Redis
+    # — cache.get renvoie None sans lever, y compris pour le throttling DRF
+    # qui s'exécute avant la vue.
+    _CACHE_REDIS_MORT = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'redis://127.0.0.1:6399/0',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'IGNORE_EXCEPTIONS': True,
+            },
+            'KEY_PREFIX': 'akal-test-redis-mort',
+        }
+    }
+
+    @override_settings(CACHES=_CACHE_REDIS_MORT)
+    def test_redis_indisponible_repli_sur_postgis(self):
+        # assertLogs capture (et donc réduit au silence sur la console) les
+        # exceptions Redis ignorées — et vérifie au passage que l'incident
+        # RESTE VISIBLE dans les logs (DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS).
+        with self.assertLogs('django_redis.cache', level='WARNING'):
+            caches['default'].clear()  # no-op silencieux (IGNORE_EXCEPTIONS)
+
+            response = self.client.get(self.URL_REGIONS)
+
+            # L'API répond quand même : repli PostGIS, jamais un 500.
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual({r['slug'] for r in response.data}, {'fes-meknes', 'casablanca-settat'})
+
+            # Idem pour un endpoint géométrique (ST_Simplify réellement exécuté).
+            r2 = self.client.get(self.URL_PROVINCES, {'region': 'fes-meknes'})
+            self.assertEqual(r2.status_code, status.HTTP_200_OK)
+            self.assertEqual(r2.data['type'], 'FeatureCollection')
+
+    def test_parametre_obligatoire_manquant_ne_met_rien_en_cache(self):
+        # /provinces/ sans ?region= → 400, jamais de clé en cache.
+        response = self.client.get(self.URL_PROVINCES)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 # ──────────────────────────────────────────────

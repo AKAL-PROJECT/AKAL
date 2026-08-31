@@ -35,6 +35,9 @@ from django.dispatch import receiver
 from .models import Conversation, Favori, Message, Notification
 
 
+from django.core.mail import send_mail
+from django.conf import settings
+
 @receiver(post_save, sender=Message)
 def notifier_nouveau_message(sender, instance, created, **kwargs):
     """Notifie l'autre participant de la conversation à chaque nouveau message."""
@@ -54,6 +57,16 @@ def notifier_nouveau_message(sender, instance, created, **kwargs):
         titre=f"Nouveau message de {instance.auteur.prenom}",
         message=instance.contenu[:50] + ('...' if len(instance.contenu) > 50 else ''),
     )
+
+    # Envoi d'email
+    if destinataire.email:
+        send_mail(
+            subject=f"AKAL - Nouveau message pour votre annonce « {annonce.titre} »",
+            message=f"Bonjour {destinataire.prenom},\n\nVous avez reçu un nouveau message de {instance.auteur.prenom} concernant votre annonce « {annonce.titre} » :\n\n\"{instance.contenu[:100]}...\"\n\nConnectez-vous sur AKAL pour y répondre.\n\nL'équipe AKAL",
+            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@akal.ma',
+            recipient_list=[destinataire.email],
+            fail_silently=True,
+        )
 
 
 @receiver(post_save, sender=Favori)

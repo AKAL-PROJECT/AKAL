@@ -1,11 +1,11 @@
 // Test de non-régression du contrat DTO → Parcelle.
 //
-// Fixture détail : JSON exact de AKAL_Contrat_Donnees_v1.2.md §4.4
-// (branche origin/docs/contrat-donnees-charte-nommage). Fixture liste :
-// dérivée du même exemple selon la règle "sous-ensemble allégé" énoncée
-// juste après le JSON dans le contrat (id, slug, titre, prix_mad, statut,
-// parcelle sans adresse_approximative, score_courant.score_global seul,
-// photo_principale, created_at).
+// Fixture dérivée de AKAL_Contrat_Donnees_v1.2.md §4.4, mise à jour aux
+// passes de hardening de fin août 2026 :
+//  - l'API publique n'expose plus `score_courant` (AgriScore retiré) ni
+//    `whatsapp_lien` (déplacé vers un endpoint authentifié) ;
+//  - le DTO détail porte `whatsapp_disponible` (booléen), `loc_confidentielle`,
+//    `source` et `source_url` (annonce importée d'une plateforme tierce).
 //
 // Volontairement : ce test tourne contre un JSON figé, jamais contre l'API
 // réelle (pas de fetch, pas de MSW) — c'est un test de mapping pur.
@@ -39,17 +39,6 @@ const ANNONCE_DETAIL_DTO: AnnonceDetailDTO = {
       adresse_approximative: "Berrechid, Maroc",
     },
   },
-  score_courant: {
-    score_global: 78,
-    sous_scores: {
-      fertilite: 82,
-      situation_hydrique: 70,
-      accessibilite: 75,
-      situation_juridique: 80,
-      potentiel_valorisation: 76,
-    },
-    version_ponderation: "v1.0",
-  },
   photos: [
     {
       id: "b2d5f8a1-3c6e-4f9b-a4d7-e0a3b6c9d2f5",
@@ -57,7 +46,11 @@ const ANNONCE_DETAIL_DTO: AnnonceDetailDTO = {
       ordre: 0,
     },
   ],
-  proprietaire: { id: "c3e6a9b2-4d7f-4a0c-b5e8-f1b4c7d0e3a6" },
+  proprietaire: { id: "c3e6a9b2-4d7f-4a0c-b5e8-f1b4c7d0e3a6", telephone_masque: null },
+  whatsapp_disponible: false,
+  loc_confidentielle: false,
+  source: "interne",
+  source_url: null,
   created_at: "2026-05-28T14:12:00Z",
   updated_at: "2026-06-01T09:30:00Z",
 };
@@ -86,27 +79,46 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
         longitude: -7.5878,
         regionCode: "casablanca-settat",
         regionNom: "Casablanca-Settat",
+        province: null, // absent de la fixture (verbatim contrat v1.2, cf. mapAnnonceToParcelle.ts)
+        commune: null,
         adresseApproximative: "Berrechid, Maroc",
+        contour: null,
       },
-      scoreCourant: {
-        scoreGlobal: 78,
-        sousScores: {
-          fertilite: 82,
-          situation_hydrique: 70,
-          accessibilite: 75,
-          situation_juridique: 80,
-          potentiel_valorisation: 76,
-        },
-        versionPonderation: "v1.0",
-      },
+      scoreCourant: null, // AgriScore retiré de l'API publique (hardening 2026-08-30)
+      source: "interne",
+      sourceUrl: null,
       photoPrincipale: "https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp",
       photos: ["https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp"],
+      proprietaire: { id: "c3e6a9b2-4d7f-4a0c-b5e8-f1b4c7d0e3a6", telephoneMasque: null },
+      whatsappDisponible: false,
+      locConfidentielle: false,
     });
   });
 
-  it("scoreCourant est null quand aucun AgriScore n'a encore été calculé", () => {
-    const dto: AnnonceDetailDTO = { ...ANNONCE_DETAIL_DTO, score_courant: null };
-    expect(mapAnnonceDetailToParcelle(dto).scoreCourant).toBeNull();
+  it("scoreCourant est toujours null (AgriScore retiré de l'API publique)", () => {
+    expect(mapAnnonceDetailToParcelle(ANNONCE_DETAIL_DTO).scoreCourant).toBeNull();
+  });
+
+  it("mappe whatsapp_disponible et loc_confidentielle", () => {
+    const dto: AnnonceDetailDTO = {
+      ...ANNONCE_DETAIL_DTO,
+      whatsapp_disponible: true,
+      loc_confidentielle: true,
+    };
+    const resultat = mapAnnonceDetailToParcelle(dto);
+    expect(resultat.whatsappDisponible).toBe(true);
+    expect(resultat.locConfidentielle).toBe(true);
+  });
+
+  it("mappe source et source_url (annonce importée)", () => {
+    const dto: AnnonceDetailDTO = {
+      ...ANNONCE_DETAIL_DTO,
+      source: "avito",
+      source_url: "https://www.avito.ma/fr/annonce/xyz",
+    };
+    const resultat = mapAnnonceDetailToParcelle(dto);
+    expect(resultat.source).toBe("avito");
+    expect(resultat.sourceUrl).toBe("https://www.avito.ma/fr/annonce/xyz");
   });
 
   it("photos vide => photoPrincipale null, jamais d'erreur", () => {
@@ -131,6 +143,7 @@ const ANNONCE_LISTE_DTO: AnnonceListDTO = {
   titre: "Parcelle agricole 5 ha — Berrechid",
   prix_mad: 450000,
   statut: "en_ligne",
+  source: "interne",
   parcelle: {
     id: "a1c4e7f0-2b5d-4e8a-b3c6-d9f2a5b8c1e4",
     surface_ha: 5.0,
@@ -140,8 +153,6 @@ const ANNONCE_LISTE_DTO: AnnonceListDTO = {
     // Pas d'adresse_approximative en liste (allégé, §4.4).
     localisation: { latitude: 33.2653, longitude: -7.5878 },
   },
-  // Allégé à score_global seul (§4.4).
-  score_courant: { score_global: 78 },
   photo_principale: "https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp",
   created_at: "2026-05-28T14:12:00Z",
 };
@@ -170,21 +181,20 @@ describe("mapAnnonceToParcelle (liste — sous-ensemble allégé)", () => {
         longitude: -7.5878,
         regionCode: "casablanca-settat",
         regionNom: "Casablanca-Settat",
+        province: null, // absent en liste
+        commune: null,
         adresseApproximative: null, // absent en liste
+        contour: null,
       },
-      scoreCourant: {
-        scoreGlobal: 78,
-        sousScores: null, // allégé en liste
-        versionPonderation: null, // allégé en liste
-      },
+      scoreCourant: null, // AgriScore retiré de l'API publique (hardening 2026-08-30)
+      source: "interne",
       photoPrincipale: "https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp",
       photos: [],
     });
   });
 
-  it("scoreCourant est null quand aucun score n'existe encore", () => {
-    const dto: AnnonceListDTO = { ...ANNONCE_LISTE_DTO, score_courant: null };
-    expect(mapAnnonceToParcelle(dto).scoreCourant).toBeNull();
+  it("scoreCourant est toujours null en liste (AgriScore retiré de l'API publique)", () => {
+    expect(mapAnnonceToParcelle(ANNONCE_LISTE_DTO).scoreCourant).toBeNull();
   });
 
   it("convertit prix_mad / surface_ha correctement même si le JSON renvoie déjà des number", () => {

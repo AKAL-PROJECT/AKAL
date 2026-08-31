@@ -7,19 +7,26 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 
 import io
 
-from django.contrib.gis.geos import MultiPolygon, Polygon
+from django.contrib import admin
+from django.contrib.auth.models import Group
+from django.contrib.gis.geos import MultiPolygon, Point, Polygon
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, override_settings
 from PIL import Image
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import User
 from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
-from messaging.models import Conversation, Favori, Message
+from messaging.models import Conversation, Favori, Message, Notification
 from . import transitions
-from .models import Annonce, Parcelle, Photo, StatistiqueAnnonce
+from .admin import publier_selection, rejeter_selection
+from .alertes import notifier_recherches_correspondantes
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee
+from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
 ANNONCES_URL = '/api/annonces/'
 
@@ -424,6 +431,89 @@ class CommuneGeomTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
 
+    def publier_annonce_geolocalisee(self):
+        """Localise (commune_geom), ajoute une photo et publie self.annonce_id — préalable
+        commun aux tests de filtre province/commune ci-dessous."""
+        self.patch_parcelle(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+        self.client.logout()
+
+    def test_filtre_province_catalogue_p0_04(self):
+        """?province=<id ProvinceGeom> (cascade P0-04) — filtre sur commune_geom
+        uniquement, jamais sur la province legacy (self.province, id potentiellement
+        identique à self.province_geom.id sans être le même lieu, cf. commentaire
+        AnnonceAPIFilter.province)."""
+        self.publier_annonce_geolocalisee()
+
+        response = self.client.get(ANNONCES_URL, {'province': self.province_geom.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_province_catalogue_exclut_une_autre_province(self):
+        self.publier_annonce_geolocalisee()
+        autre_province = ProvinceGeom.objects.create(
+            iso='MA-03-999', nom='Autre province', region=self.region_officielle,
+            geom=_polygone_carre(-6.5, 34.5),
+        )
+
+        response = self.client.get(ANNONCES_URL, {'province': autre_province.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_commune_catalogue_p0_04(self):
+        """?commune=<id CommuneGeom> (cascade P0-04)."""
+        self.publier_annonce_geolocalisee()
+
+        response = self.client.get(ANNONCES_URL, {'commune': self.commune_geom.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_commune_catalogue_exclut_une_autre_commune(self):
+        self.publier_annonce_geolocalisee()
+        autre_commune = CommuneGeom.objects.create(
+            source_fid=999, libelle='CR AUTRE', nom_affichage='Autre commune',
+            province=self.province_geom, geom=_polygone_carre(-5.5, 33.5, demi_cote=0.01),
+        )
+
+        response = self.client.get(ANNONCES_URL, {'commune': autre_commune.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_bbox_carte_inclut_annonce_dans_la_zone(self):
+        """?lat_min=/lat_max=/lng_min=/lng_max= ("Rechercher cette zone",
+        2026-08-17) — self.annonce_id est publiée à (33.5, -5.5), cf.
+        publier_annonce_geolocalisee()."""
+        self.publier_annonce_geolocalisee()
+
+        response = self.client.get(ANNONCES_URL, {
+            'lat_min': 33.0, 'lat_max': 34.0, 'lng_min': -6.0, 'lng_max': -5.0,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
+    def test_filtre_bbox_carte_exclut_annonce_hors_zone(self):
+        self.publier_annonce_geolocalisee()
+
+        response = self.client.get(ANNONCES_URL, {
+            # Une zone au sud, ne recouvrant pas (33.5, -5.5).
+            'lat_min': 20.0, 'lat_max': 21.0, 'lng_min': -17.0, 'lng_max': -16.0,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(str(self.annonce_id), [a['id'] for a in response.data['results']])
+
 
 class PhotoUploadTests(AnnoncesTestBase):
     def setUp(self):
@@ -678,11 +768,14 @@ class MesAnnoncesTests(AnnoncesTestBase):
 class MesStatistiquesTests(AnnoncesTestBase):
     """
     GET /api/annonces/mes-annonces/statistiques/ — favoris/conversations
-    reçus, messages non lus, vues totales (dashboard propriétaire). Les
-    fixtures Favori/Conversation/Message/StatistiqueAnnonce sont créées
-    directement en base (comme MessagingTestBase.creer_annonce) plutôt que
-    via l'API : ce endpoint n'agrège que des compteurs, peu importe comment
-    les lignes sont nées.
+    reçus, messages non lus (dashboard propriétaire). Les fixtures
+    Favori/Conversation/Message sont créées directement en base (comme
+    MessagingTestBase.creer_annonce) plutôt que via l'API : ce endpoint
+    n'agrège que des compteurs, peu importe comment les lignes sont nées.
+
+    `vues_totales` retiré de l'API le 2026-08-30 (compteur toujours nul,
+    trompeur — cf. MesStatistiquesAPIView) : les tests de vues associés ont
+    été supprimés avec le champ.
     """
 
     def setUp(self):
@@ -724,7 +817,7 @@ class MesStatistiquesTests(AnnoncesTestBase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {
-            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0, 'vues_totales': 0,
+            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
         })
 
     def test_compte_les_favoris_recus_sur_ses_annonces(self):
@@ -794,32 +887,20 @@ class MesStatistiquesTests(AnnoncesTestBase):
         # Toute l'activité créée ci-dessus porte sur l'annonce du vendeur A,
         # pas du vendeur B connecté ici — rien ne doit lui être attribué.
         self.assertEqual(response.data, {
-            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0, 'vues_totales': 0,
+            'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
         })
 
-    def test_somme_les_vues_de_toutes_ses_annonces(self):
+    def test_vues_totales_nest_plus_expose(self):
+        # Retiré le 2026-08-30 : StatistiqueAnnonce n'est incrémenté nulle
+        # part, le champ valait toujours 0 (trompeur). Le champ ne doit plus
+        # apparaître dans la réponse.
         vendeur = self.authentifier('vendeur@akal.ma')
-        annonce_a = self.creer_annonce_en_ligne(vendeur, titre='Annonce A')
-        annonce_b = self.creer_annonce_en_ligne(vendeur, titre='Annonce B')
-        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-01', vues=3)
-        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-02', vues=2)
-        StatistiqueAnnonce.objects.create(annonce=annonce_b, date='2026-08-01', vues=5)
+        self.creer_annonce_en_ligne(vendeur)
 
         response = self.statistiques()
 
-        self.assertEqual(response.data['vues_totales'], 10)
-
-    def test_n_inclut_pas_les_vues_dun_autre_proprietaire(self):
-        vendeur_a = self.authentifier('vendeur-a@akal.ma')
-        annonce_a = self.creer_annonce_en_ligne(vendeur_a)
-        StatistiqueAnnonce.objects.create(annonce=annonce_a, date='2026-08-01', vues=7)
-        self.client.logout()
-        vendeur_b = self.authentifier('vendeur-b@akal.ma')
-        self.creer_annonce_en_ligne(vendeur_b, titre='Annonce du vendeur B')
-
-        response = self.statistiques()
-
-        self.assertEqual(response.data['vues_totales'], 0)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn('vues_totales', response.data)
 
 
 # ──────────────────────────────────────────────
@@ -912,6 +993,66 @@ class PhotoUploadThrottleTests(AnnoncesTestBase):
             format='multipart', **self.csrf_headers(),
         )
         self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+# ──────────────────────────────────────────────
+# Résilience Redis — le throttling ne doit jamais faire 500 (hardening 2026-08-31)
+# ──────────────────────────────────────────────
+#
+# cf. docs/plans/2026-08-31-redis-fail-open.md. check_throttles() s'exécute
+# dans initial(), AVANT le handler de vue (rest_framework/views.py) ; les
+# throttles DRF lisent le cache par défaut dans allow_request(). Sans
+# IGNORE_EXCEPTIONS (base.py), une panne Redis lève ConnectionInterrupted à
+# cet endroit → 500 sur presque toute l'API, avant toute logique métier.
+# Ce test verrouille le fail-open : Redis HS → le throttling laisse passer,
+# jamais un 500. Même fixture que geo/tests.py::CacheLimitesGeoTests.
+_CACHE_REDIS_MORT = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6399/0',  # port fermé = panne Redis
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True,  # réplique exacte de base.py
+        },
+        'KEY_PREFIX': 'akal-test-redis-mort',
+    }
+}
+
+
+@override_settings(CACHES=_CACHE_REDIS_MORT)
+class ResilienceRedisThrottlingTests(AnnoncesTestBase):
+    """
+    Panne Redis → le throttling DRF échoue « ouvert », jamais un 500.
+
+    `django.core.cache.cache` (donc `SimpleRateThrottle.cache`) est un proxy
+    ré-résolu à chaque accès : override_settings suffit à basculer les
+    throttles sur le faux cache. `assertLogs` vérifie au passage que
+    l'incident RESTE VISIBLE : django-redis logue chaque exception ignorée
+    via `logger.exception` (niveau ERROR) sur `django_redis.cache` quand
+    DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS est vrai — donc console (Render) et,
+    en prod, Sentry (LoggingIntegration event_level='ERROR').
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+
+    def test_ecriture_throttlee_repond_malgre_redis_hs(self):
+        # POST /api/annonces/ : UserRateThrottle + ScopedRateThrottle
+        # ('annonce_create'), les deux lisent le cache dans allow_request().
+        with self.assertLogs('django_redis.cache', level='ERROR'):
+            response = self.creer_brouillon()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_lecture_publique_anonyme_repond_malgre_redis_hs(self):
+        # Le catalogue public passe par AnonRateThrottle (plancher global
+        # base.py) — c'est lui qui 500-erait toute la navigation anonyme.
+        anon = APIClient()
+        with self.assertLogs('django_redis.cache', level='ERROR'):
+            response = anon.get(ANNONCES_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 # ──────────────────────────────────────────────
@@ -1198,22 +1339,42 @@ class ImportMubawabTests(ImportScrapedDataTestBase):
         self.assertEqual(annonce.titre, 'Terrain Mubawab')
         self.assertEqual(annonce.proprietaire.email, 'scraper.mubawab@akal.ma')
 
-    def test_mubawab_jamais_geolocalise_aucun_champ_localite_fiable(self):
-        """Contrairement à Avito (segment d'URL), Mubawab n'a aucun champ
-        structuré de localité dans l'export fourni — jamais de résolution
-        de commune tentée, quel que soit le contenu du titre/description."""
+    def test_mubawab_geolocalise_via_commune_nommee_dans_le_titre(self):
+        """Contrairement à Avito (segment d'URL dédié), Mubawab n'a aucun
+        champ structuré de localité dans l'export fourni — mais depuis le
+        2026-08-18 (décision produit, cf. docstring import_scraped_data),
+        le titre/la description sont passés au crible pour y reconnaître un
+        nom de commune officielle, pour les deux sources."""
         self.importer(
             [_entree(
                 id_annonce='223', source='mubawab',
                 url='https://www.mubawab.ma/fr/a/223/terrain-a-meknes-ville',
-                titre='Terrain agricole à Meknès Ville',  # la ville EST dans le titre...
+                titre='Terrain agricole à Meknès Ville',  # la ville EST dans le titre
             )],
             source='mubawab',
         )
 
-        annonce = Annonce.objects.get(source_id='223')
-        self.assertIsNone(annonce.parcelle.commune_geom)
-        self.assertIsNone(annonce.parcelle.latitude)
+        parcelle = Annonce.objects.get(source_id='223').parcelle
+        self.assertEqual(parcelle.commune_geom_id, self.commune_geom.pk)
+        self.assertIsNotNone(parcelle.latitude)
+        self.assertIsNotNone(parcelle.longitude)
+
+    def test_mubawab_sans_aucun_lieu_reconnaissable_reste_non_geolocalisee(self):
+        """Ni le titre ni la description ne nomment une commune ou une
+        région connue — toujours aucune coordonnée inventée."""
+        self.importer(
+            [_entree(
+                id_annonce='224', source='mubawab',
+                url='https://www.mubawab.ma/fr/a/224/terrain-agricole',
+                titre='Terrain agricole à vendre',
+                description='Beau terrain, prix négociable.',
+            )],
+            source='mubawab',
+        )
+
+        parcelle = Annonce.objects.get(source_id='224').parcelle
+        self.assertIsNone(parcelle.commune_geom)
+        self.assertIsNone(parcelle.latitude)
 
 
 class ImportIdempotenceTests(ImportScrapedDataTestBase):
@@ -1352,8 +1513,10 @@ class ImportGeolocalisationTests(ImportScrapedDataTestBase):
         self.assertIsNotNone(parcelle.geom)
 
     def test_localite_sans_correspondance_reste_non_geolocalisee(self):
-        """"autre_secteur", "route_de_fes"... ne matchent aucune commune —
-        jamais de coordonnée approximée par défaut."""
+        """"autre_secteur", "route_de_fes"... ne matchent aucune commune, et
+        le titre/la description par défaut (_entree) ne nomment aucune
+        commune ni région connue — jamais de coordonnée approximée par
+        défaut, quel que soit le palier (commune ou région)."""
         self.importer([_entree(
             id_annonce='602',
             url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_602.htm',
@@ -1365,6 +1528,63 @@ class ImportGeolocalisationTests(ImportScrapedDataTestBase):
         self.assertIsNone(parcelle.longitude)
         self.assertIsNone(parcelle.geom)
         self.assertFalse(parcelle.is_geolocated())
+
+    def test_commune_reconnue_dans_le_titre_quand_lurl_ne_matche_pas(self):
+        """L'URL Avito ("autre_secteur") ne donne rien, mais le titre nomme
+        une commune du référentiel officiel — résolue tout de même (même
+        palier de précision qu'une résolution par URL : commune_geom
+        renseigné)."""
+        self.importer([_entree(
+            id_annonce='603',
+            url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_603.htm',
+            titre='Beau terrain agricole à Meknès Ville, proche axes routiers',
+        )])
+
+        parcelle = Annonce.objects.get(source_id='603').parcelle
+        self.assertEqual(parcelle.commune_geom_id, self.commune_geom.pk)
+        self.assertIsNotNone(parcelle.latitude)
+        self.assertTrue(parcelle.is_geolocated())
+
+    def test_repli_region_quand_aucune_commune_mais_la_region_est_nommee(self):
+        """Ni l'URL ni le titre/la description ne nomment une commune
+        connue, mais la région ("Fès-Meknès") apparaît dans la description
+        — repli approximatif au centroïde de la région : coordonnées
+        renseignées, mais `commune_geom` volontairement laissé NULL (décision
+        produit du 2026-08-18) donc `is_geolocated()` reste False et
+        can_publish() continue de bloquer la publication de cette annonce."""
+        self.importer([_entree(
+            id_annonce='604',
+            url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_604.htm',
+            titre='Terrain agricole à vendre',
+            description='Beau terrain situé dans la région de Fès-Meknès, proche de la ville.',
+        )])
+
+        parcelle = Annonce.objects.get(source_id='604').parcelle
+        self.assertIsNone(parcelle.commune_geom)
+        self.assertIsNotNone(parcelle.latitude)
+        self.assertIsNotNone(parcelle.longitude)
+        self.assertIsNotNone(parcelle.geom)
+        self.assertFalse(parcelle.is_geolocated())
+        peut_publier, raisons = Annonce.objects.get(source_id='604').can_publish()
+        self.assertFalse(peut_publier)
+        self.assertIn(
+            "La localisation de la parcelle doit être renseignée avant publication.",
+            raisons,
+        )
+
+    def test_commune_prioritaire_sur_region_quand_les_deux_sont_nommees(self):
+        """Le titre nomme à la fois la commune ET, via la description, sa
+        région — la commune (plus précise) l'emporte, jamais le repli région
+        alors qu'une résolution précise est possible."""
+        self.importer([_entree(
+            id_annonce='605',
+            url='https://www.avito.ma/fr/autre_secteur/terrains_et_fermes/x_605.htm',
+            titre='Terrain à Meknès Ville',
+            description='Située dans la région de Fès-Meknès.',
+        )])
+
+        parcelle = Annonce.objects.get(source_id='605').parcelle
+        self.assertEqual(parcelle.commune_geom_id, self.commune_geom.pk)
 
 
 class ImportPhotosEtPublicationTests(ImportScrapedDataTestBase):
@@ -1498,6 +1718,16 @@ class DatasetActifTests(TestCase):
         self.assertNotIn(self.annonce_interne, resultat)
         self.assertIn(self.annonce_avito, resultat)
 
+    @override_settings(AKAL_DATASET='all')
+    def test_dataset_all_montre_les_deux_jeux(self):
+        """Défaut local depuis le 2026-08-17 (audit final) — cf. dev.py :
+        évite qu'une annonce 'interne' fraîchement publiée en local
+        retourne 404 sur sa propre fiche publique."""
+        resultat = list(Annonce.objects.en_ligne().dataset_actif())
+
+        self.assertIn(self.annonce_interne, resultat)
+        self.assertIn(self.annonce_avito, resultat)
+
     def test_valeur_inconnue_replie_silencieusement_sur_simulated(self):
         with override_settings(AKAL_DATASET='n_importe_quoi'):
             resultat = list(Annonce.objects.en_ligne().dataset_actif())
@@ -1512,3 +1742,709 @@ class DatasetActifTests(TestCase):
         titres = [a['titre'] for a in response.data['results']]
         self.assertIn('Annonce avito', titres)
         self.assertNotIn('Annonce interne', titres)
+
+
+class AdminModerationTests(AnnoncesTestBase):
+    """Actions groupées de l'admin (publier_selection/rejeter_selection) et
+    restriction get_readonly_fields — audit admin du 19/08. Appelle les
+    fonctions d'action directement (pas un round-trip HTTP par le formulaire
+    d'actions de l'admin) : plus rapide, et c'est la même logique métier
+    testée soit qu'on la déclenche depuis /admin/ ou en Python."""
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier()
+        self.factory = RequestFactory()
+        self.superuser = User.objects.create_superuser(
+            email='admin@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Admin', prenom='AKAL',
+        )
+        self.moderateur = User.objects.create_user(
+            email='moderateur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Modo', prenom='AKAL', is_staff=True,
+        )
+        self.moderateur.groups.add(Group.objects.get(name='Modérateurs'))
+        self.modeladmin = admin.site._registry[Annonce]
+
+    def _requete(self, user):
+        # message_user() (appelé par les deux actions) a besoin d'un backend
+        # de messages sur la requête — FallbackStorage est le plus simple
+        # sans passer par le vrai middleware de session, mais il essaie
+        # d'abord le stockage en session (avant le repli sur cookie), donc
+        # `request.session` doit exister ; un dict simple suffit à son usage
+        # (get/__setitem__), pas besoin d'un vrai SessionStore.
+        request = self.factory.get('/admin/annonces/annonce/')
+        request.user = user
+        request.session = {}
+        request._messages = FallbackStorage(request)
+        return request
+
+    def _annonce_eligible(self, statut):
+        """Annonce satisfaisant can_publish() (géoloc + photo + prix), forcée
+        au statut demandé — jamais via l'API (aucun déclencheur ne mène
+        actuellement à en_attente, cf. transitions.py), à la main comme le
+        ferait un futur flux de modération."""
+        annonce_id = self.creer_brouillon().data['id']
+        self.localiser(annonce_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        annonce = Annonce.objects.get(id=annonce_id)
+        annonce.statut = statut
+        annonce.save(update_fields=['statut'])
+        return annonce
+
+    def test_publier_selection_publie_en_attente_et_brouillon_eligibles(self):
+        en_attente = self._annonce_eligible(Annonce.StatutAnnonce.EN_ATTENTE)
+        brouillon = self._annonce_eligible(Annonce.StatutAnnonce.BROUILLON)
+        request = self._requete(self.superuser)
+
+        publier_selection(self.modeladmin, request, Annonce.objects.filter(id__in=[en_attente.id, brouillon.id]))
+
+        en_attente.refresh_from_db()
+        brouillon.refresh_from_db()
+        self.assertEqual(en_attente.statut, Annonce.StatutAnnonce.EN_LIGNE)
+        self.assertEqual(brouillon.statut, Annonce.StatutAnnonce.EN_LIGNE)
+        self.assertIsNotNone(en_attente.date_publication)
+
+    def test_publier_selection_ignore_les_annonces_sans_photo(self):
+        annonce_id = self.creer_brouillon().data['id']
+        self.localiser(annonce_id)
+        annonce = Annonce.objects.get(id=annonce_id)  # jamais de photo -> can_publish() False
+        request = self._requete(self.superuser)
+
+        publier_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+
+    def test_publier_selection_ignore_une_annonce_deja_en_ligne(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_LIGNE)
+        request = self._requete(self.superuser)
+
+        # en_ligne -> en_ligne n'est pas une arête du graphe (transitions.py)
+        publier_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)  # inchangé, pas une erreur
+
+    def test_rejeter_selection_repasse_en_attente_vers_brouillon(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_ATTENTE)
+        request = self._requete(self.superuser)
+
+        rejeter_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+
+    def test_rejeter_selection_ignore_une_annonce_en_ligne(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_LIGNE)
+        request = self._requete(self.superuser)
+
+        rejeter_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)  # seul "en attente" peut être rejeté
+
+    def test_statut_lecture_seule_pour_un_moderateur_pas_pour_un_superutilisateur(self):
+        request_modo = self._requete(self.moderateur)
+        request_admin = self._requete(self.superuser)
+
+        self.assertIn('statut', self.modeladmin.get_readonly_fields(request_modo))
+        self.assertNotIn('statut', self.modeladmin.get_readonly_fields(request_admin))
+
+    def test_groupe_moderateurs_na_pas_acces_aux_utilisateurs(self):
+        # Périmètre volontairement restreint (migration 0009) — un
+        # modérateur review du contenu, jamais les comptes.
+        self.assertFalse(self.moderateur.has_perm('accounts.change_user'))
+        self.assertTrue(self.moderateur.has_perm('annonces.change_annonce'))
+
+
+class AlertesRechercheSauvegardeeTests(AnnoncesTestBase):
+    """Signal + matching + notification/email — cf. signals.py/alertes.py.
+    RECHERCHE_URL : réutilise ANNONCES_URL en préfixe, comme le reste des
+    tests de ce module (jamais l'URL complète codée en dur ailleurs)."""
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier(email='vendeur@akal.ma')
+        self.acheteur = User.objects.create_user(
+            email='acheteur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Acheteur', prenom='Test',
+        )
+
+    def _annonce_eligible(self, proprietaire_email='vendeur@akal.ma'):
+        """Annonce en brouillon, géolocalisée + une photo (satisfait
+        can_publish()), déposée par `proprietaire_email` (déjà authentifié
+        comme self.client à cet instant)."""
+        annonce_id = self.creer_brouillon().data['id']
+        self.localiser(annonce_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        return annonce_id
+
+    def _publier(self, annonce_id):
+        # captureOnCommitCallbacks(execute=True) : TestCase enveloppe chaque
+        # test dans une transaction qui n'est JAMAIS réellement commitée
+        # (rollback en fin de test, pour l'isolation) — sans ce contexte,
+        # transaction.on_commit() (signals.py) ne s'exécute donc jamais ici,
+        # alors qu'il s'exécute bien en usage réel (une vraie requête HTTP
+        # commite pour de vrai). Ce contexte simule ce commit pour que le
+        # callback parte quand même, comme en production.
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.patch(
+                f'{ANNONCES_URL}{annonce_id}/', {'statut': 'en_ligne'}, format='json', **self.csrf_headers(),
+            )
+        return response
+
+    def test_publication_notifie_une_recherche_correspondante(self):
+        annonce_id = self._annonce_eligible()
+        recherche = RechercheSauvegardee.objects.create(
+            utilisateur=self.acheteur, nom='Fès-Meknès', criteres={'region': 'fes-meknes'},
+        )
+
+        response = self._publier(annonce_id)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        notif = Notification.objects.filter(
+            destinataire=self.acheteur, type_notif=Notification.TypeNotif.ALERTE_RECHERCHE,
+        )
+        self.assertEqual(notif.count(), 1)
+        self.assertEqual(str(notif.first().annonce_id), annonce_id)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.acheteur.email, mail.outbox[0].to)
+        self.assertIn(recherche.nom, mail.outbox[0].subject + ''.join(mail.outbox[0].body))
+
+    def test_publication_ne_notifie_pas_une_recherche_qui_ne_correspond_pas(self):
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(
+            utilisateur=self.acheteur, criteres={'region': 'oriental'},  # notre annonce est fes-meknes
+        )
+
+        self._publier(annonce_id)
+
+        self.assertFalse(Notification.objects.filter(destinataire=self.acheteur).exists())
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_recherche_inactive_ne_notifie_pas(self):
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(
+            utilisateur=self.acheteur, criteres={'region': 'fes-meknes'}, actif=False,
+        )
+
+        self._publier(annonce_id)
+
+        self.assertFalse(Notification.objects.filter(destinataire=self.acheteur).exists())
+
+    def test_le_vendeur_ne_recoit_jamais_dalerte_pour_sa_propre_annonce(self):
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(
+            utilisateur=self.vendeur, criteres={'region': 'fes-meknes'},
+        )
+
+        self._publier(annonce_id)
+
+        self.assertFalse(Notification.objects.filter(destinataire=self.vendeur, type_notif=Notification.TypeNotif.ALERTE_RECHERCHE).exists())
+
+    def test_republication_ne_notifie_pas_une_seconde_fois(self):
+        # archivee -> en_ligne (réactivation) sur une annonce DÉJÀ passée
+        # une fois par en_ligne ne doit pas redéclencher pour autant si elle
+        # y est déjà — ce test couvre spécifiquement l'inverse : deux PATCH
+        # 'en_ligne' de suite (le second no-op, transition_autorisee rejette
+        # en_ligne -> en_ligne) ne doublent pas la notification.
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(utilisateur=self.acheteur, criteres={'region': 'fes-meknes'})
+
+        self._publier(annonce_id)
+        self._publier(annonce_id)  # rejeté par transition_autorisee, statut déjà en_ligne
+
+        self.assertEqual(Notification.objects.filter(destinataire=self.acheteur).count(), 1)
+
+    def test_action_admin_publier_selection_declenche_aussi_lalerte(self):
+        # Même signal, quel que soit le chemin qui écrit statut=en_ligne
+        # (cf. docstring signals.py) — vérifié ici via l'action admin
+        # plutôt que par l'API, pour couvrir un DEUXIÈME chemin distinct.
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(utilisateur=self.acheteur, criteres={'region': 'fes-meknes'})
+
+        factory = RequestFactory()
+        request = factory.get('/admin/annonces/annonce/')
+        request.user = self.vendeur
+        request.session = {}
+        request._messages = FallbackStorage(request)
+        modeladmin = admin.site._registry[Annonce]
+        with self.captureOnCommitCallbacks(execute=True):  # cf. commentaire de _publier() ci-dessus
+            publier_selection(modeladmin, request, Annonce.objects.filter(id=annonce_id))
+
+        self.assertTrue(Notification.objects.filter(destinataire=self.acheteur, type_notif=Notification.TypeNotif.ALERTE_RECHERCHE).exists())
+
+    def test_notifier_recherches_correspondantes_ignore_une_annonce_pas_en_ligne(self):
+        # Appel direct (pas via le signal) sur une annonce encore en
+        # brouillon — filet de sécurité de la fonction elle-même (cf.
+        # commentaire alertes.py), jamais supposé n'être vérifié que côté
+        # signal.
+        annonce_id = self._annonce_eligible()
+        RechercheSauvegardee.objects.create(utilisateur=self.acheteur, criteres={'region': 'fes-meknes'})
+
+        notifier_recherches_correspondantes(annonce_id)
+
+        self.assertFalse(Notification.objects.filter(destinataire=self.acheteur).exists())
+
+
+class RechercheSauvegardeeAPITests(AnnoncesTestBase):
+    URL = f'{ANNONCES_URL}recherches-sauvegardees/'
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.authentifier(email='investisseur@akal.ma')
+
+    def test_creer_une_recherche(self):
+        response = self.client.post(
+            self.URL,
+            {'nom': 'Souss-Massa >2ha', 'criteres': {'region': 'souss-massa', 'surface_min': '2'}},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        recherche = RechercheSauvegardee.objects.get(id=response.data['id'])
+        self.assertEqual(recherche.utilisateur, self.user)
+        self.assertEqual(recherche.criteres, {'region': 'souss-massa', 'surface_min': '2'})
+
+    def test_criteres_doit_etre_un_objet(self):
+        response = self.client.post(
+            self.URL, {'nom': 'Invalide', 'criteres': ['pas', 'un', 'objet']},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_liste_scopee_a_lutilisateur_connecte(self):
+        RechercheSauvegardee.objects.create(utilisateur=self.user, nom='La mienne', criteres={})
+        autre = User.objects.create_user(email='autre@akal.ma', password='un-mot-de-passe-solide-2026', nom='A', prenom='B')
+        RechercheSauvegardee.objects.create(utilisateur=autre, nom='Pas la mienne', criteres={})
+
+        response = self.client.get(self.URL)
+
+        noms = [r['nom'] for r in response.data]
+        self.assertIn('La mienne', noms)
+        self.assertNotIn('Pas la mienne', noms)
+
+    def test_ne_peut_pas_supprimer_la_recherche_dun_autre(self):
+        autre = User.objects.create_user(email='autre2@akal.ma', password='un-mot-de-passe-solide-2026', nom='A', prenom='B')
+        recherche = RechercheSauvegardee.objects.create(utilisateur=autre, criteres={})
+
+        response = self.client.delete(f'{self.URL}{recherche.id}/', **self.csrf_headers())
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(RechercheSauvegardee.objects.filter(id=recherche.id).exists())
+
+    def test_peut_mettre_en_pause_sans_supprimer(self):
+        recherche = RechercheSauvegardee.objects.create(utilisateur=self.user, criteres={})
+
+        response = self.client.patch(
+            f'{self.URL}{recherche.id}/', {'actif': False}, format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        recherche.refresh_from_db()
+        self.assertFalse(recherche.actif)
+
+    def test_anonyme_ne_peut_pas_creer_de_recherche(self):
+        self.client.logout()
+
+        response = self.client.post(self.URL, {'nom': 'x', 'criteres': {}}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+# ──────────────────────────────────────────────
+# WHATSAPP — _numero_whatsapp / _message_whatsapp / get_whatsapp_lien
+# (audit final du 20/08, P9 — jusqu'ici sans test dédié malgré leur rôle
+# dans une fonctionnalité différenciante du produit)
+# ──────────────────────────────────────────────
+
+class NumeroWhatsAppTests(SimpleTestCase):
+    """_numero_whatsapp() — fonction pure, aucun accès base nécessaire."""
+
+    def test_numero_marocain_national_valide(self):
+        self.assertEqual(_numero_whatsapp('0612345678'), '212612345678')
+
+    def test_numero_avec_prefixe_international_valide(self):
+        self.assertEqual(_numero_whatsapp('+212612345678'), '212612345678')
+
+    def test_numero_avec_espaces_est_normalise(self):
+        # Espaces courants d'une saisie humaine (profil /compte) — retirés
+        # avant normalisation, quel que soit le format d'origine.
+        self.assertEqual(_numero_whatsapp('+212 6 12 34 56 78'), '212612345678')
+        self.assertEqual(_numero_whatsapp('06 12 34 56 78'), '212612345678')
+
+    def test_numero_invalide_retourne_none(self):
+        # Ne commence ni par '0' ni par '+212' — format non reconnu, jamais
+        # un lien construit sur une donnée dont la forme n'est pas sûre.
+        self.assertIsNone(_numero_whatsapp('123456789'))
+        self.assertIsNone(_numero_whatsapp('+33612345678'))
+
+    def test_numero_avec_caracteres_non_numeriques_retourne_none(self):
+        self.assertIsNone(_numero_whatsapp('06ABCD5678'))
+
+    def test_numero_absent_retourne_none(self):
+        self.assertIsNone(_numero_whatsapp(None))
+        self.assertIsNone(_numero_whatsapp(''))
+
+
+class MessageWhatsAppTests(AnnoncesTestBase):
+    """_message_whatsapp() (fonction pure) + endpoint authentifié
+    GET /api/annonces/<uuid>/whatsapp/ (WhatsAppLienAPIView).
+
+    Hardening 2026-08-30 : le lien wa.me (qui contient le numéro en clair)
+    n'est PLUS dans AnnonceDetailSerializer — le DTO public ne porte qu'un
+    booléen `whatsapp_disponible`. Le lien s'obtient via l'endpoint dédié,
+    authentifié et throttlé."""
+
+    def creer_annonce(self, **overrides):
+        proprietaire = overrides.pop('proprietaire', None) or User.objects.create_user(
+            email='proprio-whatsapp@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Alaoui', prenom='Karim', telephone='+212612345678',
+        )
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, surface_ha=2.5, statut_foncier='melkia',
+            acces_eau='irriguee', topographie='plat', acces_routier='goudron',
+            latitude=33.5, longitude=-5.5,
+        )
+        defaults = {
+            'parcelle': parcelle, 'proprietaire': proprietaire, 'titre': 'Belle parcelle',
+            'description': 'Une description suffisamment longue.', 'prix_mad': 150000,
+            'statut': Annonce.StatutAnnonce.EN_LIGNE,
+        }
+        defaults.update(overrides)
+        return Annonce.objects.create(**defaults)
+
+    def test_message_contient_reference_localisation_surface_et_prix(self):
+        annonce = self.creer_annonce()
+
+        message = _message_whatsapp(annonce)
+
+        self.assertIn(f"AKAL-{str(annonce.id)[:8].upper()}", message)
+        # "Meknès Ville" (self.commune, AnnoncesTestBase.setUp) — caractère
+        # accentué transmis tel quel, jamais échappé/perdu à ce stade (c'est
+        # get_whatsapp_lien ci-dessous qui gère l'encodage URL).
+        self.assertIn("Meknès Ville", message)
+        self.assertIn("2.5 ha", message)
+        self.assertIn("150 000 MAD", message)
+
+    def test_message_omet_les_lignes_sans_donnee_disponible(self):
+        # Parcelle sans commune/commune_geom (aucune localisation connue) —
+        # la ligne "Localisation" doit être absente, jamais "Localisation : None".
+        parcelle_sans_commune = Parcelle.objects.create(surface_ha=1.0)
+        annonce = Annonce.objects.create(
+            parcelle=parcelle_sans_commune,
+            proprietaire=User.objects.create_user(
+                email='sans-loc@akal.ma', password='un-mot-de-passe-solide-2026',
+                nom='X', prenom='Y', telephone='+212612345678',
+            ),
+            titre='Parcelle sans localisation', description='Description suffisamment longue.',
+            prix_mad=100000, statut=Annonce.StatutAnnonce.EN_LIGNE,
+        )
+
+        message = _message_whatsapp(annonce)
+
+        self.assertNotIn("Localisation", message)
+        self.assertNotIn("None", message)
+
+    def whatsapp_url(self, annonce):
+        return f'{ANNONCES_URL}{annonce.id}/whatsapp/'
+
+    def test_endpoint_whatsapp_refuse_lanonyme(self):
+        annonce = self.creer_annonce()
+
+        response = self.client.get(self.whatsapp_url(annonce))
+
+        # Un visiteur anonyme ne doit jamais pouvoir récupérer un numéro de
+        # vendeur — c'est tout l'objet du déplacement du lien hors du DTO public.
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_endpoint_whatsapp_construit_le_lien_pour_un_utilisateur_connecte(self):
+        annonce = self.creer_annonce()  # propriétaire : téléphone +212612345678
+        self.authentifier('acheteur@akal.ma')  # appelant : un autre compte, connecté
+
+        response = self.client.get(self.whatsapp_url(annonce))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        lien = response.data['whatsapp_lien']
+        self.assertTrue(lien.startswith('https://wa.me/212612345678?text='))
+        # Message encodé pour l'URL (urllib.parse.quote) : aucun retour à la
+        # ligne ni espace littéral, accent "è" encodé %C3%A8.
+        self.assertNotIn('\n', lien)
+        self.assertNotIn(' ', lien)
+        self.assertIn('%C3%A8', lien)
+
+    def test_endpoint_whatsapp_retourne_none_si_vendeur_sans_numero(self):
+        proprietaire = User.objects.create_user(
+            email='sans-tel@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Z', prenom='W', telephone='',
+        )
+        annonce = self.creer_annonce(proprietaire=proprietaire)
+        self.authentifier('acheteur@akal.ma')
+
+        response = self.client.get(self.whatsapp_url(annonce))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data['whatsapp_lien'])
+
+    def test_endpoint_whatsapp_404_sur_annonce_non_publiee(self):
+        proprietaire = User.objects.create_user(
+            email='vendeur-brouillon@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='B', prenom='R', telephone='+212612345678',
+        )
+        annonce = self.creer_annonce(proprietaire=proprietaire, statut=Annonce.StatutAnnonce.BROUILLON)
+        self.authentifier('acheteur@akal.ma')
+
+        response = self.client.get(self.whatsapp_url(annonce))
+
+        # Même portée que la fiche publique : un brouillon n'existe pas pour
+        # un tiers → 404, jamais 403.
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_serializer_public_nexpose_ni_lien_ni_numero(self):
+        annonce = self.creer_annonce()
+
+        data = AnnonceDetailSerializer(annonce).data
+
+        # Plus de champ `whatsapp_lien` (contenait le numéro dans l'URL).
+        self.assertNotIn('whatsapp_lien', data)
+        # Le numéro ne doit apparaître nulle part dans la représentation.
+        import json
+        corps = json.dumps(data, default=str)
+        self.assertNotIn('wa.me', corps)
+        self.assertNotIn(str(annonce.proprietaire.telephone).replace('+', ''), corps)
+        # Le DTO ne porte plus qu'un booléen de disponibilité.
+        self.assertIs(data['whatsapp_disponible'], True)
+
+    def test_whatsapp_disponible_false_si_vendeur_sans_numero(self):
+        proprietaire = User.objects.create_user(
+            email='no-tel@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='N', prenom='T', telephone='',
+        )
+        annonce = self.creer_annonce(proprietaire=proprietaire)
+
+        data = AnnonceDetailSerializer(annonce).data
+
+        self.assertIs(data['whatsapp_disponible'], False)
+
+    def test_numero_brut_du_proprietaire_najamais_fuite_dans_le_serializer_public(self):
+        # RGPD (loi 09-08) — ProprietaireSerializer ne doit exposer que l'UUID
+        # et une version masquée, jamais un champ `telephone` brut.
+        annonce = self.creer_annonce()
+
+        data = AnnonceDetailSerializer(annonce).data
+
+        self.assertNotIn('telephone', data['proprietaire'])
+        self.assertIn('telephone_masque', data['proprietaire'])
+        self.assertNotEqual(data['proprietaire']['telephone_masque'], annonce.proprietaire.telephone)
+        self.assertTrue(data['proprietaire']['telephone_masque'].startswith('+212 6 '))
+        self.assertIn('**', data['proprietaire']['telephone_masque'])
+
+
+# ──────────────────────────────────────────────
+# AgriScore — RETIRÉ de l'API publique (hardening 2026-08-30)
+# ──────────────────────────────────────────────
+
+class AgriScoreAbsentDeLAPITests(AnnoncesTestBase):
+    """
+    Le modèle AgriScore reste en base, mais l'API publique ne doit plus
+    exposer `score_courant` / `indice_confiance` / `version_ponderation` :
+    les seules valeurs jamais produites étaient des random.uniform() de seed,
+    pas un résultat calculé.
+    """
+
+    def _annonce_en_ligne_avec_score(self):
+        from .models import AgriScore
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, commune_geom=self.commune_geom, surface_ha=3.0,
+            statut_foncier='melkia', acces_eau='irriguee', topographie='plat',
+            acces_routier='goudron', latitude=33.5, longitude=-5.5,
+        )
+        annonce = Annonce.objects.create(
+            parcelle=parcelle,
+            proprietaire=User.objects.create_user(
+                email='v-score@akal.ma', password='un-mot-de-passe-solide-2026',
+                nom='S', prenom='C',
+            ),
+            titre='Parcelle avec score', description='Description suffisamment longue.',
+            prix_mad=200000, statut=Annonce.StatutAnnonce.EN_LIGNE,
+        )
+        AgriScore.objects.create(
+            parcelle=parcelle, score_global=87.3,
+            sous_scores={'sol': 90}, indice_confiance=0.91, version_ponderation='v1.0-seed',
+        )
+        return annonce
+
+    def test_detail_public_nexpose_aucun_champ_agriscore(self):
+        annonce = self._annonce_en_ligne_avec_score()
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for champ in ('score_courant', 'indice_confiance', 'version_ponderation'):
+            self.assertNotIn(champ, response.data)
+        import json
+        corps = json.dumps(response.data, default=str)
+        self.assertNotIn('v1.0-seed', corps)
+        self.assertNotIn('indice_confiance', corps)
+
+    def test_liste_publique_nexpose_aucun_champ_agriscore(self):
+        self._annonce_en_ligne_avec_score()
+
+        response = self.client.get(ANNONCES_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['results'])
+        for annonce_data in response.data['results']:
+            self.assertNotIn('score_courant', annonce_data)
+
+
+class SourceAnnonceDansLAPITests(AnnoncesTestBase):
+    """La fiche expose `source` et `source_url` — le front s'en sert pour
+    masquer la messagerie/WhatsApp AKAL sur une annonce importée et renvoyer
+    vers l'annonce d'origine (hardening 2026-08-31)."""
+
+    def _annonce(self, source, source_url=None):
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, commune_geom=self.commune_geom, surface_ha=2.0,
+            statut_foncier='melkia', acces_eau='irriguee', topographie='plat',
+            acces_routier='goudron', latitude=33.5, longitude=-5.5,
+        )
+        return Annonce.objects.create(
+            parcelle=parcelle,
+            proprietaire=User.objects.create_user(
+                email=f'v-src-{source}@akal.ma', password='un-mot-de-passe-solide-2026',
+                nom='S', prenom='R',
+            ),
+            titre=f'Annonce {source}', description='Description suffisamment longue.',
+            prix_mad=200000, statut=Annonce.StatutAnnonce.EN_LIGNE,
+            source=source, source_url=source_url,
+        )
+
+    def test_fiche_interne_source_interne_source_url_null(self):
+        a = self._annonce(Annonce.Source.INTERNE)
+        data = self.client.get(f'{ANNONCES_URL}{a.slug}/').data
+        self.assertEqual(data['source'], 'interne')
+        self.assertIsNone(data['source_url'])
+
+    @override_settings(AKAL_DATASET='all')
+    def test_fiche_externe_expose_source_et_source_url(self):
+        a = self._annonce(Annonce.Source.AVITO, source_url='https://www.avito.ma/fr/annonce/xyz')
+        data = self.client.get(f'{ANNONCES_URL}{a.slug}/').data
+        self.assertEqual(data['source'], 'avito')
+        self.assertEqual(data['source_url'], 'https://www.avito.ma/fr/annonce/xyz')
+
+class LocalisationConfidentielleTests(AnnoncesTestBase):
+    """
+    loc_confidentielle=True → l'API publique renvoie une position FLOUTÉE
+    (déterministe, ~1 km) à tout lecteur non-propriétaire ; jamais `geom` ni
+    `contour`. loc_confidentielle=False → coordonnées exactes.
+    """
+
+    LAT_EXACTE = 33.512345
+    LNG_EXACTE = -5.487654
+
+    def _creer(self, *, confidentielle, proprietaire=None):
+        proprietaire = proprietaire or User.objects.create_user(
+            email=f'v-conf-{confidentielle}@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='C', prenom='L',
+        )
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, commune_geom=self.commune_geom, surface_ha=4.0,
+            statut_foncier='melkia', acces_eau='irriguee', topographie='plat',
+            acces_routier='goudron',
+            latitude=self.LAT_EXACTE, longitude=self.LNG_EXACTE,
+            geom=Point(self.LNG_EXACTE, self.LAT_EXACTE, srid=4326),
+        )
+        return Annonce.objects.create(
+            parcelle=parcelle, proprietaire=proprietaire,
+            titre='Parcelle confidentielle' if confidentielle else 'Parcelle ouverte',
+            description='Description suffisamment longue.', prix_mad=300000,
+            statut=Annonce.StatutAnnonce.EN_LIGNE, loc_confidentielle=confidentielle,
+        )
+
+    def test_non_confidentielle_expose_les_coordonnees_exactes(self):
+        annonce = self._creer(confidentielle=False)
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        loc = response.data['parcelle']['localisation']
+        self.assertEqual(loc['latitude'], self.LAT_EXACTE)
+        self.assertEqual(loc['longitude'], self.LNG_EXACTE)
+
+    def test_confidentielle_floute_la_position_pour_lanonyme(self):
+        from .serializers import _flouter_position
+        annonce = self._creer(confidentielle=True)
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        loc = response.data['parcelle']['localisation']
+        # Ni la latitude ni la longitude exacte ne doit sortir.
+        self.assertNotEqual(loc['latitude'], self.LAT_EXACTE)
+        self.assertNotEqual(loc['longitude'], self.LNG_EXACTE)
+        # Reste dans un rayon raisonnable (~1,5 km) du vrai point.
+        self.assertLess(abs(loc['latitude'] - self.LAT_EXACTE), 0.015)
+        self.assertLess(abs(loc['longitude'] - self.LNG_EXACTE), 0.015)
+        # Déterministe : exactement la valeur de _flouter_position(parcelle_id).
+        lat_attendue, lng_attendue = _flouter_position(
+            self.LAT_EXACTE, self.LNG_EXACTE, annonce.parcelle_id,
+        )
+        self.assertEqual(loc['latitude'], lat_attendue)
+        self.assertEqual(loc['longitude'], lng_attendue)
+
+    def test_confidentielle_position_stable_entre_deux_requetes(self):
+        annonce = self._creer(confidentielle=True)
+
+        r1 = self.client.get(f'{ANNONCES_URL}{annonce.slug}/').data['parcelle']['localisation']
+        r2 = self.client.get(f'{ANNONCES_URL}{annonce.slug}/').data['parcelle']['localisation']
+
+        self.assertEqual((r1['latitude'], r1['longitude']), (r2['latitude'], r2['longitude']))
+
+    def test_confidentielle_floutee_aussi_dans_la_liste(self):
+        annonce = self._creer(confidentielle=True)
+
+        response = self.client.get(ANNONCES_URL)
+
+        cible = next(a for a in response.data['results'] if a['id'] == str(annonce.id))
+        loc = cible['parcelle']['localisation']
+        self.assertNotEqual(loc['latitude'], self.LAT_EXACTE)
+        self.assertNotEqual(loc['longitude'], self.LNG_EXACTE)
+
+    def test_proprietaire_connecte_voit_ses_coordonnees_exactes(self):
+        proprietaire = self.authentifier('proprio-conf@akal.ma')
+        annonce = self._creer(confidentielle=True, proprietaire=proprietaire)
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        loc = response.data['parcelle']['localisation']
+        self.assertEqual(loc['latitude'], self.LAT_EXACTE)
+        self.assertEqual(loc['longitude'], self.LNG_EXACTE)
+
+    def test_autre_utilisateur_connecte_ne_voit_pas_les_coordonnees_exactes(self):
+        annonce = self._creer(confidentielle=True)
+        self.authentifier('curieux@akal.ma')  # connecté, mais pas le propriétaire
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        loc = response.data['parcelle']['localisation']
+        self.assertNotEqual(loc['latitude'], self.LAT_EXACTE)
+
+    def test_ni_geom_ni_contour_dans_la_fiche_publique(self):
+        annonce = self._creer(confidentielle=True)
+
+        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
+
+        import json
+        corps = json.dumps(response.data, default=str)
+        self.assertNotIn('geom', response.data['parcelle'])
+        self.assertNotIn('contour', response.data['parcelle'])
+        # Aucune trace de la coordonnée exacte nulle part dans le corps.
+        self.assertNotIn(str(self.LAT_EXACTE), corps)
+        self.assertNotIn(str(self.LNG_EXACTE), corps)

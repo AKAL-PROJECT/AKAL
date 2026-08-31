@@ -120,6 +120,12 @@ describe("EtapeLocalisation — cascade région → province → commune", () =>
     fetchRegionsOfficiellesMock.mockResolvedValue(REGIONS);
     fetchProvincesGeomMock.mockResolvedValue(PROVINCES);
     fetchCommunesGeomMock.mockResolvedValue(COMMUNES);
+    // selectionnerLaCascade() sélectionne une commune, ce qui déclenche
+    // fetchCommuneGeomDetail(...) (cf. EtapeLocalisation.tsx) — sans ce mock,
+    // l'appel réel retombe sur le comportement par défaut de vi.fn()
+    // (retourne undefined), et le .then() qui suit lève une exception non
+    // gérée (cf. audit d'intégration du 2026-08-15).
+    fetchCommuneGeomDetailMock.mockResolvedValue(COMMUNES[0]);
 
     render(<EtapeLocalisation annonce={annonceSansLocalisation()} onPrecedent={vi.fn()} onSuivant={vi.fn()} />);
     await selectionnerLaCascade();
