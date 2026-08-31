@@ -461,11 +461,34 @@ CACHES = {
         'LOCATION': env('REDIS_URL', default='redis://127.0.0.1:6379/1'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            # Résilience Redis (hardening 2026-08-31) : si Redis est
+            # injoignable, cache.get() renvoie None et cache.set() est un
+            # no-op, AU LIEU de lever ConnectionInterrupted. Sans ça, une
+            # panne Redis fait tomber TOUTE l'API en 500 dès la couche de
+            # throttling DRF (check_throttles s'exécute avant la vue, cf.
+            # rest_framework/throttling.py) — le cache, une simple
+            # optimisation, deviendrait une dépendance dure.
+            #
+            # Conséquence assumée : pendant une panne Redis, le throttling
+            # échoue "ouvert" (les compteurs ne sont plus lus → requêtes
+            # laissées passer). C'est le compromis standard : Redis éteint
+            # est déjà un incident qui alerte, mieux vaut servir du trafic
+            # non throttlé quelques minutes que renvoyer 500 partout. Le
+            # cache des limites GIS (geo/api_views.py) retombe lui sur PostGIS.
+            'IGNORE_EXCEPTIONS': True,
         },
         'KEY_PREFIX': 'akal',
         'TIMEOUT': 60,  # TTL par défaut : 60 secondes
     }
 }
+
+# L'incident Redis reste visible : django-redis logue chaque exception
+# ignorée sur le logger 'django_redis.cache' (WARNING) — donc dans la
+# console (settings.LOGGING) et, si SENTRY_DSN est défini, dans Sentry
+# (LoggingIntegration capture WARNING+ ? non, ERROR+ — mais le repli GIS
+# logue lui en WARNING aussi, cf. geo/api_views.py). Sans cette ligne les
+# exceptions seraient ignorées SILENCIEUSEMENT.
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 
 
 # ──────────────────────────────────────────────
