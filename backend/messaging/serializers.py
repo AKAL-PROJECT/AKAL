@@ -145,6 +145,19 @@ class EnvoyerMessageSerializer(serializers.Serializer):
 
     def validate_annonce(self, annonce):
         utilisateur = self.context['request'].user
+        # Annonces importées d'une source externe (Avito/Mubawab, cf.
+        # Annonce.Source) : le "propriétaire" est un compte bot d'import,
+        # jamais un vrai vendeur joignable — ouvrir une conversation AKAL
+        # créerait un fil sans destinataire réel. Hardening 2026-08-31 : on
+        # refuse la création de conversation (le CTA est aussi masqué côté
+        # front, cf. FicheParcelle.tsx / estSourceExterne). Sans effet sur
+        # le catalogue de démo (AKAL_DATASET='simulated' = source=interne
+        # uniquement) — garde-fou pour tout dataset qui exposerait le scrapé.
+        if annonce.source != Annonce.Source.INTERNE:
+            raise serializers.ValidationError(
+                "Cette annonce provient d'une source externe : la messagerie AKAL n'est pas "
+                "disponible pour la contacter. Reportez-vous à l'annonce d'origine."
+            )
         if annonce.proprietaire_id == utilisateur.id:
             raise serializers.ValidationError(
                 "Vous ne pouvez pas vous contacter vous-même sur votre propre annonce."

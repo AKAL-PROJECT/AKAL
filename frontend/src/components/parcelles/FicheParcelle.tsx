@@ -16,7 +16,8 @@ import { obtenirLienWhatsappAction } from "@/app/actions/whatsapp";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
 import { useComparateur } from "@/hooks/useComparateur";
 import { COMPARATEUR_MAX } from "./comparateurStorage";
-import { formatMAD } from "@/lib/format";
+import { formatMAD, formatPrixM2 } from "@/lib/format";
+import { estSourceExterne, libelleSource } from "@/lib/annonce-source";
 import { descriptionClimat, formatDistance, genererPasseport } from "@/data/passeportAgronomique";
 import {
   MapPin,
@@ -403,14 +404,52 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
                 {formatMAD.format(a.prix)} MAD
               </div>
               <div style={{ fontSize: "13px", color: "var(--color-tertiaire)", marginTop: "4px" }}>
-                {a.prixM2} MAD/m² · {a.parcelle.surface} ha
+                {formatPrixM2(a.prixM2)} · {a.parcelle.surface} ha
               </div>
             </div>
 
             <div style={{ height: "1px", backgroundColor: "var(--color-bordure)" }} />
 
-            {/* CTAs */}
+            {/* CTAs — pour une annonce importée d'une source externe (Avito,
+                Mubawab), le « propriétaire » est un compte bot d'import :
+                ni messagerie AKAL ni WhatsApp, on renvoie vers l'annonce
+                d'origine. cf. lib/annonce-source.ts + backend
+                EnvoyerMessageSerializer.validate_annonce. */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {estSourceExterne(a.source) ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    padding: "14px",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--color-bordure)",
+                    backgroundColor: "var(--color-fond-input)",
+                  }}
+                >
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-texte)" }}>
+                    Annonce issue d&apos;une source externe
+                  </div>
+                  <p style={{ fontSize: "12.5px", color: "var(--color-secondaire)", margin: 0, lineHeight: 1.5 }}>
+                    Cette annonce a été importée depuis {libelleSource(a.source)}. Elle n&apos;a pas été
+                    déposée par un vendeur sur AKAL — la messagerie et le contact WhatsApp AKAL ne sont
+                    pas disponibles.
+                  </p>
+                  {a.sourceUrl && (
+                    <a
+                      href={a.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="akal-focusable"
+                      style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-foret)" }}
+                    >
+                      Voir l&apos;annonce d&apos;origine →
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <>
               <button
                 onClick={handleContactClick}
                 className="btn-primary"
@@ -495,6 +534,8 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
                     Ce vendeur n&apos;a pas renseigné de numéro WhatsApp.
                   </p>
                 </div>
+              )}
+                </>
               )}
             </div>
 
@@ -616,9 +657,27 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
             {formatMAD.format(a.prix)} MAD
           </div>
           <div style={{ fontSize: "12px", color: "var(--color-tertiaire)" }}>
-            {a.prixM2} MAD/m²
+            {formatPrixM2(a.prixM2)}
           </div>
         </div>
+        {estSourceExterne(a.source) ? (
+          a.sourceUrl ? (
+            <a
+              href={a.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{ flex: 1, textAlign: "center", textDecoration: "none" }}
+            >
+              Voir l&apos;annonce d&apos;origine
+            </a>
+          ) : (
+            <span style={{ flex: 1, textAlign: "center", fontSize: "12px", color: "var(--color-tertiaire)" }}>
+              Annonce d&apos;une source externe
+            </span>
+          )
+        ) : (
+          <>
         <button
           onClick={handleContactClick}
           className="btn-primary"
@@ -681,8 +740,10 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
             <WhatsAppIcon size={20} />
           </button>
         )}
+          </>
+        )}
       </div>
-      <ContactVendeurPanel 
+      <ContactVendeurPanel
         parcelle={a} 
         isOpen={isContactPanelOpen} 
         onClose={() => setIsContactPanelOpen(false)} 

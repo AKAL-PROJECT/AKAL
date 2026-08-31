@@ -17,6 +17,7 @@ import type {
   StatutFoncier,
   Topographie,
 } from "@/types/parcelle";
+import type { SourceAnnonce } from "@/lib/annonce-source";
 
 type RegionDTO = {
   code: string;
@@ -68,6 +69,7 @@ export type AnnonceListDTO = {
   titre: string;
   prix_mad: number;
   statut: StatutAnnonce;
+  source?: SourceAnnonce; // optionnel : absent de la fixture contrat v1.2 figée
   parcelle: ParcelleListDTO;
   photo_principale: string | null;
   created_at: string;
@@ -99,6 +101,8 @@ export type AnnonceDetailDTO = {
   // L'emplacement exact est-il masqué ? Si true, la localisation renvoyée ici
   // est déjà floutée côté serveur pour un lecteur non-propriétaire.
   loc_confidentielle?: boolean;
+  source?: SourceAnnonce; // optionnel : absent de la fixture contrat v1.2 figée
+  source_url?: string | null; // renseigné pour une source externe (lien annonce d'origine)
   created_at: string;
   updated_at: string;
 };
@@ -168,6 +172,7 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
     scoreCourant: null, // AgriScore retiré de l'API publique (cf. haut du fichier)
+    source: dto.source,
     photoPrincipale: dto.photo_principale,
     photos: [],
   };
@@ -222,6 +227,8 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
     scoreCourant: null, // AgriScore retiré de l'API publique (cf. haut du fichier)
+    source: dto.source,
+    sourceUrl: dto.source_url ?? null,
     // photos toujours triées par ordre croissant côté API (§4.4) ; ordre 0 = principale.
     photoPrincipale: dto.photos[0]?.url ?? null,
     photos: dto.photos.map((p) => p.url),

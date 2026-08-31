@@ -8,6 +8,8 @@
 // le vocabulaire interne du front se fait uniquement dans
 // lib/mapAnnonceToParcelle.ts — jamais imposée au back.
 
+import type { SourceAnnonce } from "@/lib/annonce-source";
+
 export type StatutFoncier =
   | "melkia"
   | "soulaliya"
@@ -123,6 +125,11 @@ export type Parcelle = {
   badge: string | null;
   parcelle: ParcelleTerrain;
   scoreCourant: ScoreCourant | null; // toujours null de l'API réelle (cf. ScoreCourant)
+  // Provenance (cf. lib/annonce-source.ts). Absent en liste allégée du contrat
+  // d'origine → optionnel. `interne` = messagerie AKAL + WhatsApp ; sinon
+  // (avito/mubawab) le CTA AKAL est masqué, on renvoie vers `sourceUrl`.
+  source?: SourceAnnonce;
+  sourceUrl?: string | null; // détail uniquement, renseigné pour une source externe
   photoPrincipale: string | null;
   photos: string[]; // vide en liste, rempli en détail (§4.4 — trié par ordre croissant)
   proprietaire?: { id: string; telephoneMasque: string | null };

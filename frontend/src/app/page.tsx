@@ -4,6 +4,7 @@ import { Reveal } from "@/components/Reveal";
 import CouvertureSection from "@/components/home/CouvertureSection";
 import SelectionTerrainsSlider from "@/components/home/SelectionTerrainsSlider";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
+import { BanniereDemo } from "@/components/BanniereDemo";
 
 const CONFIANCE = [
   { icone: Shield, titre: "Statut foncier déclaré", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — informations déclarées par le vendeur sur chaque annonce." },
@@ -167,6 +168,14 @@ export default async function Home() {
           </div>
         </section>
       </Reveal>
+
+      {/* Bandeau "données de démonstration" — cohérence avec le catalogue et
+          la fiche (cf. config/features.ts::BANNIERE_DEMO), les sections
+          "Couverture" et "Sélection de terrains" ci-dessous affichant les
+          mêmes annonces d'exemple. */}
+      <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 20px 8px" }}>
+        <BanniereDemo />
+      </div>
 
       {/* ═══════════════════════ Valeur — couverture ═══════════════════════ */}
       <CouvertureSection parcelles={parcelles} totalCount={totalCount} />

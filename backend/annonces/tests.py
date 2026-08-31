@@ -2246,9 +2246,40 @@ class AgriScoreAbsentDeLAPITests(AnnoncesTestBase):
             self.assertNotIn('score_courant', annonce_data)
 
 
-# ──────────────────────────────────────────────
-# Localisation confidentielle (hardening 2026-08-30)
-# ──────────────────────────────────────────────
+class SourceAnnonceDansLAPITests(AnnoncesTestBase):
+    """La fiche expose `source` et `source_url` — le front s'en sert pour
+    masquer la messagerie/WhatsApp AKAL sur une annonce importée et renvoyer
+    vers l'annonce d'origine (hardening 2026-08-31)."""
+
+    def _annonce(self, source, source_url=None):
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, commune_geom=self.commune_geom, surface_ha=2.0,
+            statut_foncier='melkia', acces_eau='irriguee', topographie='plat',
+            acces_routier='goudron', latitude=33.5, longitude=-5.5,
+        )
+        return Annonce.objects.create(
+            parcelle=parcelle,
+            proprietaire=User.objects.create_user(
+                email=f'v-src-{source}@akal.ma', password='un-mot-de-passe-solide-2026',
+                nom='S', prenom='R',
+            ),
+            titre=f'Annonce {source}', description='Description suffisamment longue.',
+            prix_mad=200000, statut=Annonce.StatutAnnonce.EN_LIGNE,
+            source=source, source_url=source_url,
+        )
+
+    def test_fiche_interne_source_interne_source_url_null(self):
+        a = self._annonce(Annonce.Source.INTERNE)
+        data = self.client.get(f'{ANNONCES_URL}{a.slug}/').data
+        self.assertEqual(data['source'], 'interne')
+        self.assertIsNone(data['source_url'])
+
+    @override_settings(AKAL_DATASET='all')
+    def test_fiche_externe_expose_source_et_source_url(self):
+        a = self._annonce(Annonce.Source.AVITO, source_url='https://www.avito.ma/fr/annonce/xyz')
+        data = self.client.get(f'{ANNONCES_URL}{a.slug}/').data
+        self.assertEqual(data['source'], 'avito')
+        self.assertEqual(data['source_url'], 'https://www.avito.ma/fr/annonce/xyz')
 
 class LocalisationConfidentielleTests(AnnoncesTestBase):
     """

@@ -455,11 +455,14 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
         model = Annonce
         fields = [
             'id', 'slug', 'titre', 'description', 'prix_mad',
-            'statut', 'loc_confidentielle', 'source',
+            'statut', 'loc_confidentielle', 'source', 'source_url',
             'date_publication', 'created_at', 'updated_at',
             'parcelle', 'photos', 'proprietaire',
             'photo_principale', 'whatsapp_disponible',
         ]
+        # source_url : null pour source=interne, lien vers l'annonce d'origine
+        # pour une source externe (attribution + le front y renvoie l'acheteur
+        # plutôt que d'ouvrir une conversation AKAL sans destinataire).
 
     def get_whatsapp_disponible(self, obj):
         """True si le propriétaire a un numéro normalisable en lien wa.me —

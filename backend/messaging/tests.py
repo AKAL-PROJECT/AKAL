@@ -130,6 +130,32 @@ class DemarrerConversationTests(MessagingTestBase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_annonce_source_externe_refusee(self):
+        # Annonce importée d'Avito/Mubawab : le "propriétaire" est un compte
+        # bot d'import, pas un vrai vendeur joignable. Ouvrir une conversation
+        # AKAL créerait un fil sans destinataire réel (hardening 2026-08-31,
+        # cf. EnvoyerMessageSerializer.validate_annonce).
+        externe = self.creer_annonce(self.vendeur, titre='Annonce importée')
+        externe.source = Annonce.Source.AVITO
+        externe.save(update_fields=['source'])
+
+        response = self.client.post(
+            CONVERSATIONS_URL, {'annonce': str(externe.id), 'contenu': 'Bonjour'},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('annonce', response.data)
+        # Aucune conversation ni message créés.
+        self.assertEqual(Conversation.objects.filter(annonce=externe).count(), 0)
+
+    def test_annonce_interne_reste_contactable(self):
+        # Non-régression : le cas nominal (source=interne, défaut) fonctionne
+        # exactement comme avant.
+        response = self.demarrer('Bonjour, encore disponible ?')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
     def test_message_vide_refuse(self):
         response = self.demarrer('   ')
 

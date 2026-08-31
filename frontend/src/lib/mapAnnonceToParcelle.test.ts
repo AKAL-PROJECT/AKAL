@@ -1,10 +1,11 @@
 // Test de non-régression du contrat DTO → Parcelle.
 //
-// Fixture dérivée de AKAL_Contrat_Donnees_v1.2.md §4.4, mise à jour au
-// hardening du 2026-08-30 : l'API publique n'expose plus `score_courant`
-// (AgriScore retiré) ni `whatsapp_lien` (déplacé vers un endpoint
-// authentifié) — le DTO détail porte à la place `whatsapp_disponible`
-// (booléen) et `loc_confidentielle`.
+// Fixture dérivée de AKAL_Contrat_Donnees_v1.2.md §4.4, mise à jour aux
+// passes de hardening de fin août 2026 :
+//  - l'API publique n'expose plus `score_courant` (AgriScore retiré) ni
+//    `whatsapp_lien` (déplacé vers un endpoint authentifié) ;
+//  - le DTO détail porte `whatsapp_disponible` (booléen), `loc_confidentielle`,
+//    `source` et `source_url` (annonce importée d'une plateforme tierce).
 //
 // Volontairement : ce test tourne contre un JSON figé, jamais contre l'API
 // réelle (pas de fetch, pas de MSW) — c'est un test de mapping pur.
@@ -48,6 +49,8 @@ const ANNONCE_DETAIL_DTO: AnnonceDetailDTO = {
   proprietaire: { id: "c3e6a9b2-4d7f-4a0c-b5e8-f1b4c7d0e3a6", telephone_masque: null },
   whatsapp_disponible: false,
   loc_confidentielle: false,
+  source: "interne",
+  source_url: null,
   created_at: "2026-05-28T14:12:00Z",
   updated_at: "2026-06-01T09:30:00Z",
 };
@@ -82,6 +85,8 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
         contour: null,
       },
       scoreCourant: null, // AgriScore retiré de l'API publique (hardening 2026-08-30)
+      source: "interne",
+      sourceUrl: null,
       photoPrincipale: "https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp",
       photos: ["https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp"],
       proprietaire: { id: "c3e6a9b2-4d7f-4a0c-b5e8-f1b4c7d0e3a6", telephoneMasque: null },
@@ -103,6 +108,17 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
     const resultat = mapAnnonceDetailToParcelle(dto);
     expect(resultat.whatsappDisponible).toBe(true);
     expect(resultat.locConfidentielle).toBe(true);
+  });
+
+  it("mappe source et source_url (annonce importée)", () => {
+    const dto: AnnonceDetailDTO = {
+      ...ANNONCE_DETAIL_DTO,
+      source: "avito",
+      source_url: "https://www.avito.ma/fr/annonce/xyz",
+    };
+    const resultat = mapAnnonceDetailToParcelle(dto);
+    expect(resultat.source).toBe("avito");
+    expect(resultat.sourceUrl).toBe("https://www.avito.ma/fr/annonce/xyz");
   });
 
   it("photos vide => photoPrincipale null, jamais d'erreur", () => {
@@ -127,6 +143,7 @@ const ANNONCE_LISTE_DTO: AnnonceListDTO = {
   titre: "Parcelle agricole 5 ha — Berrechid",
   prix_mad: 450000,
   statut: "en_ligne",
+  source: "interne",
   parcelle: {
     id: "a1c4e7f0-2b5d-4e8a-b3c6-d9f2a5b8c1e4",
     surface_ha: 5.0,
@@ -170,6 +187,7 @@ describe("mapAnnonceToParcelle (liste — sous-ensemble allégé)", () => {
         contour: null,
       },
       scoreCourant: null, // AgriScore retiré de l'API publique (hardening 2026-08-30)
+      source: "interne",
       photoPrincipale: "https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp",
       photos: [],
     });
