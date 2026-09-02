@@ -13,6 +13,7 @@ urlpatterns = [
 
     # ── API REST v1 ──
     path('api/annonces/', include('annonces.api_urls')),
+    path('api/parcelles/', include('agriscore.api_urls')),
     path('api/geo/', include('geo.urls')),
     path('api/auth/', include('accounts.urls')),
     path('api/conversations/', include('messaging.api_urls')),

@@ -67,6 +67,11 @@ INSTALLED_APPS = [
     'geo',
     'annonces',
     'messaging',
+    # Pipeline AgriScore (collecte multi-source → score parcelle). Le cœur
+    # est du Python pur (agriscore/{scoring,aggregation,interpretation,
+    # agents,orchestrateur}.py) ; l'app n'ajoute que le flag de config
+    # (ConfigurationAgriScore) et l'endpoint /api/parcelles/<id>/passeport/.
+    'agriscore',
 ]
 
 MIDDLEWARE = [
@@ -268,6 +273,11 @@ REST_FRAMEWORK = {
         # déjà, mais scope dédié pour qu'un compte ne puisse pas énumérer
         # tous les numéros du catalogue en boucle.
         'whatsapp': '60/hour',
+        # Passeport AgriScore (PasseportParcelleAPIView) — un appel non caché
+        # déclenche jusqu'à 5 requêtes vers des API externes (Copernicus,
+        # Open-Meteo, SoilGrids, OSRM). Le cache par agent absorbe les appels
+        # répétés ; ce scope coupe un script qui balaierait des parcelles.
+        'passeport': '40/hour',
     },
 }
 
@@ -412,6 +422,29 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
 # variable n'est pas provisionnée — GoogleLoginView répond alors 503 plutôt
 # que de vérifier les jetons contre un client ID codé en dur.
 GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
+
+
+# ──────────────────────────────────────────────
+# AGRISCORE — pipeline d'enrichissement (agriscore/)
+# ──────────────────────────────────────────────
+#
+# Identifiants des sources externes des agents réels (agriscore/agents/*_reel.py).
+# Tous vides par défaut, même logique que SENTRY_DSN / GOOGLE_CLIENT_ID : sans
+# provisionnement, l'agent concerné renvoie statut="indisponible" (jamais
+# d'exception, le pipeline continue avec les autres dimensions) —
+# check/test/runserver passent sans clé.
+#
+#   - topo  : OpenTopography (DEM Copernicus GLO-30) — clé gratuite requise
+#   - ndvi  : Copernicus Data Space Ecosystem (Sentinel-2) — OAuth2 client
+#   - climat: Open-Meteo archive — aucune clé
+#   - sol   : SoilGrids (ISRIC) — aucune clé
+#   - acces : OSRM / OpenStreetMap — aucune clé
+OPENTOPOGRAPHY_API_KEY = env('OPENTOPOGRAPHY_API_KEY', default='')
+CDSE_CLIENT_ID = env('CDSE_CLIENT_ID', default='')
+CDSE_CLIENT_SECRET = env('CDSE_CLIENT_SECRET', default='')
+
+# Timeout (s) des appels HTTP des agents réels du pipeline AgriScore.
+AGRISCORE_HTTP_TIMEOUT_S = env.float('AGRISCORE_HTTP_TIMEOUT_S', default=10.0)
 
 
 # ──────────────────────────────────────────────
