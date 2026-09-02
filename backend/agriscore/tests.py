@@ -832,7 +832,6 @@ class InterpretationTests(SimpleTestCase):
 _LAT, _LON = 31.63, -7.99
 
 _CLES_PASSEPORT = {
-    "coordonnees",
     "genere_le",
     "mode",
     "score_global",
@@ -894,7 +893,9 @@ class PipelineIntegrationTests(SimpleTestCase):
         passeport = generer_passeport(_LAT, _LON, agents=AGENTS_SIMULES)
 
         self.assertEqual(set(passeport), _CLES_PASSEPORT)
-        self.assertEqual(passeport["coordonnees"], {"lat": _LAT, "lon": _LON})
+        # Les coordonnées ne sont JAMAIS dans le passeport : endpoint public,
+        # les renvoyer contournerait le floutage d'une annonce confidentielle.
+        self.assertNotIn("coordonnees", passeport)
         self.assertEqual(passeport["mode"], "simule")
         self.assertEqual(
             set(passeport["dimensions"]), {"sol", "climat", "ndvi", "topo", "acces"}
@@ -1958,6 +1959,18 @@ class PasseportParcelleAPITests(APITestCase):
             self.assertEqual(bloc["mode"], "simule")
         self.assertEqual(len(corps["cultures_suggerees"]), 4)
         json.dumps(corps)
+
+    def test_reponse_ne_divulgue_pas_les_coordonnees(self):
+        # Endpoint public : renvoyer lat/lon contournerait le floutage de
+        # localisation d'une annonce confidentielle (le vrai UUID de parcelle
+        # est déjà exposé par /api/annonces/<slug>/).
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": False})
+
+        corps = self.client.get(self._url(self.parcelle.id)).json()
+
+        self.assertNotIn("coordonnees", corps)
+        self.assertNotIn("latitude", json.dumps(corps))
+        self.assertNotIn("longitude", json.dumps(corps))
 
     @patch("agriscore.api_views.passeport_parcelle")
     def test_flag_actif_appelle_le_pipeline_avec_les_coordonnees(self, faux_passeport):

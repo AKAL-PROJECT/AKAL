@@ -292,10 +292,15 @@ l'UUID de l'annonce.
 **Codes :** `200` succès · `404` parcelle inconnue · `422` parcelle non
 géolocalisée (`{ "detail": "Parcelle non géolocalisée : passeport indisponible." }`).
 
+La réponse ne contient **jamais** les coordonnées de la parcelle : l'endpoint
+est public et le vrai UUID de parcelle est déjà exposé par `/api/annonces/<slug>/`
+— les renvoyer ici contournerait le floutage de localisation d'une annonce
+confidentielle (§4.4). Le front a déjà les coordonnées (floutées si besoin) via
+le DTO annonce.
+
 ```json
 {
   "parcelle_id": "a1c4e7f0-2b5d-4e8a-b3c6-d9f2a5b8c1e4",
-  "coordonnees": { "lat": 33.2653, "lon": -7.5878 },
   "genere_le": "2026-09-02T11:20:00Z",
   "mode": "reel",
   "score_global": 68.9,

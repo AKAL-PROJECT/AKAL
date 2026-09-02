@@ -77,9 +77,11 @@ def generer_passeport(
             réels) ; ``AGENTS_SIMULES`` pour un run 100 % hors-ligne.
 
     Returns:
-        Le dict du Passeport, JSON-sérialisable : coordonnées, mode, score
-        global, fiabilité, détail par dimension, dimensions indisponibles,
-        cultures suggérées, avertissement.
+        Le dict du Passeport, JSON-sérialisable : mode, score global,
+        fiabilité, détail par dimension, dimensions indisponibles, cultures
+        suggérées, avertissement. **Pas les coordonnées** : le passeport est
+        public, les renvoyer contournerait le floutage de localisation d'une
+        annonce confidentielle (cf. annonces._appliquer_flou_localisation).
     """
     valider_coordonnees(lat, lon)
     agents = tuple(AGENTS_DEFAUT if agents is None else agents)
@@ -89,7 +91,7 @@ def generer_passeport(
     agregation = agreger_scores(resultats, sous_scores)
     cultures = suggerer_cultures(_profil(resultats))
 
-    return _assembler(lat, lon, agents, resultats, sous_scores, agregation, cultures)
+    return _assembler(agents, resultats, sous_scores, agregation, cultures)
 
 
 def _collecter(agents: Sequence[Agent], lat: float, lon: float) -> list[AgentResult]:
@@ -141,7 +143,7 @@ def _profil(resultats: list[AgentResult]) -> ProfilParcelle:
     )
 
 
-def _assembler(lat, lon, agents, resultats, sous_scores, agregation, cultures) -> dict:
+def _assembler(agents, resultats, sous_scores, agregation, cultures) -> dict:
     detail = agregation["detail_par_dimension"]
     dimensions = {}
     for resultat in resultats:
@@ -185,7 +187,6 @@ def _assembler(lat, lon, agents, resultats, sous_scores, agregation, cultures) -
             ))
 
     return {
-        "coordonnees": {"lat": lat, "lon": lon},
         "genere_le": horodatage_iso(),
         "mode": mode_global,
         "score_global": agregation["score_global"],
