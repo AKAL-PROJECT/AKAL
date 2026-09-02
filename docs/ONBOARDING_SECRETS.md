@@ -36,6 +36,27 @@ comment récupérer les **valeurs** à mettre dedans.
 4. `python manage.py migrate` puis `python manage.py runserver` côté
    backend, `npm install && npm run dev` côté frontend.
 
+## Clés AgriScore — toutes facultatives
+
+Le pipeline AgriScore (`backend/agriscore/`, endpoint
+`GET /api/parcelles/<id>/passeport/`) interroge des sources externes. **Sans
+aucune clé, il tourne quand même** : l'agent non provisionné passe en
+`statut="indisponible"` et le score se calcule sur les dimensions restantes.
+`manage.py check` / `test` / `runserver` passent sans clé.
+
+Contrainte projet (cf. modération / alertes) : **aucun palier payant**. Ces
+trois variables sont des inscriptions gratuites, pas de facturation.
+
+| Variable | Agent | Où l'obtenir | Sensibilité |
+|---|---|---|---|
+| `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | NDVI (Sentinel-2) | Compte gratuit sur [dataspace.copernicus.eu](https://dataspace.copernicus.eu) → *Sentinel Hub* → créer un client OAuth2. Le secret n'est montré qu'une fois | **Vrai secret** — vault partagé |
+| `OPENTOPOGRAPHY_API_KEY` | topo GLO-30 **optionnel** | Compte gratuit sur [portal.opentopography.org](https://portal.opentopography.org) → *Request API Key*. **Non nécessaire** : le pipeline par défaut utilise Open-Meteo Elevation (GLO-90, sans clé) ; cette clé ne sert qu'à l'agent `AgentTopoReel` (GLO-30) si on le branche explicitement | Secret léger — vault |
+
+`AGRISCORE_HTTP_TIMEOUT_S` (défaut `10`) : réglage, pas un secret.
+
+Les valeurs sont dans `backend/.env.example` (vides) — récupère-les au vault
+partagé si l'équipe les a provisionnées, sinon laisse vide (dégradé assumé).
+
 ## Option plus légère : ne pas toucher au backend du tout
 
 Si tu ne travailles que sur le frontend, tu n'as besoin **que** des
