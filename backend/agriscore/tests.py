@@ -19,6 +19,7 @@ Tests du pipeline AgriScore.
 
 import json
 import math
+import time
 from datetime import date, datetime
 from dataclasses import FrozenInstanceError
 from unittest.mock import Mock, patch
@@ -34,6 +35,7 @@ from agriscore.agents import (
     AGENTS_DEFAUT,
     AGENTS_SIMULES,
     Agent,
+    AgentSimule,
     AgentAccesReel,
     AgentAccesSimule,
     AgentClimatReel,
@@ -862,6 +864,20 @@ class _AgentSolValeurAberrante(Agent):
         return {"ph_eau": 99.0, "type_sol": "argileux"}, 0.5
 
 
+class _AgentLent(AgentSimule):
+    """Agent simulé qui dort — pour prouver que la collecte est parallèle."""
+
+    source = "test-lent"
+
+    def __init__(self, dimension: str, delai_s: float = 0.2):
+        self.dimension = dimension
+        self._delai_s = delai_s
+
+    def _collecter_valeurs(self, lat, lon):
+        time.sleep(self._delai_s)
+        return {"_": 1}, 0.5
+
+
 def _sans_sol_simule():
     return (
         AgentClimatSimule(),
@@ -963,6 +979,31 @@ class PipelineIntegrationTests(SimpleTestCase):
             with self.subTest(lat=lat, lon=lon):
                 with self.assertRaises((TypeError, ValueError)):
                     generer_passeport(lat, lon)
+
+    def test_collecte_parallele_preserve_l_ordre_des_dimensions(self):
+        # La collecte est parallèle mais l'ordre d'entrée des agents est
+        # conservé → le dict `dimensions` reste déterministe.
+        ordre_inhabituel = (
+            AgentAccesSimule(), AgentSolSimule(), AgentNdviSimule(),
+            AgentClimatSimule(), AgentTopoSimule(),
+        )
+        passeport = generer_passeport(_LAT, _LON, agents=ordre_inhabituel)
+        self.assertEqual(
+            list(passeport["dimensions"].keys()),
+            ["acces", "sol", "ndvi", "climat", "topo"],
+        )
+
+    def test_collecte_parallele_plus_rapide_que_sequentiel(self):
+        from agriscore.orchestrateur import _collecter
+
+        agents = [_AgentLent(dim, delai_s=0.2) for dim in ("sol", "climat", "ndvi")]
+        t0 = time.monotonic()
+        resultats = _collecter(agents, _LAT, _LON)
+        ecoule = time.monotonic() - t0
+
+        self.assertEqual([r.dimension for r in resultats], ["sol", "climat", "ndvi"])
+        # Séquentiel : 3 × 0,2 s = 0,6 s. Parallèle : ≈ 0,2 s. Marge large.
+        self.assertLess(ecoule, 0.5)
 
     def test_agent_en_panne_degrade_sans_casser(self):
         agents = (_AgentSolEnPanne(), *_sans_sol_simule())

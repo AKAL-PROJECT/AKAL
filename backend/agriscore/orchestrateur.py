@@ -23,6 +23,7 @@ force un run 100 % hors-ligne.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 
 from agriscore.aggregation import agreger_scores
@@ -92,7 +93,14 @@ def generer_passeport(
 
 
 def _collecter(agents: Sequence[Agent], lat: float, lon: float) -> list[AgentResult]:
-    resultats = [agent.collecter(lat, lon) for agent in agents]
+    # Agents indépendants, chacun borné par AGRISCORE_HTTP_TIMEOUT_S : on les
+    # interroge en parallèle plutôt qu'en séquence (cache froid ~20 s → ~5 s).
+    # `executor.map` conserve l'ordre d'entrée → le dict `dimensions` du
+    # passeport reste déterministe. `Agent.collecter` ne lève jamais (coords
+    # validées en amont) et ne touche pas l'ORM (le flag est lu dans
+    # passeport.py) — pas de connexion DB à gérer par thread.
+    with ThreadPoolExecutor(max_workers=max(len(agents), 1)) as executor:
+        resultats = list(executor.map(lambda agent: agent.collecter(lat, lon), agents))
     dimensions = [resultat.dimension for resultat in resultats]
     if len(set(dimensions)) != len(dimensions):
         raise ValueError(f"deux agents pour la même dimension : {dimensions}")
