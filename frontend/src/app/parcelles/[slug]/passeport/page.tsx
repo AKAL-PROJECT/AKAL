@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getParcelleBySlug } from "@/data/parcelles";
-import { genererPasseport } from "@/data/passeportAgronomique";
 import PasseportAgronomiqueScreen from "@/components/parcelles/PasseportAgronomiqueScreen";
 
 export async function generateMetadata({
@@ -14,16 +13,18 @@ export async function generateMetadata({
   if (!parcelle) return { title: "AKAL" };
   return {
     title: `Passeport Agronomique — ${parcelle.titre} — AKAL`,
-    description: "Rapport de démonstration (prototype, données simulées) du potentiel agronomique de cette parcelle.",
+    description:
+      "Évaluation agronomique de la parcelle : sol, climat, végétation, relief et accès, agrégés en un potentiel global.",
   };
 }
 
-// Le passeport est généré ici, une seule fois, côté serveur — pas dans le
-// composant client : genererPasseport() lit new Date() (horodatage de
-// génération, cf. data/passeportAgronomique.ts), le calculer côté client
-// aurait risqué un écart serveur/client (hydration mismatch) sans apporter
-// aucun bénéfice (rien d'interactif ne dépend de cette valeur).
-export default async function PassportAgronomiquePage({
+// La coquille (identification, carte, méthodologie) est rendue côté serveur
+// depuis la parcelle déjà chargée. Le passeport lui-même — jusqu'à 5 appels
+// vers des API externes — est récupéré côté client par le composant, avec un
+// skeleton : le rendre ici bloquerait la page plusieurs secondes sur un
+// cache froid, sans bénéfice SEO (le contenu est une analyse, pas du
+// référencement).
+export default async function PasseportAgronomiquePage({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -32,7 +33,5 @@ export default async function PassportAgronomiquePage({
   const parcelle = await getParcelleBySlug(slug);
   if (!parcelle) notFound();
 
-  const passeport = genererPasseport(parcelle);
-
-  return <PasseportAgronomiqueScreen parcelle={parcelle} passeport={passeport} />;
+  return <PasseportAgronomiqueScreen parcelle={parcelle} />;
 }
