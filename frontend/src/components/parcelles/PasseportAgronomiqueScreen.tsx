@@ -19,6 +19,7 @@ import {
 import {
   aRetenir,
   bandeScore,
+  formatResolution,
   LIBELLE_DIMENSION,
   PRESENTATION_DIMENSION,
   synthese,
@@ -633,7 +634,10 @@ function OngletDimension({ dimension, passeport }: { dimension: DimensionKey; pa
           Source : <strong style={{ color: "var(--color-secondaire)", fontWeight: 500 }}>{d.source}</strong>
           {d.resolutionM ? (
             <>
-              {" · "}Résolution : <strong style={{ color: "var(--color-secondaire)", fontWeight: 500 }}>{d.resolutionM} m</strong>
+              {" · "}Résolution :{" "}
+              <strong style={{ color: "var(--color-secondaire)", fontWeight: 500 }}>
+                {formatResolution(d.resolutionM)}
+              </strong>
             </>
           ) : null}
         </div>

@@ -23,6 +23,13 @@ export function bandeScore(score: number | null): { mot: string; ton: TonScore }
   return { mot: "limité", ton: "reserve" };
 }
 
+// Résolution spatiale d'un agent : km au-delà de 1000 m (ex. maille ERA5
+// ≈ 11 km), mètres en deçà. `null` → "".
+export function formatResolution(resolutionM: number | null): string {
+  if (resolutionM === null || !Number.isFinite(resolutionM) || resolutionM <= 0) return "";
+  return resolutionM >= 1000 ? `${(resolutionM / 1000).toFixed(resolutionM % 1000 === 0 ? 0 : 1)} km` : `${resolutionM} m`;
+}
+
 export function libelleAccesEau(accesEau: AccesEau | null): string {
   if (accesEau === "irriguee") return "terrain irrigable";
   if (accesEau === "bour") return "terrain bour (pluvial)";

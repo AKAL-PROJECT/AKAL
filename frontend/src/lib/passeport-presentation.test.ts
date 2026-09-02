@@ -3,6 +3,7 @@ import type { Passeport, PasseportDimension } from "./passeport-api";
 import {
   aRetenir,
   bandeScore,
+  formatResolution,
   libelleAccesEau,
   PRESENTATION_DIMENSION,
   synthese,
@@ -74,6 +75,16 @@ describe("verdict", () => {
   });
   it("score null", () => {
     expect(verdict(null, "irriguee")).toBe("Potentiel indisponible — terrain irrigable");
+  });
+});
+
+describe("formatResolution", () => {
+  it("km au-delà de 1000 m, m en deçà, vide si null", () => {
+    expect(formatResolution(11000)).toBe("11 km");
+    expect(formatResolution(1500)).toBe("1.5 km");
+    expect(formatResolution(250)).toBe("250 m");
+    expect(formatResolution(null)).toBe("");
+    expect(formatResolution(0)).toBe("");
   });
 });
 
