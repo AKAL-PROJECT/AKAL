@@ -35,3 +35,11 @@ export function formatPrixM2(prixM2: number): string {
   if (prixM2 < 1) return "< 1 MAD/m²";
   return `${formatMAD.format(Math.round(prixM2))} MAD/m²`;
 }
+
+// Distance courte : mètres sous 1 km, km avec une décimale au-delà. Rapatrié
+// depuis data/passeportAgronomique.ts (le passeport réel affiche
+// `distance_route_m`, cf. lib/passeport-presentation.ts).
+export function formatDistance(metres: number): string {
+  if (!Number.isFinite(metres) || metres < 0) return "—";
+  return metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
+}
