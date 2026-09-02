@@ -30,6 +30,10 @@ export type Topographie = string;
 
 // Attributs du terrain — reflète le sous-objet `parcelle` de l'API.
 export type ParcelleTerrain = {
+  // UUID de la Parcelle elle-même (≠ `Parcelle.id` ci-dessous, qui est l'id
+  // de l'annonce). Exposé par ParcelleListSerializer/ParcelleDetailSerializer.
+  // Sert à appeler GET /api/parcelles/<id>/passeport/ (lib/passeport-api.ts).
+  id: string;
   surface: number; // surface_ha
   // Nullable depuis l'import de données scrapées (2026-08-11, cf.
   // backend annonces/models.py) : aucune source externe (Avito, Mubawab)

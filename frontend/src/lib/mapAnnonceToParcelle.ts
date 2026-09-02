@@ -151,6 +151,7 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
     createdAt: dto.created_at,
     badge: calculerBadge(dto.created_at),
     parcelle: {
+      id: dto.parcelle.id, // UUID Parcelle — pour /api/parcelles/<id>/passeport/
       surface: Number(dto.parcelle.surface_ha),
       statutFoncier: dto.parcelle.statut_foncier,
       accesEau: dto.parcelle.acces_eau,
@@ -216,6 +217,7 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
     createdAt: dto.created_at,
     badge: calculerBadge(dto.created_at),
     parcelle: {
+      id: dto.parcelle.id, // UUID Parcelle — pour /api/parcelles/<id>/passeport/
       surface: Number(dto.parcelle.surface_ha),
       statutFoncier: dto.parcelle.statut_foncier,
       accesEau: dto.parcelle.acces_eau,

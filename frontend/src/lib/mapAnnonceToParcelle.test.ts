@@ -72,6 +72,7 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
       createdAt: "2026-05-28T14:12:00Z",
       badge: null, // création ancienne par rapport à "maintenant"
       parcelle: {
+        id: "a1c4e7f0-2b5d-4e8a-b3c6-d9f2a5b8c1e4",
         surface: 5,
         statutFoncier: "melkia",
         accesEau: "irriguee",
@@ -98,6 +99,12 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
 
   it("scoreCourant est toujours null (AgriScore retiré de l'API publique)", () => {
     expect(mapAnnonceDetailToParcelle(ANNONCE_DETAIL_DTO).scoreCourant).toBeNull();
+  });
+
+  it("expose parcelle.id (UUID Parcelle, ≠ id annonce) — pour l'endpoint passeport", () => {
+    const resultat = mapAnnonceDetailToParcelle(ANNONCE_DETAIL_DTO);
+    expect(resultat.parcelle.id).toBe("a1c4e7f0-2b5d-4e8a-b3c6-d9f2a5b8c1e4");
+    expect(resultat.parcelle.id).not.toBe(resultat.id);
   });
 
   it("mappe whatsapp_disponible et loc_confidentielle", () => {
@@ -174,6 +181,7 @@ describe("mapAnnonceToParcelle (liste — sous-ensemble allégé)", () => {
       createdAt: "2026-05-28T14:12:00Z",
       badge: null,
       parcelle: {
+        id: "a1c4e7f0-2b5d-4e8a-b3c6-d9f2a5b8c1e4",
         surface: 5,
         statutFoncier: "melkia",
         accesEau: "irriguee",

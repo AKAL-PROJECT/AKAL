@@ -22,6 +22,7 @@ function parcelleFactice(overrides: Partial<Parcelle> = {}): Parcelle {
     createdAt: "2026-01-01T00:00:00Z",
     badge: null,
     parcelle: {
+      id: "b1000000-0000-4000-8000-0000000000ff",
       surface: 5,
       statutFoncier: "melkia",
       accesEau: "irriguee",
