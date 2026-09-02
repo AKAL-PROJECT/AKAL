@@ -13,6 +13,7 @@
 import { describe, expect, it } from "vitest";
 import {
   mapAnnonceDetailToParcelle,
+  mapAnnonceToAnnonceProprietaire,
   mapAnnonceToParcelle,
   type AnnonceDetailDTO,
   type AnnonceListDTO,
@@ -207,5 +208,18 @@ describe("mapAnnonceToParcelle (liste — sous-ensemble allégé)", () => {
     const hier = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const dto: AnnonceListDTO = { ...ANNONCE_LISTE_DTO, created_at: hier };
     expect(mapAnnonceToParcelle(dto).badge).toBe("Nouveau");
+  });
+});
+
+describe("mapAnnonceToAnnonceProprietaire (dashboard — /mes-annonces/)", () => {
+  it("mappe nb_vues => nbVues", () => {
+    const dto: AnnonceListDTO = { ...ANNONCE_LISTE_DTO, nb_vues: 42 };
+    expect(mapAnnonceToAnnonceProprietaire(dto).nbVues).toBe(42);
+  });
+
+  it("nb_vues absent => nbVues 0 (jamais undefined)", () => {
+    // Le catalogue public ne renvoie pas ce champ ; le mapper doit rester
+    // tolérant même si /mes-annonces/ l'omettait.
+    expect(mapAnnonceToAnnonceProprietaire(ANNONCE_LISTE_DTO).nbVues).toBe(0);
   });
 });

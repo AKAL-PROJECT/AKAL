@@ -273,6 +273,13 @@ REST_FRAMEWORK = {
         # déjà, mais scope dédié pour qu'un compte ne puisse pas énumérer
         # tous les numéros du catalogue en boucle.
         'whatsapp': '60/hour',
+        # Comptage de vues de fiche (EnregistrerVueAPIView, 2026-08-31) —
+        # beacon anonyme envoyé par le front au montage de /parcelles/<slug>.
+        # Large : un visiteur peut légitimement rouvrir plusieurs fiches à la
+        # suite ; la déduplication (24 h par annonce/IP/jour, côté vue) borne
+        # déjà l'impact réel sur le compteur, ce scope ne fait que couper un
+        # script qui martèlerait l'endpoint.
+        'vue': '120/hour',
         # Passeport AgriScore (PasseportParcelleAPIView) — un appel non caché
         # déclenche jusqu'à 5 requêtes vers des API externes (Copernicus,
         # Open-Meteo, SoilGrids, OSRM). Le cache par agent absorbe les appels

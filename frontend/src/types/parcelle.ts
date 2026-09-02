@@ -107,6 +107,7 @@ export type AnnonceProprietaire = {
   surface: number; // surface_ha — toujours présent, dès la création du brouillon
   createdAt: string;
   photoPrincipale: string | null;
+  nbVues: number; // total cumulé des vues de la fiche (0 tant que jamais consultée)
 };
 
 export type Parcelle = {

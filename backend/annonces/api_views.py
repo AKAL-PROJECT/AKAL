@@ -33,12 +33,17 @@ Endpoints conformes au contrat frontend/backend (§4, contrat v1.2) :
       d'annonces déjà en_ligne reste hors périmètre F03.
 """
 
+import hashlib
+from datetime import timedelta
 from urllib.parse import quote
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Sum
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django_filters import rest_framework as dj_filters
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -60,11 +65,12 @@ from messaging.models import Conversation, Favori, Message
 # compter), aucune dépendance de geo vers annonces en retour.
 from geo.models import RegionOfficielle
 
-from .models import Annonce, Parcelle, Photo, RechercheSauvegardee
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
 from .serializers import (
     AnnonceListSerializer,
     AnnonceDetailSerializer,
     AnnonceEcritureSerializer,
+    MesAnnoncesSerializer,
     MesStatistiquesSerializer,
     RechercheSauvegardeeSerializer,
     WhatsAppLienSerializer,
@@ -382,6 +388,90 @@ class AnnonceDetailAPIView(generics.RetrieveAPIView):
         )
 
 
+# Fenêtre de déduplication du comptage de vues : une fiche vue plusieurs fois
+# par le même lecteur dans la journée ne compte qu'une fois. 24 h plutôt
+# qu'« expire à minuit » : plus simple, et un TTL fixe évite qu'un pic à
+# 23 h 59 ne compte deux fois à une minute d'intervalle.
+_TTL_DEDUP_VUE = 60 * 60 * 24
+
+
+def _empreinte_lecteur(request):
+    """
+    Identifiant de déduplication non réversible d'un lecteur pour une journée
+    donnée : sha256(IP + User-Agent + date), tronqué. Jamais stocké tel quel
+    (ni l'IP, ni l'UA) — seulement utilisé comme fragment de clé de cache.
+    REMOTE_ADDR uniquement (pas X-Forwarded-For) : le beacon vient du
+    navigateur, l'IP vue par Django est déjà celle du visiteur (ou de son
+    proxy), et se fier à un en-tête client-modifiable rendrait la dédup
+    contournable par un simple script.
+    """
+    ip = request.META.get('REMOTE_ADDR', '')
+    ua = request.META.get('HTTP_USER_AGENT', '')[:200]
+    jour = timezone.localdate().isoformat()
+    brut = f"{ip}|{ua}|{jour}".encode()
+    return hashlib.sha256(brut).hexdigest()[:16]
+
+
+class EnregistrerVueAPIView(APIView):
+    """
+    POST /api/annonces/<uuid:pk>/vue/
+
+    Enregistre une vue de fiche. Beacon envoyé par le front au montage de
+    /parcelles/<slug> (FicheParcelle) — la fiche est en SSG, un comptage
+    côté GET /api/annonces/<slug>/ ne verrait que les fetch de build, pas
+    les vrais visiteurs.
+
+    - `authentication_classes = []` : endpoint volontairement anonyme. La
+      quasi-totalité des vues de fiche le sont ; et sans authenticator, aucun
+      contrôle CSRF ne s'applique à ce POST (le beacon n'a pas accès au
+      cookie csrftoken httpOnly). L'exclusion du propriétaire de son propre
+      comptage se fait donc côté front (prop `estProprietaire` de la fiche),
+      pas ici.
+    - 404 si l'annonce n'est pas publique (en_ligne + dataset_actif) : on ne
+      compte que ce qui est réellement visible au catalogue.
+    - Déduplication 24 h par (annonce, empreinte lecteur) via le cache : un
+      rafraîchissement de page ne regonfle pas le compteur. Cache HS
+      (IGNORE_EXCEPTIONS, cf. docs/plans/2026-08-31-redis-fail-open.md) → la
+      vue est comptée sans dédup, jamais un 500.
+    - Incrémente la ligne StatistiqueAnnonce du jour (une par annonce et par
+      date, cf. unique_together) via F() — pas de course read-modify-write.
+
+    Réponse : 204 systématiquement (comptée ou dédupliquée) — le client n'a
+    rien à en faire, et ça ne révèle pas si cette IP a déjà vu la fiche.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_scope = 'vue'
+    throttle_classes = [ScopedRateThrottle]
+
+    def post(self, request, pk):
+        annonce = get_object_or_404(
+            Annonce.objects.en_ligne().dataset_actif().only('id'),
+            pk=pk,
+        )
+
+        cle_dedup = f"vue:{annonce.id}:{_empreinte_lecteur(request)}"
+        deja_vu = False
+        try:
+            deja_vu = cache.get(cle_dedup) is not None
+        except Exception:  # noqa: BLE001 — cache HS : on compte sans dédup
+            pass
+
+        if not deja_vu:
+            aujourd_hui = timezone.localdate()
+            stat, _cree = StatistiqueAnnonce.objects.get_or_create(
+                annonce=annonce, date=aujourd_hui,
+            )
+            StatistiqueAnnonce.objects.filter(pk=stat.pk).update(vues=F('vues') + 1)
+            try:
+                cache.set(cle_dedup, True, _TTL_DEDUP_VUE)
+            except Exception:  # noqa: BLE001
+                pass
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class MesAnnoncesListAPIView(generics.ListAPIView):
     """
     GET /api/annonces/mes-annonces/
@@ -392,9 +482,14 @@ class MesAnnoncesListAPIView(generics.ListAPIView):
     en_ligne. Alimente le dashboard propriétaire (« Mes annonces »).
 
     Pas de pagination : le volume attendu par vendeur reste faible pour le MVP.
+
+    Chaque annonce porte `nb_vues` (total cumulé des vues de fiche) via une
+    annotation — cf. MesAnnoncesSerializer. Coalesce(..., 0) : une annonce
+    sans aucune ligne StatistiqueAnnonce (jamais consultée, ou brouillon)
+    renvoie 0, pas null.
     """
 
-    serializer_class = AnnonceListSerializer
+    serializer_class = MesAnnoncesSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
 
@@ -403,6 +498,7 @@ class MesAnnoncesListAPIView(generics.ListAPIView):
             Annonce.objects
             .filter(proprietaire=self.request.user)
             .with_relations()
+            .annotate(nb_vues=Coalesce(Sum('statistiques__vues'), 0))
         )
 
 
@@ -430,10 +526,12 @@ class MesStatistiquesAPIView(APIView):
           les messages de l'utilisateur lui-même (même filtre que
           ConversationListSerializer.get_messages_non_lus(), en agrégat).
 
-    `vues_totales` RETIRÉ le 2026-08-30 (hardening pré-soutenance) : rien
-    n'incrémente StatistiqueAnnonce, le champ valait 0 pour tout le monde —
-    un compteur toujours nul est trompeur. Il reviendra avec un vrai
-    comptage de vues (le modèle StatistiqueAnnonce reste en base).
+    vues_totales / vues_30j : somme des vues de fiche sur toutes les annonces
+    du propriétaire (StatistiqueAnnonce, alimenté par EnregistrerVueAPIView
+    depuis le 2026-08-31). `vues_30j` = 30 derniers jours glissants. Une 4ᵉ
+    requête agrégée, indexée sur la FK annonce — même profil que les 3 autres.
+    Ces deux champs avaient été retirés le 2026-08-30 tant que rien
+    n'alimentait le modèle ; rétablis avec la collecte réelle.
     """
 
     permission_classes = [IsAuthenticated]
@@ -456,10 +554,21 @@ class MesStatistiquesAPIView(APIView):
             is_lu=False,
         ).exclude(auteur=request.user).count()
 
+        stats_vues = StatistiqueAnnonce.objects.filter(
+            annonce__proprietaire=request.user
+        )
+        vues_totales = stats_vues.aggregate(total=Sum('vues'))['total'] or 0
+        depuis_30j = timezone.localdate() - timedelta(days=29)
+        vues_30j = (
+            stats_vues.filter(date__gte=depuis_30j).aggregate(total=Sum('vues'))['total'] or 0
+        )
+
         serializer = MesStatistiquesSerializer({
             'favoris_recus': favoris_recus,
             'conversations_recues': conversations_recues,
             'messages_non_lus': messages_non_lus,
+            'vues_totales': vues_totales,
+            'vues_30j': vues_30j,
         })
         return Response(serializer.data)
 

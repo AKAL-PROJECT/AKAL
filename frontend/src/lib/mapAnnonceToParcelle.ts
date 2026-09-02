@@ -73,6 +73,9 @@ export type AnnonceListDTO = {
   parcelle: ParcelleListDTO;
   photo_principale: string | null;
   created_at: string;
+  // Uniquement sur GET /api/annonces/mes-annonces/ (MesAnnoncesSerializer) —
+  // total cumulé des vues de la fiche. Absent du catalogue public.
+  nb_vues?: number;
 };
 
 export type PhotoDTO = {
@@ -192,6 +195,7 @@ export function mapAnnonceToAnnonceProprietaire(dto: AnnonceListDTO): AnnoncePro
     surface: Number(dto.parcelle.surface_ha),
     createdAt: dto.created_at,
     photoPrincipale: dto.photo_principale,
+    nbVues: dto.nb_vues ?? 0,
   };
 }
 

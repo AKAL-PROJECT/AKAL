@@ -18,6 +18,7 @@ import { useComparateur } from "@/hooks/useComparateur";
 import { COMPARATEUR_MAX } from "./comparateurStorage";
 import { formatMAD, formatPrixM2 } from "@/lib/format";
 import { estSourceExterne, libelleSource } from "@/lib/annonce-source";
+import { signalerVueFiche } from "@/lib/vue-beacon";
 import { descriptionClimat, formatDistance, genererPasseport } from "@/data/passeportAgronomique";
 import {
   MapPin,
@@ -63,7 +64,15 @@ function agriScoreLegende(score: number | null): string {
   return "Potentiel limité. Convient à des cultures extensives ou à la pâture.";
 }
 
-export default function FicheParcelle({ parcelle: a, estConnecte = false }: { parcelle: Parcelle, estConnecte?: boolean }) {
+export default function FicheParcelle({
+  parcelle: a,
+  estConnecte = false,
+  estProprietaire = false,
+}: {
+  parcelle: Parcelle;
+  estConnecte?: boolean;
+  estProprietaire?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   // `estConnecte` est déterminé côté serveur (page.tsx : `!!utilisateur`) et
@@ -82,6 +91,14 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
       window.history.replaceState({}, "", newUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- nettoyage one-shot au montage, jamais à rejouer si searchParams change ensuite
+  }, []);
+
+  // Comptage de vue (beacon) — une fois au montage, jamais pour le
+  // propriétaire regardant sa propre annonce (le dédup local + le dédup
+  // backend gèrent le reste, cf. lib/vue-beacon.ts).
+  useEffect(() => {
+    if (!estProprietaire) signalerVueFiche(a.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot au montage
   }, []);
 
   const handleContactClick = () => {

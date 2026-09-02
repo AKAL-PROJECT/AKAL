@@ -89,9 +89,12 @@ export default async function FichePage({
   const parcelle = await getParcelleBySlug(slug);
   if (!parcelle) notFound();
   const utilisateur = await getCurrentUser();
+  // Le propriétaire regardant sa propre fiche n'est pas compté comme une vue
+  // (le beacon de FicheParcelle est court-circuité, cf. lib/vue-beacon.ts).
+  const estProprietaire = !!utilisateur && utilisateur.id === parcelle.proprietaire?.id;
   return (
     <ViewTransition enter={TRANSITION_DIRECTIONNELLE} exit={TRANSITION_DIRECTIONNELLE} default="none">
-      <FicheParcelle parcelle={parcelle} estConnecte={!!utilisateur} />
+      <FicheParcelle parcelle={parcelle} estConnecte={!!utilisateur} estProprietaire={estProprietaire} />
     </ViewTransition>
   );
 }
