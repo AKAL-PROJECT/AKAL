@@ -11,9 +11,13 @@ INTERPRÉTATION   profil brut → cultures suggérées            (agriscore.int
 ===============  ==================================================================
 
 Sortie : le JSON complet du Passeport. Les agents par défaut
-(``AGENTS_DEFAUT``) mélangent aujourd'hui l'agent topo réel (Copernicus
-GLO-30) et 4 agents simulés ; passer ``agents=AGENTS_SIMULES`` force un run
-100 % hors-ligne. On branche les agents réels un par un via ce paramètre.
+(``AGENTS_DEFAUT``) sont les 5 agents réels ; passer ``agents=AGENTS_SIMULES``
+force un run 100 % hors-ligne.
+
+``mode`` reflète la nature des sources qui ont abouti (« reel » / « simule » /
+« mixte »), et ``dimensions_indisponibles`` liste les dimensions qui ont
+échoué — un passeport à qui il manque une dimension le signale dans
+``avertissement``.
 """
 
 from __future__ import annotations
@@ -41,6 +45,23 @@ _AVERTISSEMENT_SIMULE = (
     "aucune donnée terrain réelle. À ne pas présenter comme une mesure."
 )
 
+#: Libellés courts pour l'avertissement « passeport partiel ».
+_LIBELLE_DIMENSION = {
+    "sol": "sol",
+    "climat": "climat",
+    "ndvi": "couvert végétal",
+    "topo": "relief",
+    "acces": "accès routier",
+}
+
+_AVERTISSEMENT_PARTIEL = (
+    "Passeport partiel : {dims} indisponible(s). Score et fiabilité calculés "
+    "sur les dimensions restantes."
+)
+_AVERTISSEMENT_VIDE = (
+    "Aucune dimension exploitable pour cette parcelle : score indisponible."
+)
+
 
 def generer_passeport(
     lat: float,
@@ -51,13 +72,13 @@ def generer_passeport(
 
     Args:
         lat, lon: coordonnées décimales WGS84.
-        agents: agents à interroger. Par défaut ``AGENTS_DEFAUT`` (topo réel +
-            4 simulés) ; ``AGENTS_SIMULES`` pour un run 100 % hors-ligne.
+        agents: agents à interroger. Par défaut ``AGENTS_DEFAUT`` (5 agents
+            réels) ; ``AGENTS_SIMULES`` pour un run 100 % hors-ligne.
 
     Returns:
         Le dict du Passeport, JSON-sérialisable : coordonnées, mode, score
-        global, fiabilité, détail par dimension, cultures suggérées,
-        avertissement.
+        global, fiabilité, détail par dimension, dimensions indisponibles,
+        cultures suggérées, avertissement.
     """
     valider_coordonnees(lat, lon)
     agents = tuple(AGENTS_DEFAUT if agents is None else agents)
@@ -132,8 +153,28 @@ def _assembler(lat, lon, agents, resultats, sous_scores, agregation, cultures) -
             "contribution": info["contribution"],
         }
 
-    modes = {agent.mode for agent in agents}
-    mode_global = modes.pop() if len(modes) == 1 else "mixte"
+    # Mode = nature des sources qui ont RÉELLEMENT contribué (résultats « ok »),
+    # pas des agents déclarés : un agent réel tombé en panne ne rend pas le
+    # passeport « réel » pour autant. Repli sur les agents déclarés seulement
+    # si aucune dimension n'a abouti (mode alors indicatif, score_global=None).
+    modes_ok = {r.mode for r in resultats if r.statut == "ok"}
+    modes_contributifs = modes_ok or {agent.mode for agent in agents}
+    mode_global = (
+        next(iter(modes_contributifs)) if len(modes_contributifs) == 1 else "mixte"
+    )
+
+    indisponibles = [dim for dim in _SCORING if dimensions[dim]["statut"] != "ok"]
+
+    avertissements = []
+    if mode_global != "reel" and modes_ok:
+        avertissements.append(_AVERTISSEMENT_SIMULE)
+    if indisponibles:
+        if agregation["score_global"] is None:
+            avertissements.append(_AVERTISSEMENT_VIDE)
+        else:
+            avertissements.append(_AVERTISSEMENT_PARTIEL.format(
+                dims=", ".join(_LIBELLE_DIMENSION[dim] for dim in indisponibles),
+            ))
 
     return {
         "coordonnees": {"lat": lat, "lon": lon},
@@ -142,6 +183,7 @@ def _assembler(lat, lon, agents, resultats, sous_scores, agregation, cultures) -
         "score_global": agregation["score_global"],
         "fiabilite_globale": agregation["fiabilite_globale"],
         "dimensions": dimensions,
+        "dimensions_indisponibles": indisponibles,
         "cultures_suggerees": [reco.to_dict() for reco in cultures],
-        "avertissement": "" if mode_global == "reel" else _AVERTISSEMENT_SIMULE,
+        "avertissement": " ".join(avertissements),
     }

@@ -13,17 +13,22 @@ from agriscore.agents.simules import (
     AgentTopoSimule,
 )
 from agriscore.agents.sol_reel import AgentSolReel
+from agriscore.agents.topo_openmeteo import AgentTopoOpenMeteo
 from agriscore.agents.topo_reel import AgentTopoReel
 
-#: Composition courante du pipeline. Les 5 agents sont désormais réels ; on
-#: peut toujours forcer un run 100 % hors-ligne avec ``AGENTS_SIMULES``.
+#: Composition courante du pipeline. Les 5 agents sont réels ; on peut
+#: toujours forcer un run 100 % hors-ligne avec ``AGENTS_SIMULES``.
 #: Sans provisionnement (clés d'API), les agents concernés se mettent
 #: proprement en ``statut="indisponible"`` — le pipeline reste debout.
+#:
+#: Topo : agent Open-Meteo (GLO-90, keyless) par défaut ; OpenTopography
+#: (``AgentTopoReel``, GLO-30, clé requise) reste dispo en passant
+#: ``agents=`` explicitement à l'orchestrateur.
 AGENTS_DEFAUT: tuple[Agent, ...] = (
     AgentSolReel(),
     AgentClimatReel(),
     AgentNdviReel(),
-    AgentTopoReel(),
+    AgentTopoOpenMeteo(),
     AgentAccesReel(),
 )
 
@@ -42,6 +47,7 @@ __all__ = [
     "AgentSolReel",
     "AgentClimatReel",
     "AgentNdviReel",
+    "AgentTopoOpenMeteo",
     "AgentTopoReel",
     "AgentAccesReel",
 ]

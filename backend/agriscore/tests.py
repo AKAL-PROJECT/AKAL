@@ -42,6 +42,7 @@ from agriscore.agents import (
     AgentNdviSimule,
     AgentSolReel,
     AgentSolSimule,
+    AgentTopoOpenMeteo,
     AgentTopoReel,
     AgentTopoSimule,
 )
@@ -49,6 +50,10 @@ from agriscore.agents.acces_reel import _extraire as _extraire_acces
 from agriscore.agents.climat_reel import _agreger as _agreger_climat
 from agriscore.agents.ndvi_reel import _agreger_serie, _fenetre_12_mois
 from agriscore.agents.sol_reel import _classe_texture
+from agriscore.agents.topo_openmeteo import (
+    _altitude_et_pente as _altitude_et_pente_om,
+    _grille_points as _grille_points_om,
+)
 from agriscore.agents.topo_reel import _altitude_et_pente, _emprise, _parser_aaigrid
 from agriscore.models import ConfigurationAgriScore
 from agriscore.orchestrateur import generer_passeport
@@ -831,6 +836,7 @@ _CLES_PASSEPORT = {
     "score_global",
     "fiabilite_globale",
     "dimensions",
+    "dimensions_indisponibles",
     "cultures_suggerees",
     "avertissement",
 }
@@ -877,6 +883,7 @@ class PipelineIntegrationTests(SimpleTestCase):
         self.assertEqual(
             set(passeport["dimensions"]), {"sol", "climat", "ndvi", "topo", "acces"}
         )
+        self.assertEqual(passeport["dimensions_indisponibles"], [])
         self.assertIn("simul", passeport["avertissement"].lower())
         datetime.fromisoformat(passeport["genere_le"])  # ISO 8601
 
@@ -972,6 +979,9 @@ class PipelineIntegrationTests(SimpleTestCase):
         # Le score est toujours produit, la fiabilité chute (Sol perdu).
         self.assertIsNotNone(passeport["score_global"])
         self.assertLess(passeport["fiabilite_globale"], 82.5)
+        # La dimension perdue est signalée explicitement.
+        self.assertEqual(passeport["dimensions_indisponibles"], ["sol"])
+        self.assertIn("partiel", passeport["avertissement"].lower())
         json.dumps(passeport)
 
     def test_agent_ok_mais_valeur_inscorable_est_retrogradee(self):
@@ -1046,6 +1056,14 @@ def _aaigrid(lignes, *, cellsize=0.00027, xllcorner=-8.0, yllcorner=31.6, nodata
 def _reponse_ok(texte):
     reponse = Mock()
     reponse.text = texte
+    reponse.raise_for_status = Mock(return_value=None)
+    return reponse
+
+
+def _reponse_elevation(altitudes):
+    """Mock d'une réponse Open-Meteo Elevation : ``{"elevation": [...]}``."""
+    reponse = Mock()
+    reponse.json = Mock(return_value={"elevation": list(altitudes)})
     reponse.raise_for_status = Mock(return_value=None)
     return reponse
 
@@ -1204,11 +1222,13 @@ class PipelineAvecTopoReelTests(AgentReelTestCase):
                 "AgentSolReel",
                 "AgentClimatReel",
                 "AgentNdviReel",
-                "AgentTopoReel",
+                "AgentTopoOpenMeteo",
                 "AgentAccesReel",
             ],
         )
         self.assertTrue(all(a.mode == "reel" for a in AGENTS_DEFAUT))
+        # Topo par défaut = Open-Meteo (keyless) ; OpenTopography reste dispo.
+        self.assertEqual([a.dimension for a in AGENTS_DEFAUT].count("topo"), 1)
 
     def test_pipeline_topo_reel_nominal(self):
         session = Mock()
@@ -1218,6 +1238,7 @@ class PipelineAvecTopoReelTests(AgentReelTestCase):
         passeport = generer_passeport(_LAT_R, _LON_R, agents=self._agents(topo))
 
         self.assertEqual(passeport["mode"], "mixte")
+        self.assertEqual(passeport["dimensions_indisponibles"], [])
         topo_bloc = passeport["dimensions"]["topo"]
         self.assertEqual(topo_bloc["statut"], "ok")
         self.assertEqual(topo_bloc["mode"], "reel")
@@ -1245,6 +1266,134 @@ class PipelineAvecTopoReelTests(AgentReelTestCase):
         self.assertIsNotNone(passeport["score_global"])
         # Topo (poids nominal 20) perdu → fiabilité plafonnée à 80.
         self.assertLessEqual(passeport["fiabilite_globale"], 80.0)
+        # Dimension perdue signalée ; les 4 autres sont simulées → mode "simule".
+        self.assertEqual(passeport["dimensions_indisponibles"], ["topo"])
+        self.assertEqual(passeport["mode"], "simule")
+        self.assertIn("relief", passeport["avertissement"].lower())
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Agent topo PAR DÉFAUT — Open-Meteo Elevation (GLO-90, keyless)
+# ══════════════════════════════════════════════════════════════════════
+
+class AgentTopoOpenMeteoPurTests(SimpleTestCase):
+    """Grille de points + calcul de pente de l'agent topo Open-Meteo."""
+
+    def test_grille_9_points_centre_au_milieu(self):
+        points = _grille_points_om(_LAT_R, _LON_R)
+        self.assertEqual(len(points), 9)
+        # Indice 4 = centre exact.
+        self.assertEqual(points[4], (_LAT_R, _LON_R))
+        # Rangée 0 = nord (lat > centre), rangée 2 = sud.
+        self.assertGreater(points[0][0], points[4][0])
+        self.assertLess(points[8][0], points[4][0])
+        # Pas ≈ 90 m en latitude entre deux rangées.
+        d_nord_m = (points[1][0] - points[7][0]) / 2 * 111_320.0
+        self.assertAlmostEqual(d_nord_m, 90.0, places=2)
+
+    def test_pente_terrain_plat(self):
+        altitude, pente = _altitude_et_pente_om([480.0] * 9)
+        self.assertEqual(altitude, 480.0)
+        self.assertAlmostEqual(pente, 0.0, places=6)
+
+    def test_pente_gradient_est(self):
+        # +10 m par pas vers l'est, invariant nord-sud.
+        altitudes = [400.0 + 10.0 * d_c for _ in range(3) for d_c in (-1, 0, 1)]
+        altitude, pente = _altitude_et_pente_om(altitudes)
+        self.assertEqual(altitude, 400.0)
+        # Oracle : pente % = 100 · (Δest−ouest) / (2 · pas) = 100 · 20 / 180.
+        self.assertAlmostEqual(pente, 100.0 * 20.0 / 180.0, places=6)
+
+    def test_grille_incomplete_leve(self):
+        with self.assertRaises(ValueError):
+            _altitude_et_pente_om([480.0] * 8)
+
+    def test_altitude_manquante_leve(self):
+        grille = [480.0] * 9
+        grille[3] = None
+        with self.assertRaises(ValueError):
+            _altitude_et_pente_om(grille)
+
+
+class AgentTopoOpenMeteoTests(AgentReelTestCase):
+    def test_cas_nominal_mock(self):
+        session = Mock()
+        session.get.return_value = _reponse_elevation(
+            [400.0 + 5.0 * d_c for _ in range(3) for d_c in (-1, 0, 1)]
+        )
+        agent = AgentTopoOpenMeteo(session=session)
+
+        resultat = agent.collecter(_LAT_R, _LON_R)
+
+        self.assertEqual(resultat.statut, "ok")
+        self.assertEqual(resultat.mode, "reel")
+        self.assertEqual(resultat.resolution_m, 90)
+        self.assertIn("GLO-90", resultat.source)
+        self.assertIn("Open-Meteo", resultat.source)
+        self.assertEqual(resultat.valeurs["altitude_m"], 400.0)
+        self.assertEqual(resultat.valeurs["dem"], "GLO-90")
+        self.assertGreater(resultat.valeurs["pente_pct"], 0.0)
+        self.assertEqual(resultat.confiance, 0.85)
+        datetime.fromisoformat(resultat.date_collecte)
+
+        # Un seul appel, 9 points en latitude/longitude, timeout transmis.
+        kwargs = session.get.call_args.kwargs
+        self.assertGreater(kwargs["timeout"], 0)
+        self.assertEqual(len(kwargs["params"]["latitude"].split(",")), 9)
+        self.assertEqual(len(kwargs["params"]["longitude"].split(",")), 9)
+
+    def test_timeout_donne_indisponible(self):
+        session = Mock()
+        session.get.side_effect = requests.exceptions.Timeout("timed out")
+        agent = AgentTopoOpenMeteo(timeout_s=3.0, session=session)
+
+        with self.assertLogs("agriscore.agents.topo_openmeteo", "WARNING"):
+            resultat = agent.collecter(_LAT_R, _LON_R)
+
+        self.assertEqual(resultat.statut, "indisponible")
+        self.assertEqual(resultat.valeurs, {})
+        self.assertEqual(session.get.call_args.kwargs["timeout"], 3.0)
+
+    def test_erreur_http_donne_indisponible(self):
+        reponse = Mock()
+        reponse.raise_for_status.side_effect = requests.exceptions.HTTPError("500")
+        session = Mock()
+        session.get.return_value = reponse
+        agent = AgentTopoOpenMeteo(session=session)
+
+        with self.assertLogs("agriscore.agents.topo_openmeteo", "WARNING"):
+            self.assertEqual(agent.collecter(_LAT_R, _LON_R).statut, "indisponible")
+
+    def test_reponse_malformee_donne_indisponible(self):
+        session = Mock()
+        session.get.return_value = _reponse_elevation([480.0] * 3)  # 3 ≠ 9
+        agent = AgentTopoOpenMeteo(session=session)
+
+        with self.assertLogs("agriscore.agents.topo_openmeteo", "WARNING"):
+            self.assertEqual(agent.collecter(_LAT_R, _LON_R).statut, "indisponible")
+
+    def test_coordonnees_invalides_remontent(self):
+        agent = AgentTopoOpenMeteo(session=Mock())
+        with self.assertRaises((TypeError, ValueError)):
+            agent.collecter(200.0, 0.0)
+
+    def test_integration_pipeline_topo_par_defaut(self):
+        session = Mock()
+        session.get.return_value = _reponse_elevation([500.0] * 9)  # plat → pente 0
+        agents = (
+            AgentSolSimule(), AgentClimatSimule(), AgentNdviSimule(),
+            AgentTopoOpenMeteo(session=session), AgentAccesSimule(),
+        )
+
+        passeport = generer_passeport(_LAT_R, _LON_R, agents=agents)
+
+        topo_bloc = passeport["dimensions"]["topo"]
+        self.assertEqual(topo_bloc["statut"], "ok")
+        self.assertEqual(topo_bloc["mode"], "reel")
+        self.assertEqual(topo_bloc["valeurs"]["dem"], "GLO-90")
+        self.assertAlmostEqual(topo_bloc["sous_score"], 100.0, places=2)
+        self.assertEqual(passeport["dimensions_indisponibles"], [])
+        self.assertEqual(passeport["mode"], "mixte")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1529,7 +1678,10 @@ class AgentNdviReelTests(AgentReelTestCase):
         with self.assertLogs("agriscore.agents.ndvi_reel", "WARNING"):
             self.assertEqual(agent.collecter(self.LAT, self.LON).statut, "indisponible")
 
-    def test_sans_credentials_pas_d_appel_reseau(self):
+    @patch("agriscore.agents.ndvi_reel.reglage", return_value="")
+    def test_sans_credentials_pas_d_appel_reseau(self, _reglage):
+        # reglage() forcé à vide : indépendant d'un éventuel CDSE_CLIENT_ID
+        # provisionné dans l'environnement de test.
         session = Mock()
         agent = AgentNdviReel(session=session, aujourd_hui=self.AUJ)
         with self.assertLogs("agriscore.agents.ndvi_reel", "WARNING"):
@@ -1608,6 +1760,11 @@ class PipelineToutReelTests(AgentReelTestCase):
         self.assertIsNone(passeport["score_global"])
         self.assertEqual(passeport["fiabilite_globale"], 0.0)
         self.assertEqual(len(passeport["cultures_suggerees"]), 4)  # suggestions toujours produites
+        self.assertEqual(
+            set(passeport["dimensions_indisponibles"]),
+            {"sol", "climat", "ndvi", "topo", "acces"},
+        )
+        self.assertIn("aucune dimension exploitable", passeport["avertissement"].lower())
         json.dumps(passeport)
 
 
@@ -1678,8 +1835,11 @@ class AgentCacheTests(AgentReelTestCase):
     def test_ttl_ndvi_plus_court_que_les_dimensions_stables(self):
         self.assertLess(AgentNdviReel.cache_ttl_s, AgentSolReel.cache_ttl_s)
         self.assertLess(AgentNdviReel.cache_ttl_s, AgentTopoReel.cache_ttl_s)
+        self.assertLess(AgentNdviReel.cache_ttl_s, AgentTopoOpenMeteo.cache_ttl_s)
         self.assertLess(AgentNdviReel.cache_ttl_s, AgentClimatReel.cache_ttl_s)
         self.assertLessEqual(AgentAccesReel.cache_ttl_s, AgentSolReel.cache_ttl_s)
+        # Les deux agents topo partagent le même TTL (relief invariant).
+        self.assertEqual(AgentTopoOpenMeteo.cache_ttl_s, AgentTopoReel.cache_ttl_s)
 
     def test_cle_cache_forme(self):
         self.assertEqual(cle_cache("sol", 31.6349, -7.9851), "agriscore:agent:sol:31.635:-7.985")

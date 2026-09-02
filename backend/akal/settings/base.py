@@ -435,13 +435,15 @@ GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
 # AGRISCORE — pipeline d'enrichissement (agriscore/)
 # ──────────────────────────────────────────────
 #
-# Identifiants des sources externes des agents réels (agriscore/agents/*_reel.py).
-# Tous vides par défaut, même logique que SENTRY_DSN / GOOGLE_CLIENT_ID : sans
-# provisionnement, l'agent concerné renvoie statut="indisponible" (jamais
-# d'exception, le pipeline continue avec les autres dimensions) —
-# check/test/runserver passent sans clé.
+# Identifiants des sources externes des agents. Vides par défaut, même logique
+# que SENTRY_DSN / GOOGLE_CLIENT_ID : sans provisionnement, l'agent concerné
+# renvoie statut="indisponible" (jamais d'exception, le pipeline continue avec
+# les autres dimensions) — check/test/runserver passent sans clé.
 #
-#   - topo  : OpenTopography (DEM Copernicus GLO-30) — clé gratuite requise
+#   - topo  : Open-Meteo Elevation (GLO-90) par défaut, AUCUNE clé.
+#             OPENTOPOGRAPHY_API_KEY sert uniquement à l'agent optionnel
+#             AgentTopoReel (GLO-30) si on le passe explicitement à
+#             l'orchestrateur — inutile pour AGENTS_DEFAUT.
 #   - ndvi  : Copernicus Data Space Ecosystem (Sentinel-2) — OAuth2 client
 #   - climat: Open-Meteo archive — aucune clé
 #   - sol   : SoilGrids (ISRIC) — aucune clé
