@@ -58,8 +58,9 @@ export type Passeport = {
 // Raison d'indisponibilité — pilote l'état affiché par l'écran.
 // - non_geolocalisee : 422, la parcelle n'a pas de point GPS confirmé
 // - introuvable      : 404, UUID inconnu (ne devrait pas arriver depuis une fiche)
+// - en_cours         : 429, un calcul est déjà en route pour cette parcelle → "Réessayer" (transitoire)
 // - erreur           : réseau, timeout, 5xx, réponse illisible → "Réessayer"
-export type RaisonIndisponible = "non_geolocalisee" | "introuvable" | "erreur";
+export type RaisonIndisponible = "non_geolocalisee" | "introuvable" | "en_cours" | "erreur";
 
 export class PasseportIndisponibleError extends Error {
   readonly raison: RaisonIndisponible;
@@ -149,6 +150,9 @@ export async function getPasseport(parcelleId: string): Promise<Passeport> {
     if (err instanceof ApiError) {
       if (err.status === 422) throw new PasseportIndisponibleError("non_geolocalisee", { cause: err });
       if (err.status === 404) throw new PasseportIndisponibleError("introuvable", { cause: err });
+      // 429 : soit le throttle global de scope, soit un calcul déjà en cours
+      // pour cette parcelle (verrou back). Dans les deux cas c'est transitoire.
+      if (err.status === 429) throw new PasseportIndisponibleError("en_cours", { cause: err });
     }
     // Timeout (apiFetch → Error générique), réseau, 5xx, JSON illisible.
     throw new PasseportIndisponibleError("erreur", { cause: err });

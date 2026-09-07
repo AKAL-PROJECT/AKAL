@@ -350,8 +350,11 @@ function EtatIndisponible({ raison, onReessayer }: { raison: RaisonIndisponible;
     non_geolocalisee:
       "Cette parcelle n'est pas encore géolocalisée précisément — le passeport sera disponible une fois sa position confirmée.",
     introuvable: "Passeport introuvable pour cette parcelle.",
+    en_cours:
+      "L'analyse de cette parcelle est déjà en cours — relancez-la dans quelques instants.",
     erreur: "L'analyse est momentanément indisponible.",
   };
+  const peutReessayer = raison === "erreur" || raison === "en_cours";
   return (
     <div
       className="card"
@@ -360,7 +363,7 @@ function EtatIndisponible({ raison, onReessayer }: { raison: RaisonIndisponible;
       <p style={{ fontSize: "14px", color: "var(--color-secondaire)", maxWidth: "440px", lineHeight: 1.6, margin: 0 }}>
         {messages[raison]}
       </p>
-      {raison === "erreur" && (
+      {peutReessayer && (
         <button type="button" onClick={onReessayer} className="btn-secondary akal-focusable">
           Réessayer
         </button>
