@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -148,6 +148,13 @@ class GoogleLoginView(APIView):
     """Vérifie le jeton Google et connecte l'utilisateur."""
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Chaque appel déclenche un aller-retour de vérification vers Google
+    # (id_token.verify_oauth2_token) et peut créer un compte : scope dédié
+    # 'google' en plus du plancher anonyme, même logique que 'login'/'signup'
+    # (cf. akal/settings/base.py). PhoneLoginVerifyView a déjà AnonRateThrottle ;
+    # ici on ajoute la limite serrée qui manquait.
+    throttle_classes = [AnonRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'google'
 
     def post(self, request):
         token = request.data.get('token')

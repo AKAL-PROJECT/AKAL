@@ -19,7 +19,8 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from agriscore.passeport import passeport_parcelle
-from annonces.models import Parcelle
+from annonces.models import Annonce, Parcelle
+from annonces.serializers import _flouter_position
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,23 @@ class PasseportParcelleAPIView(APIView):
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        passeport = passeport_parcelle(parcelle.latitude, parcelle.longitude)
+        lat, lon = parcelle.latitude, parcelle.longitude
+
+        # Confidentialité de la localisation : cet endpoint est public et
+        # anonyme, et le pipeline interroge des sources à 10 m de résolution
+        # (NDVI Sentinel-2) au point transmis. Si une annonce de cette
+        # parcelle masque sa localisation (loc_confidentielle), calculer sur
+        # les coordonnées EXACTES rendrait l'emplacement réel retrouvable par
+        # comparaison de passeports — contournement du floutage de la fiche.
+        # On calcule alors sur la MÊME position floutée déterministe que la
+        # fiche publique (annonces/serializers.py::_flouter_position, graine
+        # = parcelle_id) : l'analyse reste pertinente à l'échelle du secteur,
+        # jamais du parcellaire.
+        if Annonce.objects.filter(
+            parcelle_id=parcelle.id, loc_confidentielle=True
+        ).exists():
+            lat, lon = _flouter_position(lat, lon, parcelle.id)
+
+        passeport = passeport_parcelle(lat, lon)
         passeport['parcelle_id'] = str(parcelle.id)
         return Response(passeport)

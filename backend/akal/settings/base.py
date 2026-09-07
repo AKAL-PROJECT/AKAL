@@ -265,6 +265,9 @@ REST_FRAMEWORK = {
         'login': '5/min',
         'password_reset': '3/hour',
         'signup': '5/hour',
+        # Connexion Google (GoogleLoginView) — chaque appel = une vérification
+        # de jeton côté Google + potentiellement une création de compte.
+        'google': '20/hour',
         'annonce_create': '20/hour',
         'photo_upload': '30/hour',
         'message': '40/hour',

@@ -1998,3 +1998,56 @@ class PasseportParcelleAPITests(APITestCase):
         nue = Parcelle.objects.create(surface_ha=1.0)
         reponse = self.client.get(self._url(nue.id))
         self.assertEqual(reponse.status_code, 422)
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_annonce_confidentielle_floute_les_coordonnees_du_pipeline(self, faux_passeport):
+        # Une annonce loc_confidentielle sur cette parcelle : le pipeline
+        # (endpoint public, anonyme) ne doit JAMAIS recevoir les coordonnées
+        # exactes — sinon comparer des passeports permettrait de retrouver le
+        # point réel, contournant le floutage de la fiche.
+        from django.contrib.auth import get_user_model
+        from annonces.models import Annonce
+        from annonces.serializers import _flouter_position
+
+        faux_passeport.return_value = {
+            "mode": "reel", "score_global": 80.0,
+            "dimensions": {}, "cultures_suggerees": [],
+        }
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+        proprio = get_user_model().objects.create_user(
+            email="vendeur.conf@akal.ma", password="x", nom="N", prenom="P",
+        )
+        Annonce.objects.create(
+            parcelle=self.parcelle, proprietaire=proprio, titre="Confidentiel",
+            description="d", prix_mad=100000, statut="brouillon",
+            loc_confidentielle=True,
+        )
+
+        self.client.get(self._url(self.parcelle.id))
+
+        lat_floue, lon_floue = _flouter_position(31.63, -7.99, self.parcelle.id)
+        faux_passeport.assert_called_once_with(lat_floue, lon_floue)
+        self.assertNotEqual((lat_floue, lon_floue), (31.63, -7.99))
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_annonce_non_confidentielle_garde_les_coordonnees_exactes(self, faux_passeport):
+        from django.contrib.auth import get_user_model
+        from annonces.models import Annonce
+
+        faux_passeport.return_value = {
+            "mode": "reel", "score_global": 80.0,
+            "dimensions": {}, "cultures_suggerees": [],
+        }
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+        proprio = get_user_model().objects.create_user(
+            email="vendeur.pub@akal.ma", password="x", nom="N", prenom="P",
+        )
+        Annonce.objects.create(
+            parcelle=self.parcelle, proprietaire=proprio, titre="Public",
+            description="d", prix_mad=100000, statut="brouillon",
+            loc_confidentielle=False,
+        )
+
+        self.client.get(self._url(self.parcelle.id))
+
+        faux_passeport.assert_called_once_with(31.63, -7.99)
