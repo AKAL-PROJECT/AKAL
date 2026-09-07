@@ -2584,3 +2584,56 @@ class LocalisationConfidentielleTests(AnnoncesTestBase):
         # Aucune trace de la coordonnée exacte nulle part dans le corps.
         self.assertNotIn(str(self.LAT_EXACTE), corps)
         self.assertNotIn(str(self.LNG_EXACTE), corps)
+
+
+class BackfillCommuneGeomTests(APITestCase):
+    """`manage.py backfill_commune_geom` — jointure spatiale pour rattacher
+    `Parcelle.commune_geom` aux parcelles géolocalisées qui ne l'ont pas."""
+
+    def setUp(self):
+        self.region = RegionOfficielle.objects.create(code=3, slug='fes-meknes', nom='Fès-Meknès')
+        self.province = ProvinceGeom.objects.create(
+            iso='MA-03-131', nom='Meknès', region=self.region,
+            geom=_polygone_carre(-5.5, 33.5),
+        )
+        self.commune = CommuneGeom.objects.create(
+            source_fid=1, libelle='MU MEKNES', nom_affichage='Meknès',
+            type_commune='MU', province=self.province,
+            geom=_polygone_carre(-5.5, 33.5, demi_cote=0.05),
+        )
+
+    def test_rattache_une_parcelle_dans_le_polygone(self):
+        parcelle = Parcelle.objects.create(
+            surface_ha=2, latitude=33.5, longitude=-5.5, commune_geom=None,
+        )
+        call_command('backfill_commune_geom')
+        parcelle.refresh_from_db()
+        self.assertEqual(parcelle.commune_geom_id, self.commune.pk)
+
+    def test_dry_run_n_ecrit_rien(self):
+        parcelle = Parcelle.objects.create(
+            surface_ha=2, latitude=33.5, longitude=-5.5, commune_geom=None,
+        )
+        call_command('backfill_commune_geom', dry_run=True)
+        parcelle.refresh_from_db()
+        self.assertIsNone(parcelle.commune_geom_id)
+
+    def test_ignore_une_parcelle_hors_de_tout_polygone(self):
+        parcelle = Parcelle.objects.create(
+            surface_ha=2, latitude=10.0, longitude=10.0, commune_geom=None,
+        )
+        call_command('backfill_commune_geom')
+        parcelle.refresh_from_db()
+        self.assertIsNone(parcelle.commune_geom_id)
+
+    def test_ne_touche_pas_une_parcelle_deja_rattachee(self):
+        autre = CommuneGeom.objects.create(
+            source_fid=2, libelle='CR AUTRE', nom_affichage='Autre',
+            province=self.province, geom=_polygone_carre(-6.5, 34.5),
+        )
+        parcelle = Parcelle.objects.create(
+            surface_ha=2, latitude=33.5, longitude=-5.5, commune_geom=autre,
+        )
+        call_command('backfill_commune_geom')
+        parcelle.refresh_from_db()
+        self.assertEqual(parcelle.commune_geom_id, autre.pk)

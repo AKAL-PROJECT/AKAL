@@ -28,7 +28,7 @@ from django.utils.text import slugify
 
 from accounts.models import User
 from annonces.models import Annonce, AgriScore, Parcelle, Photo
-from geo.models import Commune, Province, Region
+from geo.models import Commune, CommuneGeom, Province, Region
 
 
 # ══════════════════════════════════════════════════════════════
@@ -299,6 +299,19 @@ class Command(BaseCommand):
 
         communes = self._seed_geo()
         users = self._seed_users()
+
+        # commune_geom (référentiel officiel) alimente le filtre catalogue
+        # province/commune, is_geolocated() et can_publish() — sans lui, les
+        # annonces de démo sont invisibles au filtre cascade. Il est renseigné
+        # par jointure spatiale dans _seed_annonces() ; encore faut-il que le
+        # référentiel soit importé.
+        if not CommuneGeom.objects.exists():
+            self.stdout.write(self.style.WARNING(
+                "   ! CommuneGeom vide — lancez `manage.py import_geo_officiel` "
+                "puis `manage.py backfill_commune_geom`, sinon le filtre "
+                "province/commune du catalogue restera vide pour ces annonces."
+            ))
+
         self._seed_annonces(communes, users)
 
         self.stdout.write(self.style.SUCCESS('\nSeed demo termine avec succes !'))
@@ -357,9 +370,18 @@ class Command(BaseCommand):
         now = timezone.now()
 
         for i, data in enumerate(DEMO_ANNONCES):
+            point = Point(data['lon'], data['lat'], srid=4326)
+            # Jointure spatiale sur le référentiel officiel (polygone qui
+            # contient le point) — jamais deviné : None si le référentiel
+            # n'est pas importé ou si le point tombe hors de toute commune.
+            commune_geom = (
+                CommuneGeom.objects.filter(geom__contains=point).first()
+            )
+
             # Parcelle
             parcelle = Parcelle.objects.create(
                 commune=communes[data['commune_id']],
+                commune_geom=commune_geom,
                 surface_ha=Decimal(str(data['surface'])),
                 statut_foncier=data['statut_foncier'],
                 acces_eau=data['acces_eau'],
@@ -367,7 +389,7 @@ class Command(BaseCommand):
                 acces_routier=data['acces_routier'],
                 latitude=data['lat'],
                 longitude=data['lon'],
-                geom=Point(data['lon'], data['lat'], srid=4326),
+                geom=point,
                 metadata={'culture': data['cultures']},
             )
 
