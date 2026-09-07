@@ -1,4 +1,27 @@
 services:
+  # PostgreSQL + PostGIS — la base de l'application. Port hôte 5433 (pas
+  # 5432) pour ne pas entrer en conflit avec un Postgres déjà installé
+  # localement ; DATABASE_URL doit donc pointer sur :5433 (cf. .env.example).
+  # Django n'est PAS conteneurisé ici (venv local) : cette stack fournit les
+  # dépendances de service (db, cache, stockage), pas l'app elle-même.
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: akal_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-akal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-akal}
+      POSTGRES_DB: ${POSTGRES_DB:-akal_db}
+    ports:
+      - "5433:5432"
+    volumes:
+      - akal_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-akal} -d ${POSTGRES_DB:-akal_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: akal_redis
@@ -48,3 +71,4 @@ services:
 
 volumes:
   minio_data:
+  akal_db_data:

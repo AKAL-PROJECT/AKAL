@@ -7,6 +7,14 @@ databases:
     ipAllowList: []
 
 services:
+  # Cache Redis (« Key Value » chez Render) — référencé par REDIS_URL du
+  # service web ci-dessous. Optionnel : cf. le commentaire sur REDIS_URL.
+  # Retirer ce bloc ET la variable REDIS_URL si on ne provisionne pas de Redis.
+  - type: keyvalue
+    name: akal-redis
+    plan: free
+    ipAllowList: []
+
   # Service Web Django (conteneurisé via Docker)
   - type: web
     name: akal-backend
@@ -38,6 +46,73 @@ services:
       # fichier. Sans elle, le reste du service tourne normalement ; seul
       # l'endpoint de connexion Google répond 503 (cf. accounts/auth_api_views.py).
       - key: GOOGLE_CLIENT_ID
+        sync: false
+
+      # ── Cache Redis (django-redis) ───────────────────────────────────
+      # Optionnel : le cache est en fail-open (IGNORE_EXCEPTIONS, cf.
+      # akal/settings/base.py + docs/plans/2026-08-31-redis-fail-open.md).
+      # Sans REDIS_URL le service tourne, mais throttling et cache des
+      # limites géo sont dégradés. Le type de service Render pour Redis est
+      # « Key Value » (25 Mo en offre gratuite).
+      - key: REDIS_URL
+        fromService:
+          name: akal-redis
+          type: keyvalue
+          property: connectionString
+
+      # ── Frontend / CORS / CSRF ───────────────────────────────────────
+      # Backend et frontend sont sur des domaines distincts : sans ces
+      # trois variables, prod hérite des défauts localhost de base.py et
+      # bloque silencieusement tout appel du frontend déployé + les liens
+      # de réinitialisation de mot de passe pointent vers localhost.
+      - key: FRONTEND_URL
+        sync: false        # ex. https://akal.vercel.app
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false        # ex. https://akal.vercel.app,https://akal.ma
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false        # mêmes origines que CORS_ALLOWED_ORIGINS
+
+      # ── Stockage média (django-storages, S3-compatible) ──────────────
+      # Sans ces variables, S3Storage part avec des identifiants vides et
+      # TOUT upload de photo/avatar échoue en prod. Pointer vers un
+      # fournisseur S3-compatible en offre gratuite (ex. bucket Cloudflare
+      # R2, Backblaze B2, ou un MinIO auto-hébergé).
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        value: akal-media
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false        # ex. https://<account>.r2.cloudflarestorage.com
+      - key: AWS_S3_CUSTOM_DOMAIN
+        sync: false        # domaine public/CDN devant le bucket (ex. media.akal.ma) — jamais le domaine de l'API
+
+      # ── E-mail transactionnel (réinitialisation mdp, alertes) ────────
+      # EMAIL_HOST vide → backend console (les e-mails restent dans les
+      # logs). Renseigner pour un vrai envoi SMTP.
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: AKAL <no-reply@akal.ma>
+
+      # ── Monitoring Sentry (optionnel, no-op si vide) ─────────────────
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production
+
+      # ── AgriScore — agent NDVI Sentinel-2 (optionnel) ───────────────
+      # Sans ces deux clés, la dimension NDVI passe en « indisponible » et
+      # le passeport se calcule sur les 4 autres dimensions. Compte gratuit
+      # dataspace.copernicus.eu (cf. docs/ONBOARDING_SECRETS.md).
+      - key: CDSE_CLIENT_ID
+        sync: false
+      - key: CDSE_CLIENT_SECRET
         sync: false
 
     # Authentification par téléphone (SMS OTP) : nécessite un secret
