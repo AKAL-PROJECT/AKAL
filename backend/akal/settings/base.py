@@ -285,9 +285,14 @@ REST_FRAMEWORK = {
         'vue': '120/hour',
         # Passeport AgriScore (PasseportParcelleAPIView) — un appel non caché
         # déclenche jusqu'à 5 requêtes vers des API externes (Copernicus,
-        # Open-Meteo, SoilGrids, OSRM). Le cache par agent absorbe les appels
-        # répétés ; ce scope coupe un script qui balaierait des parcelles.
-        'passeport': '40/hour',
+        # Open-Meteo, SoilGrids, OSRM). Défense en profondeur, cf. la docstring
+        # de la vue : ici on plafonne le nombre de parcelles DISTINCTES qu'une
+        # IP peut faire calculer à froid (15/h × 5 = 75 appels externes max,
+        # et seulement pour des parcelles jamais vues) ; le cache du passeport
+        # assemblé par parcelle (TTL 12 h) et le verrou de calcul font le
+        # reste. 15/h reste large pour un usage réel (comparer une dizaine de
+        # parcelles depuis les fiches).
+        'passeport': '15/hour',
     },
 }
 

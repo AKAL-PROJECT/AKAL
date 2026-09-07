@@ -2051,3 +2051,47 @@ class PasseportParcelleAPITests(APITestCase):
         self.client.get(self._url(self.parcelle.id))
 
         faux_passeport.assert_called_once_with(31.63, -7.99)
+
+    # ── Rate limiting : cache du passeport assemblé + verrou de calcul ────
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_second_appel_servi_depuis_le_cache_sans_relancer_le_pipeline(self, faux_passeport):
+        faux_passeport.return_value = {
+            "mode": "reel", "score_global": 80.0,
+            "dimensions": {}, "cultures_suggerees": [],
+        }
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+
+        r1 = self.client.get(self._url(self.parcelle.id))
+        r2 = self.client.get(self._url(self.parcelle.id))
+        r3 = self.client.get(self._url(self.parcelle.id))
+
+        self.assertEqual([r1.status_code, r2.status_code, r3.status_code], [200, 200, 200])
+        self.assertEqual(r1.json(), r2.json())
+        # Le pipeline (et donc les appels externes) n'a tourné qu'UNE fois
+        # pour les trois requêtes.
+        faux_passeport.assert_called_once()
+
+    def test_calcul_concurrent_pour_la_meme_parcelle_renvoie_429(self):
+        # Simule un calcul déjà en cours : le verrou est posé, rien en cache.
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": False})
+        cache.add(f"agriscore:passeport:calcul:{self.parcelle.id}", True, 60)
+
+        reponse = self.client.get(self._url(self.parcelle.id))
+
+        self.assertEqual(reponse.status_code, 429)
+        self.assertIn("cours", reponse.json()["detail"].lower())
+        self.assertIn("Retry-After", reponse.headers)
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_verrou_libere_apres_le_calcul(self, faux_passeport):
+        faux_passeport.return_value = {
+            "mode": "reel", "score_global": 80.0,
+            "dimensions": {}, "cultures_suggerees": [],
+        }
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+
+        self.client.get(self._url(self.parcelle.id))
+
+        # Verrou levé (finally) — pas de 503 fantôme au prochain passage.
+        self.assertIsNone(cache.get(f"agriscore:passeport:calcul:{self.parcelle.id}"))
