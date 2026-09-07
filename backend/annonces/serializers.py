@@ -14,6 +14,8 @@ Sous-serializers :
     - ProprietaireSerializer     → {id} (UUID uniquement, RGPD loi 09-08)
 """
 
+from decimal import Decimal
+
 # pyrefly: ignore [missing-import]
 from django.contrib.gis.geos import Point, Polygon
 from django.db import transaction
@@ -28,6 +30,26 @@ from .models import Annonce, DonneesGeo, Parcelle, Photo, RechercheSauvegardee
 # de "le client a explicitement envoyé `contour: []`" (repasser en mode
 # Point, retirer le contour existant) — cf. décision du 2026-08-05.
 _CONTOUR_INCHANGE = object()
+
+# ──────────────────────────────────────────────
+# Garde-fous de plausibilité (dépôt / édition d'annonce, F03)
+# ──────────────────────────────────────────────
+#
+# Jamais un simple contrôle côté frontend : ces bornes sont imposées ici, au
+# serializer d'écriture, seul chemin par lequel un utilisateur crée/modifie
+# une annonce. `prix_mad > 0` et `surface_ha > 0` sont EN PLUS garantis au
+# niveau base (CheckConstraint, cf. annonces/models.py) — invariant, pas
+# seulement une règle applicative.
+#
+# Les bornes hautes et le ratio prix/m² sont des garde-fous « anti-absurde »
+# (faute de frappe, zéro oublié) volontairement larges — ils laissent passer
+# n'importe quelle vraie annonce agricole marocaine, même un très grand
+# domaine premium, et ne coupent que ce qui n'a manifestement pas de sens.
+PRIX_MAD_MAX = 300_000_000          # 300 M MAD — un domaine à ~30 M€, déjà exceptionnel
+SURFACE_HA_MIN = Decimal('0.01')   # 100 m²
+SURFACE_HA_MAX = Decimal('10000')  # 100 km² — au-delà, erreur de saisie certaine
+PRIX_M2_MIN = Decimal('0.5')       # en deçà : prix incohérent avec la surface (trop bas)
+PRIX_M2_MAX = Decimal('5000')      # au-delà : ce n'est plus du foncier agricole
 
 
 # ──────────────────────────────────────────────
@@ -580,6 +602,25 @@ class ParcelleEcritureSerializer(serializers.ModelSerializer):
             'longitude': {'required': False, 'allow_null': True},
         }
 
+    def validate_surface_ha(self, valeur):
+        """Surface strictement positive et physiquement plausible — garde-fou
+        serveur (cf. bloc « Garde-fous de plausibilité »), jamais délégué au
+        seul frontend."""
+        if valeur is None:
+            return valeur
+        if valeur <= 0:
+            raise serializers.ValidationError("La superficie doit être strictement positive.")
+        if valeur < SURFACE_HA_MIN:
+            raise serializers.ValidationError(
+                f"La superficie renseignée ({valeur} ha) est trop faible pour une parcelle agricole."
+            )
+        if valeur > SURFACE_HA_MAX:
+            raise serializers.ValidationError(
+                f"La superficie renseignée ({valeur} ha) dépasse la limite admise "
+                f"({SURFACE_HA_MAX} ha). Vérifiez la valeur (erreur de saisie ?)."
+            )
+        return valeur
+
     def to_representation(self, instance):
         # `contour` n'est pas un attribut de Parcelle : le ModelSerializer
         # standard le saute silencieusement (SkipField, champ required=False
@@ -638,6 +679,49 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
                 f"Transition « {self.instance.statut} → {value} » non autorisée."
             )
         return value
+
+    def validate_prix_mad(self, valeur):
+        """Prix strictement positif et plausible — garde-fou serveur, jamais
+        délégué au seul frontend (`prix_mad > 0` est aussi une CheckConstraint
+        base, cf. annonces/models.py). La borne haute est volontairement large
+        (cf. bloc « Garde-fous de plausibilité ») : elle ne coupe qu'une
+        saisie manifestement erronée (zéro de trop)."""
+        if valeur is None:
+            return valeur
+        if valeur <= 0:
+            raise serializers.ValidationError("Le prix doit être strictement positif.")
+        if valeur > PRIX_MAD_MAX:
+            raise serializers.ValidationError(
+                f"Le prix renseigné ({int(valeur):,} MAD) dépasse la limite admise. "
+                "Vérifiez la valeur (erreur de saisie ?)."
+            )
+        return valeur
+
+    def validate(self, attrs):
+        """Contrôle croisé prix / surface : le prix rapporté au m² doit rester
+        dans une fourchette plausible pour du foncier agricole. Appliqué dès
+        qu'on peut résoudre les DEUX valeurs (payload ou instance existante) —
+        y compris quand un PATCH ne touche qu'un seul des deux champs."""
+        attrs = super().validate(attrs)
+
+        prix = attrs.get('prix_mad')
+        if prix is None and self.instance is not None:
+            prix = self.instance.prix_mad
+
+        surface = (attrs.get('parcelle') or {}).get('surface_ha')
+        if surface is None and self.instance is not None:
+            surface = self.instance.parcelle.surface_ha
+
+        if prix and surface and surface > 0:
+            prix_m2 = Decimal(prix) / (Decimal(surface) * 10000)
+            if not (PRIX_M2_MIN <= prix_m2 <= PRIX_M2_MAX):
+                raise serializers.ValidationError({
+                    'prix_mad': (
+                        f"Le prix rapporté à la surface ({prix_m2:.1f} MAD/m²) semble incohérent. "
+                        "Vérifiez le prix et la superficie."
+                    ),
+                })
+        return attrs
 
     @staticmethod
     def _appliquer_parcelle(parcelle, parcelle_data):

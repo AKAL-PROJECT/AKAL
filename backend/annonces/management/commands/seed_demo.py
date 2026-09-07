@@ -7,11 +7,11 @@ Usage:
     python manage.py seed_demo --clear            # Supprimer les données de démo
 
 Particularités (conformes au PDF Amelioration I-4) :
-    - Régions variées
-    - Statuts fonciers variés
-    - Certaines annonces SANS AgriScore (test du cas null)
+    - Régions variées, statuts fonciers variés
     - Une annonce SANS photo (test du cas photo_principale=null)
     - Photos avec ordre commençant à 0 (photo principale = ordre 0)
+    - Ne sème plus de lignes annonces.AgriScore (modèle legacy retiré de
+      l'API) — la vraie évaluation est le Passeport (app agriscore).
 """
 
 import os
@@ -27,7 +27,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from accounts.models import User
-from annonces.models import Annonce, AgriScore, Parcelle, Photo
+from annonces.models import Annonce, Parcelle, Photo
 from geo.models import Commune, CommuneGeom, Province, Region
 
 
@@ -315,10 +315,10 @@ class Command(BaseCommand):
         self._seed_annonces(communes, users)
 
         self.stdout.write(self.style.SUCCESS('\nSeed demo termine avec succes !'))
-        self.stdout.write(f'   {Annonce.objects.filter(proprietaire__email__endswith="@akal.ma").count()} annonces')
-        self.stdout.write(f'   {Parcelle.objects.count()} parcelles')
-        self.stdout.write(f'   {AgriScore.objects.count()} agriscores')
-        self.stdout.write(f'   {Photo.objects.count()} photos')
+        emails_demo = [u['email'] for u in SEED_USERS]
+        annonces_demo = Annonce.objects.filter(proprietaire__email__in=emails_demo)
+        self.stdout.write(f'   {annonces_demo.count()} annonces de démo (proprios seed_demo)')
+        self.stdout.write(f'   {Photo.objects.filter(annonce__in=annonces_demo).count()} photos')
 
     # ── Géo ──────────────────────────────────────
 
@@ -409,16 +409,14 @@ class Command(BaseCommand):
                 loc_confidentielle=data.get('loc_confidentielle', False),
             )
 
-            # AgriScore (si applicable)
-            if data.get('has_agriscore'):
-                AgriScore.objects.create(
-                    parcelle=parcelle,
-                    score_global=data['score'],
-                    sous_scores=data.get('sous_scores', {}),
-                    indice_confiance=round(random.uniform(0.7, 0.98), 2),
-                    version_ponderation='v1.0',
-                    calculated_at=now,
-                )
+            # AgriScore : le modèle legacy annonces.AgriScore n'est plus
+            # exposé (retiré de l'API le 2026-08-30) et n'était alimenté que
+            # par des random.uniform() — présenter du hasard comme une mesure.
+            # La vraie évaluation est le Passeport (app agriscore, calcul en
+            # direct sur sources ouvertes). On ne sème donc plus de lignes
+            # AgriScore ; les clés `has_agriscore`/`score`/`sous_scores` de
+            # DEMO_ANNONCES sont conservées uniquement pour l'affichage du
+            # bilan ci-dessous (« sans AgriScore » = variété du jeu de démo).
 
             # Photos (si nb_photos > 0)
             nb_photos = data.get('nb_photos', 0)

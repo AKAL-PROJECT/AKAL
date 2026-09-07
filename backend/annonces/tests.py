@@ -7,6 +7,7 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 
 import io
 from datetime import timedelta
+from decimal import Decimal
 
 from django.contrib import admin
 from django.contrib.auth.models import Group
@@ -27,7 +28,7 @@ from messaging.models import Conversation, Favori, Message, Notification
 from . import transitions
 from .admin import publier_selection, rejeter_selection
 from .alertes import notifier_recherches_correspondantes
-from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
+from .models import AgriScore, Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
 from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
 ANNONCES_URL = '/api/annonces/'
@@ -599,18 +600,24 @@ class PublicationTests(AnnoncesTestBase):
         annonce = Annonce.objects.get(id=self.annonce_id)
         self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
 
-    def test_publication_bloquee_prix_invalide_seul(self):
+    def test_prix_zero_refuse_des_l_ecriture(self):
+        # Depuis les garde-fous de plausibilité (serializers.py) : un prix nul
+        # ou négatif est refusé au PATCH lui-même, plus seulement à la
+        # publication. can_publish() garde sa vérification prix > 0 comme
+        # filet pour les écritures hors API (shell, script).
         self.localiser(self.annonce_id)
         self.uploader_une_photo()
-        self.client.patch(
+
+        response = self.client.patch(
             f'{ANNONCES_URL}{self.annonce_id}/', {'prix_mad': 0}, format='json', **self.csrf_headers(),
         )
 
-        response = self.publier()
-
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(len(response.data['statut']), 1)
-        self.assertIn('prix', response.data['statut'][0].lower())
+        self.assertIn('prix_mad', response.data)
+        # Le prix d'origine (payload_brouillon) est intact, l'annonce reste brouillon.
+        annonce = Annonce.objects.get(id=self.annonce_id)
+        self.assertEqual(annonce.prix_mad, Decimal('150000.00'))
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
 
     def test_publication_reussie_definit_date_publication_et_apparait_publiquement(self):
         self.localiser(self.annonce_id)
@@ -2637,3 +2644,154 @@ class BackfillCommuneGeomTests(APITestCase):
         call_command('backfill_commune_geom')
         parcelle.refresh_from_db()
         self.assertEqual(parcelle.commune_geom_id, autre.pk)
+
+
+class GardeFousPlausibiliteTests(AnnoncesTestBase):
+    """Garde-fous prix/surface au dépôt et à l'édition (F03) — validation
+    SERVEUR, jamais déléguée au frontend (annonces/serializers.py)."""
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+
+    def _post(self, **overrides):
+        return self.creer_brouillon(**overrides)
+
+    # ── prix ─────────────────────────────────────────────────────────────
+    def test_prix_negatif_refuse_a_la_creation(self):
+        r = self._post(prix_mad=-1)
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('prix_mad', r.data)
+
+    def test_prix_zero_refuse_a_la_creation(self):
+        r = self._post(prix_mad=0)
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_prix_absurde_refuse(self):
+        # 1 milliard MAD pour 2,5 ha — le cas "boll" de l'audit.
+        r = self._post(prix_mad=1_000_000_000)
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('prix_mad', r.data)
+
+    # ── surface ──────────────────────────────────────────────────────────
+    def test_surface_zero_refusee(self):
+        r = self._post(parcelle={'surface_ha': 0, 'statut_foncier': 'melkia'})
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_surface_absurde_refusee(self):
+        r = self._post(prix_mad=5_000_000, parcelle={'surface_ha': 50000, 'statut_foncier': 'melkia'})
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ── prix rapporté à la surface ───────────────────────────────────────
+    def test_prix_incoherent_avec_la_surface_trop_bas(self):
+        # 1 000 000 MAD / 2500 ha = 0,04 MAD/m² — trop bas.
+        r = self._post(prix_mad=1_000_000, parcelle={'surface_ha': 2500, 'statut_foncier': 'melkia'})
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('prix_mad', r.data)
+
+    def test_prix_incoherent_avec_la_surface_trop_haut(self):
+        # 100 000 000 MAD / 1 ha = 10 000 MAD/m² — ce n'est plus du foncier agricole.
+        r = self._post(prix_mad=100_000_000, parcelle={'surface_ha': 1, 'statut_foncier': 'melkia'})
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_prix_seul_recoupe_la_surface_existante(self):
+        annonce_id = self._post().data['id']  # 150 000 MAD / 2,5 ha = 6 MAD/m² : OK
+        r = self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'prix_mad': 900_000_000},
+            format='json', **self.csrf_headers(),
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ── cas nominal ──────────────────────────────────────────────────────
+    def test_annonce_plausible_acceptee(self):
+        r = self._post(prix_mad=850_000, parcelle={
+            'surface_ha': 12, 'statut_foncier': 'melkia', 'acces_eau': 'irriguee',
+            'topographie': 'plat', 'acces_routier': 'goudron',
+        })
+        self.assertEqual(r.status_code, status.HTTP_201_CREATED, r.data)
+
+    # ── invariant base (défense en profondeur) ──────────────────────────
+    def test_contrainte_base_prix_strictement_positif(self):
+        from django.db import IntegrityError, transaction as db_tx
+        parcelle = Parcelle.objects.create(surface_ha=Decimal('1.00'))
+        with self.assertRaises(IntegrityError):
+            with db_tx.atomic():
+                Annonce.objects.create(
+                    parcelle=parcelle, proprietaire=User.objects.first(),
+                    titre='x', description='y', prix_mad=Decimal('0.00'),
+                )
+
+    def test_contrainte_base_surface_strictement_positive(self):
+        from django.db import IntegrityError, transaction as db_tx
+        with self.assertRaises(IntegrityError):
+            with db_tx.atomic():
+                Parcelle.objects.create(surface_ha=Decimal('0.00'))
+
+
+class NettoyerBaseDemoTests(APITestCase):
+    """`manage.py nettoyer_base_demo` — retire les résidus de dev sans jamais
+    toucher aux données scrapées (avito/mubawab)."""
+
+    def setUp(self):
+        self.demo = User.objects.create_user(
+            email='demo.vendeur1@akal.ma', password='x', nom='D', prenom='V',
+        )
+        self.bot = User.objects.create_user(
+            email='scraper.avito@akal.ma', password='x', nom='Bot', prenom='Avito',
+        )
+        self.testeur = User.objects.create_user(
+            email='uat-truc-123@akal.ma', password='x', nom='T', prenom='U',
+        )
+        self.admin = User.objects.create_superuser(
+            email='root@akal.ma', password='x', nom='R', prenom='A',
+        )
+
+        # Annonce de démo (conservée)
+        pd = Parcelle.objects.create(surface_ha=Decimal('2'))
+        self.annonce_demo = Annonce.objects.create(
+            parcelle=pd, proprietaire=self.demo, titre='Démo', description='d',
+            prix_mad=Decimal('200000'), statut='en_ligne', source='interne',
+        )
+        # Annonce scrapée (JAMAIS touchée)
+        ps = Parcelle.objects.create(surface_ha=Decimal('3'))
+        self.annonce_scrapee = Annonce.objects.create(
+            parcelle=ps, proprietaire=self.bot, titre='Avito', description='d',
+            prix_mad=Decimal('500000'), statut='en_ligne', source='avito',
+            source_id='av-1', source_url='https://avito.ma/x',
+        )
+        Photo.objects.create(annonce=self.annonce_scrapee, ordre=0)
+        # Annonce de test interne (supprimée)
+        pt = Parcelle.objects.create(surface_ha=Decimal('1'))
+        self.annonce_test = Annonce.objects.create(
+            parcelle=pt, proprietaire=self.testeur, titre='UAT test', description='d',
+            prix_mad=Decimal('100000'), statut='en_ligne', source='interne',
+        )
+        # Parcelle orpheline (supprimée)
+        self.orpheline = Parcelle.objects.create(surface_ha=Decimal('1'))
+        # AgriScore legacy (supprimé)
+        AgriScore.objects.create(parcelle=pd, version_ponderation='v1.0')
+
+    def test_supprime_les_residus_mais_pas_le_scrape_ni_la_demo(self):
+        call_command('nettoyer_base_demo')
+
+        # Scrapé : rigoureusement intact
+        self.assertTrue(Annonce.objects.filter(pk=self.annonce_scrapee.pk).exists())
+        self.assertEqual(Photo.objects.filter(annonce__source='avito').count(), 1)
+        self.assertTrue(User.objects.filter(email='scraper.avito@akal.ma').exists())
+
+        # Démo : conservée
+        self.assertTrue(Annonce.objects.filter(pk=self.annonce_demo.pk).exists())
+        self.assertTrue(User.objects.filter(email='demo.vendeur1@akal.ma').exists())
+        self.assertTrue(User.objects.filter(email='root@akal.ma').exists())  # superuser
+
+        # Résidus : supprimés
+        self.assertFalse(Annonce.objects.filter(pk=self.annonce_test.pk).exists())
+        self.assertFalse(Parcelle.objects.filter(pk=self.orpheline.pk).exists())
+        self.assertFalse(User.objects.filter(email='uat-truc-123@akal.ma').exists())
+        self.assertEqual(AgriScore.objects.count(), 0)
+
+    def test_dry_run_n_ecrit_rien(self):
+        call_command('nettoyer_base_demo', dry_run=True)
+        self.assertTrue(Annonce.objects.filter(pk=self.annonce_test.pk).exists())
+        self.assertTrue(Parcelle.objects.filter(pk=self.orpheline.pk).exists())
+        self.assertEqual(AgriScore.objects.count(), 1)
