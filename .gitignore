@@ -38,6 +38,17 @@ backend/akal_env/
 # Antigravity/Gemini IDE customization directory
 .agents/
 
+# Claude Code local workspace
+.claude/
+.playwright-mcp/
+
+# Captures d'écran et notes de session d'audit — jamais versionnées.
+# Le vrai code/doc du projet vit dans frontend/ backend/ docs/ qa/ — jamais
+# à la racine. Seuls README.md et .gitignore sont des fichiers racine suivis.
+/*.png
+/*.md
+!/README.md
+
 # Secrets & Service Accounts
 *firebase-service-account.json
 *.json.secret

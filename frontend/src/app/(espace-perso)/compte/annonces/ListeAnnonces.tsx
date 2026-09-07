@@ -22,6 +22,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import BadgeStatutAnnonce from "@/components/parcelles/BadgeStatutAnnonce";
+import { Eye } from "@/components/icons/Icons";
 import {
   archiverAnnonceAction,
   marquerVendueAnnonceAction,
@@ -153,11 +154,22 @@ export function ListeAnnonces({ annonces }: { annonces: AnnonceProprietaire[] })
                 </h3>
                 <div
                   className="akal-annonce-meta"
-                  style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--color-tertiaire)" }}
+                  style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--color-tertiaire)", flexWrap: "wrap" }}
                 >
                   <span>{a.surface} ha</span>
                   <span>·</span>
                   <span>Déposée le {formatDate.format(new Date(a.createdAt))}</span>
+                  {/* Vues de fiche — masquées pour un brouillon (jamais
+                      public, donc toujours 0, bruit inutile). */}
+                  {a.statut !== "brouillon" && (
+                    <>
+                      <span>·</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }} title="Vues de la fiche">
+                        <Eye size={13} />
+                        {formatMAD.format(a.nbVues)} {a.nbVues === 1 ? "vue" : "vues"}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

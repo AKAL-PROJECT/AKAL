@@ -130,9 +130,13 @@ export type MesStatistiquesDTO = {
   favoris_recus: number;
   conversations_recues: number;
   messages_non_lus: number;
-  // `vues_totales` retiré le 2026-08-30 : StatistiqueAnnonce n'était
-  // incrémenté nulle part, le compteur valait toujours 0 (trompeur). Le
-  // champ reviendra avec un vrai comptage de vues côté backend.
+  // Vues de fiche cumulées sur toutes les annonces du propriétaire, depuis
+  // le 2026-08-31 (comptage réel : beacon au montage de la fiche →
+  // StatistiqueAnnonce, cf. backend EnregistrerVueAPIView). `vues_30j` =
+  // 30 derniers jours glissants. Retirés le 2026-08-30 tant que rien
+  // n'alimentait le modèle, rétablis avec la collecte.
+  vues_totales: number;
+  vues_30j: number;
 };
 
 // Favoris/conversations reçus, messages non lus (dashboard propriétaire) —
@@ -145,7 +149,12 @@ export async function getMesStatistiques(): Promise<MesStatistiquesDTO> {
     headers: { Cookie: await cookieHeader() },
     cache: "no-store",
   });
-  if (!res.ok) return { favoris_recus: 0, conversations_recues: 0, messages_non_lus: 0 };
+  if (!res.ok) {
+    return {
+      favoris_recus: 0, conversations_recues: 0, messages_non_lus: 0,
+      vues_totales: 0, vues_30j: 0,
+    };
+  }
   return (await res.json()) as MesStatistiquesDTO;
 }
 

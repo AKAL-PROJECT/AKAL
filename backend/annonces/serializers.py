@@ -487,6 +487,24 @@ class AnnonceDetailSerializer(serializers.ModelSerializer):
         return data
 
 
+class MesAnnoncesSerializer(AnnonceListSerializer):
+    """
+    `AnnonceListSerializer` + `nb_vues` — réservé au dashboard propriétaire
+    (GET /api/annonces/mes-annonces/), jamais au catalogue public.
+
+    `nb_vues` : total cumulé des vues de la fiche (somme de StatistiqueAnnonce
+    sur toutes les dates). Vient d'une annotation posée par la vue
+    (MesAnnoncesListAPIView.get_queryset, Coalesce(Sum(...), 0)) — 0 pour une
+    annonce jamais consultée ou encore en brouillon (le beacon de comptage ne
+    se déclenche que sur une fiche publique, cf. EnregistrerVueAPIView).
+    """
+
+    nb_vues = serializers.IntegerField(read_only=True)
+
+    class Meta(AnnonceListSerializer.Meta):
+        fields = AnnonceListSerializer.Meta.fields + ['nb_vues']
+
+
 # ──────────────────────────────────────────────
 # Écriture — dépôt d'annonce (F03)
 # ──────────────────────────────────────────────
@@ -769,16 +787,22 @@ class MesStatistiquesSerializer(serializers.Serializer):
                              dans messaging/serializers.py, mais en agrégat
                              global plutôt que par conversation).
 
-    `vues_totales` RETIRÉ le 2026-08-30 (hardening pré-soutenance) :
-    StatistiqueAnnonce n'est incrémenté nulle part, le champ valait donc 0
-    pour tout le monde — un compteur toujours nul est trompeur. Le modèle
-    StatistiqueAnnonce reste en base pour un futur comptage de vues réel ;
-    le champ reviendra quand quelque chose l'alimentera vraiment.
+    vues_totales / vues_30j → somme des vues de fiche sur TOUTES les annonces
+    du propriétaire (StatistiqueAnnonce, alimenté par EnregistrerVueAPIView
+    depuis le 2026-08-31 — un beacon anonyme au montage de la fiche publique,
+    dédupliqué 24 h par annonce/lecteur/jour, propriétaire exclu de son
+    propre comptage). `vues_30j` = 30 derniers jours glissants.
+
+    Historique : ces deux champs avaient été RETIRÉS le 2026-08-30 (hardening
+    pré-soutenance) tant que rien n'incrémentait StatistiqueAnnonce — un
+    compteur toujours nul est trompeur. Rétablis avec la collecte réelle.
     """
 
     favoris_recus = serializers.IntegerField(read_only=True)
     conversations_recues = serializers.IntegerField(read_only=True)
     messages_non_lus = serializers.IntegerField(read_only=True)
+    vues_totales = serializers.IntegerField(read_only=True)
+    vues_30j = serializers.IntegerField(read_only=True)
 
 
 class WhatsAppLienSerializer(serializers.Serializer):

@@ -6,6 +6,7 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 """
 
 import io
+from datetime import timedelta
 
 from django.contrib import admin
 from django.contrib.auth.models import Group
@@ -15,6 +16,7 @@ from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, SimpleTestCase, override_settings
+from django.utils import timezone
 from PIL import Image
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
@@ -25,7 +27,7 @@ from messaging.models import Conversation, Favori, Message, Notification
 from . import transitions
 from .admin import publier_selection, rejeter_selection
 from .alertes import notifier_recherches_correspondantes
-from .models import Annonce, Parcelle, Photo, RechercheSauvegardee
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
 from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
 ANNONCES_URL = '/api/annonces/'
@@ -764,6 +766,116 @@ class MesAnnoncesTests(AnnoncesTestBase):
         self.assertNotIn(annonce_a_id, ids)
         self.assertEqual(len(response.data), 1)
 
+    def test_nb_vues_par_annonce(self):
+        # Chaque ligne porte le total cumulé de vues de sa fiche (somme
+        # StatistiqueAnnonce, toutes dates). 0 pour une annonce jamais vue —
+        # jamais null (Coalesce dans l'annotation de la vue).
+        self.authentifier()
+        vue_id = self.creer_brouillon(titre='Déjà consultée').data['id']
+        jamais_vue_id = self.creer_brouillon(titre='Jamais consultée').data['id']
+        annonce_vue = Annonce.objects.get(id=vue_id)
+        StatistiqueAnnonce.objects.create(annonce=annonce_vue, date=timezone.localdate(), vues=8)
+        StatistiqueAnnonce.objects.create(
+            annonce=annonce_vue, date=timezone.localdate() - timedelta(days=2), vues=4,
+        )
+
+        response = self.client.get(f'{ANNONCES_URL}mes-annonces/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        nb_vues = {a['id']: a['nb_vues'] for a in response.data}
+        self.assertEqual(nb_vues[vue_id], 12)
+        self.assertEqual(nb_vues[jamais_vue_id], 0)
+
+
+class EnregistrerVueTests(AnnoncesTestBase):
+    """
+    POST /api/annonces/<uuid:pk>/vue/ — beacon anonyme envoyé par la fiche
+    (EnregistrerVueAPIView). Alimente StatistiqueAnnonce (compteur de vues
+    par jour), dédupliqué 24 h par (annonce, IP+UA hashés, jour).
+    """
+
+    def setUp(self):
+        super().setUp()
+        # Le cache par défaut (vrai Redis) porte la déduplication et est
+        # partagé entre tests — sans reset, une clé posée par un test ferait
+        # « déjà vu » dans un autre. Même précaution que le cache de throttling.
+        cache.clear()
+
+    def _annonce_en_ligne(self, titre='Parcelle vue'):
+        parcelle = Parcelle.objects.create(
+            commune=self.commune, surface_ha=2.5, statut_foncier='melkia',
+            acces_eau='irriguee', topographie='plat', acces_routier='goudron',
+            latitude=33.5, longitude=-5.5,
+        )
+        return Annonce.objects.create(
+            parcelle=parcelle, proprietaire=self.authentifier('proprio-vue@akal.ma'),
+            titre=titre, description='Une description suffisamment longue.',
+            prix_mad=150000, statut=Annonce.StatutAnnonce.EN_LIGNE,
+        )
+
+    def _url(self, annonce):
+        return f'{ANNONCES_URL}{annonce.id}/vue/'
+
+    def _vues_du_jour(self, annonce):
+        stat = StatistiqueAnnonce.objects.filter(annonce=annonce, date=timezone.localdate()).first()
+        return stat.vues if stat else 0
+
+    def test_premiere_vue_incremente_le_compteur_du_jour(self):
+        annonce = self._annonce_en_ligne()
+        self.client.logout()
+
+        response = self.client.post(self._url(annonce))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(self._vues_du_jour(annonce), 1)
+
+    def test_rafraichissements_successifs_ne_comptent_qu_une_fois(self):
+        annonce = self._annonce_en_ligne()
+        self.client.logout()
+
+        for _ in range(5):
+            self.assertEqual(
+                self.client.post(self._url(annonce)).status_code, status.HTTP_204_NO_CONTENT,
+            )
+
+        # Même IP + même User-Agent + même jour → une seule vue comptée.
+        self.assertEqual(self._vues_du_jour(annonce), 1)
+
+    def test_deux_lecteurs_distincts_comptent_deux_fois(self):
+        annonce = self._annonce_en_ligne()
+        self.client.logout()
+
+        self.client.post(self._url(annonce), HTTP_USER_AGENT='Navigateur A')
+        self.client.post(self._url(annonce), HTTP_USER_AGENT='Navigateur B')
+
+        self.assertEqual(self._vues_du_jour(annonce), 2)
+
+    def test_annonce_inexistante_404(self):
+        self.client.logout()
+        response = self.client.post(f'{ANNONCES_URL}00000000-0000-0000-0000-000000000000/vue/')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_brouillon_404_et_aucune_stat_creee(self):
+        self.authentifier()
+        brouillon_id = self.creer_brouillon().data['id']
+        self.client.logout()
+
+        response = self.client.post(f'{ANNONCES_URL}{brouillon_id}/vue/')
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(StatistiqueAnnonce.objects.filter(annonce_id=brouillon_id).exists())
+
+    @override_settings(AKAL_DATASET='simulated')
+    def test_annonce_hors_dataset_actif_404(self):
+        annonce = self._annonce_en_ligne()
+        annonce.source = Annonce.Source.AVITO
+        annonce.save(update_fields=['source'])
+        self.client.logout()
+
+        response = self.client.post(self._url(annonce))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
 
 class MesStatistiquesTests(AnnoncesTestBase):
     """
@@ -818,6 +930,7 @@ class MesStatistiquesTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {
             'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
+            'vues_totales': 0, 'vues_30j': 0,
         })
 
     def test_compte_les_favoris_recus_sur_ses_annonces(self):
@@ -888,19 +1001,42 @@ class MesStatistiquesTests(AnnoncesTestBase):
         # pas du vendeur B connecté ici — rien ne doit lui être attribué.
         self.assertEqual(response.data, {
             'favoris_recus': 0, 'conversations_recues': 0, 'messages_non_lus': 0,
+            'vues_totales': 0, 'vues_30j': 0,
         })
 
-    def test_vues_totales_nest_plus_expose(self):
-        # Retiré le 2026-08-30 : StatistiqueAnnonce n'est incrémenté nulle
-        # part, le champ valait toujours 0 (trompeur). Le champ ne doit plus
-        # apparaître dans la réponse.
+    def test_vues_de_fiche_agregees_totales_et_30j(self):
+        # Rétabli le 2026-08-31 avec une collecte réelle : StatistiqueAnnonce
+        # est désormais alimenté (EnregistrerVueAPIView). vues_totales = somme
+        # toutes dates ; vues_30j = 30 derniers jours glissants.
         vendeur = self.authentifier('vendeur@akal.ma')
-        self.creer_annonce_en_ligne(vendeur)
+        a1 = self.creer_annonce_en_ligne(vendeur, titre='Parcelle A')
+        a2 = self.creer_annonce_en_ligne(vendeur, titre='Parcelle B')
+        aujourdhui = timezone.localdate()
+        StatistiqueAnnonce.objects.create(annonce=a1, date=aujourdhui, vues=7)
+        StatistiqueAnnonce.objects.create(annonce=a2, date=aujourdhui - timedelta(days=3), vues=5)
+        # Hors fenêtre 30 j : compte dans le total, pas dans vues_30j.
+        StatistiqueAnnonce.objects.create(annonce=a1, date=aujourdhui - timedelta(days=45), vues=100)
 
+        self.se_connecter('vendeur@akal.ma')
         response = self.statistiques()
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertNotIn('vues_totales', response.data)
+        self.assertEqual(response.data['vues_totales'], 112)
+        self.assertEqual(response.data['vues_30j'], 12)
+
+    def test_vues_n_inclut_pas_les_annonces_d_un_autre_proprietaire(self):
+        vendeur_a = self.authentifier('vendeur-a@akal.ma')
+        annonce_a = self.creer_annonce_en_ligne(vendeur_a)
+        StatistiqueAnnonce.objects.create(annonce=annonce_a, date=timezone.localdate(), vues=9)
+        self.client.logout()
+        vendeur_b = self.authentifier('vendeur-b@akal.ma')
+        self.creer_annonce_en_ligne(vendeur_b, titre='Annonce du vendeur B')
+
+        self.se_connecter('vendeur-b@akal.ma')
+        response = self.statistiques()
+
+        self.assertEqual(response.data['vues_totales'], 0)
+        self.assertEqual(response.data['vues_30j'], 0)
 
 
 # ──────────────────────────────────────────────
@@ -2448,3 +2584,56 @@ class LocalisationConfidentielleTests(AnnoncesTestBase):
         # Aucune trace de la coordonnée exacte nulle part dans le corps.
         self.assertNotIn(str(self.LAT_EXACTE), corps)
         self.assertNotIn(str(self.LNG_EXACTE), corps)
+
+
+class BackfillCommuneGeomTests(APITestCase):
+    """`manage.py backfill_commune_geom` — jointure spatiale pour rattacher
+    `Parcelle.commune_geom` aux parcelles géolocalisées qui ne l'ont pas."""
+
+    def setUp(self):
+        self.region = RegionOfficielle.objects.create(code=3, slug='fes-meknes', nom='Fès-Meknès')
+        self.province = ProvinceGeom.objects.create(
+            iso='MA-03-131', nom='Meknès', region=self.region,
+            geom=_polygone_carre(-5.5, 33.5),
+        )
+        self.commune = CommuneGeom.objects.create(
+            source_fid=1, libelle='MU MEKNES', nom_affichage='Meknès',
+            type_commune='MU', province=self.province,
+            geom=_polygone_carre(-5.5, 33.5, demi_cote=0.05),
+        )
+
+    def test_rattache_une_parcelle_dans_le_polygone(self):
+        parcelle = Parcelle.objects.create(
+            surface_ha=2, latitude=33.5, longitude=-5.5, commune_geom=None,
+        )
+        call_command('backfill_commune_geom')
+        parcelle.refresh_from_db()
+        self.assertEqual(parcelle.commune_geom_id, self.commune.pk)
+
+    def test_dry_run_n_ecrit_rien(self):
+        parcelle = Parcelle.objects.create(
+            surface_ha=2, latitude=33.5, longitude=-5.5, commune_geom=None,
+        )
+        call_command('backfill_commune_geom', dry_run=True)
+        parcelle.refresh_from_db()
+        self.assertIsNone(parcelle.commune_geom_id)
+
+    def test_ignore_une_parcelle_hors_de_tout_polygone(self):
+        parcelle = Parcelle.objects.create(
+            surface_ha=2, latitude=10.0, longitude=10.0, commune_geom=None,
+        )
+        call_command('backfill_commune_geom')
+        parcelle.refresh_from_db()
+        self.assertIsNone(parcelle.commune_geom_id)
+
+    def test_ne_touche_pas_une_parcelle_deja_rattachee(self):
+        autre = CommuneGeom.objects.create(
+            source_fid=2, libelle='CR AUTRE', nom_affichage='Autre',
+            province=self.province, geom=_polygone_carre(-6.5, 34.5),
+        )
+        parcelle = Parcelle.objects.create(
+            surface_ha=2, latitude=33.5, longitude=-5.5, commune_geom=autre,
+        )
+        call_command('backfill_commune_geom')
+        parcelle.refresh_from_db()
+        self.assertEqual(parcelle.commune_geom_id, autre.pk)

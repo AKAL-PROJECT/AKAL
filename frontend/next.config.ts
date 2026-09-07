@@ -24,10 +24,10 @@ if (!isDev && process.env.NEXT_PUBLIC_USE_MOCKS === "true") {
 const nextConfig: NextConfig = {
   // Morph photo catalogue → fiche parcelle (React <ViewTransition>, App
   // Router) — dégrade proprement sans animation sur les navigateurs sans
-  // support de la View Transitions API, aucune dépendance ajoutée.
-  experimental: {
-    viewTransition: true,
-  },
+  // support de la View Transitions API, aucune dépendance ajoutée. Depuis
+  // Next 16.3, les View Transitions de l'App Router ne nécessitent plus de
+  // flag `experimental.viewTransition` (stabilisées) — cf.
+  // node_modules/next/dist/docs/01-app/02-guides/view-transitions.md.
   images: {
     remotePatterns: [
       // Mock data du catalogue (photos Unsplash) — à retirer avec les mocks.

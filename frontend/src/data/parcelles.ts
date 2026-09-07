@@ -49,6 +49,7 @@ export const PARCELLES: Parcelle[] = [
     createdAt: "2026-07-10T09:00:00Z",
     badge: "Nouveau",
     parcelle: {
+      id: "b1000000-0000-4000-8000-000000000001",
       surface: 4.2,
       statutFoncier: "immatricule",
       accesEau: "irriguee",
@@ -84,6 +85,7 @@ export const PARCELLES: Parcelle[] = [
     createdAt: "2026-06-02T09:00:00Z",
     badge: null,
     parcelle: {
+      id: "b1000000-0000-4000-8000-000000000002",
       surface: 8.7,
       statutFoncier: "melkia",
       accesEau: "irriguee",
@@ -119,6 +121,7 @@ export const PARCELLES: Parcelle[] = [
     createdAt: "2026-04-18T09:00:00Z",
     badge: null,
     parcelle: {
+      id: "b1000000-0000-4000-8000-000000000003",
       surface: 15.0,
       statutFoncier: "guich",
       accesEau: "bour",
@@ -154,6 +157,7 @@ export const PARCELLES: Parcelle[] = [
     createdAt: "2026-07-08T09:00:00Z",
     badge: "Nouveau",
     parcelle: {
+      id: "b1000000-0000-4000-8000-000000000004",
       surface: 3.1,
       statutFoncier: "immatricule",
       accesEau: "irriguee",
@@ -189,6 +193,7 @@ export const PARCELLES: Parcelle[] = [
     createdAt: "2026-05-20T09:00:00Z",
     badge: null,
     parcelle: {
+      id: "b1000000-0000-4000-8000-000000000005",
       surface: 6.5,
       statutFoncier: "soulaliya",
       accesEau: "irriguee",
@@ -224,6 +229,7 @@ export const PARCELLES: Parcelle[] = [
     createdAt: "2026-03-11T09:00:00Z",
     badge: null,
     parcelle: {
+      id: "b1000000-0000-4000-8000-000000000006",
       surface: 22.0,
       statutFoncier: "melkia",
       accesEau: "bour",

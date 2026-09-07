@@ -1,7 +1,12 @@
 # AKAL — Contrat de données
-**Version :** 1.2 — Juillet 2026 *(retrait de `type_culture` — voir changelog)*
+**Version :** 1.3 — Septembre 2026 *(passeport AgriScore à la demande + comptage de vues — voir changelog)*
 **Statut :** À relire par Ibrahim (PR), puis soumis à validation académique (échéance explicite, silence vaut accord sous 5 jours ouvrés)
-**Parties :** Back-end Django/DRF (producteur — Ibrahim) · Front-end Next.js (consommateur — Mégane) · Pipeline d'enrichissement Prefect (producteur secondaire — Ibrahim)
+**Parties :** Back-end Django/DRF (producteur — Ibrahim) · Front-end Next.js (consommateur — Mégane) · Pipeline d'enrichissement AgriScore (producteur secondaire — Ibrahim)
+
+**Changelog v1.2 → v1.3 :**
+- **Pipeline AgriScore refondu** — nouvelle app Django `agriscore/`. Le score n'est plus stocké par parcelle : il est calculé **à la demande** par `GET /api/parcelles/<id>/passeport/` (§4.8), qui interroge 5 dimensions (sol, climat, NDVI, topographie, accès) auprès de sources externes réelles, avec cache Redis par agent. §3.5 (modèle `annonces.AgriScore`) et `score_courant` dans le DTO annonce sont **supersédés** : conservés nullable pour compat, non alimentés — retrait à réévaluer.
+- **Comptage de vues de fiche** — `POST /api/annonces/<id>/vue/` (§4.9), beacon anonyme émis par le front au montage de la fiche, alimente `StatistiqueAnnonce.vues` (§3.4, jusque-là dormant). Nouveaux champs de sortie : `nb_vues` sur `GET /api/annonces/mes-annonces/`, `vues_totales` / `vues_30j` sur `GET /api/annonces/mes-annonces/statistiques/`.
+- Le contrat interne §5 (`PATCH /api/internal/parcelles/<id>/metadata/`) n'est **pas** utilisé par le pipeline AgriScore actuel (calcul autonome, sans écriture en base hors cache). Il reste réservé à un futur enrichissement `metadata`.
 
 **Changelog v1.1 → v1.2 :**
 - Retrait de `type_culture` (§3.1, §4.2, §4.4, §6.1) — **changement cassant**, gouvernance §7. Justification : le champ n'a jamais été migré en enum fermée côté back (reste porté par `metadata.culture`, JSON libre non fiabilisé) et le front a tranché indépendamment de ne pas l'exposer en filtre ni en affichage catalogue — donnée jugée relever du conseil agronomique plutôt que d'un fait stable et vérifié à ce stade. Hors périmètre J1 tant qu'aucun des deux constats n'est levé.
@@ -93,21 +98,35 @@ La séparation Parcelle / Annonce est structurante : AgriScore et l'enrichisseme
 | Champ | Type | Notes |
 |---|---|---|
 | `annonce` | FK → Annonce | Le compteur `vues` est sorti d'ANNONCE : il polluait `updated_at` et interdisait l'analyse temporelle |
-| `date` | date | Une ligne par jour → séries temporelles pour le dashboard GIO |
-| `vues` | integer | |
+| `date` | date | Une ligne par jour → séries temporelles pour le dashboard propriétaire |
+| `vues` | integer | Alimenté depuis le 2026-08-31 par `POST /api/annonces/<id>/vue/` (§4.9). Une vue par (annonce, jour, lecteur) : le beacon front est dédupliqué 24 h côté serveur |
 
-### 3.5 AgriScore — historisé
+### 3.5 AgriScore — ~~historisé~~ *(supersédé v1.3 — voir §4.8)*
+
+> ⚠️ **Supersédé en septembre 2026.** Le score n'est plus stocké par parcelle.
+> L'app `agriscore/` calcule un « passeport » **à la demande** via
+> `GET /api/parcelles/<id>/passeport/` (§4.8) — 5 dimensions collectées auprès
+> de sources externes réelles, agrégées à la volée, mises en cache Redis par
+> agent (pas en table). Le seul état persisté est un drapeau de configuration
+> singleton (`agriscore.ConfigurationAgriScore.actif`, éditable en admin :
+> décoché ⇒ passeport simulé, zéro appel externe).
+>
+> Le modèle `annonces.AgriScore` ci-dessous et le champ `score_courant` du DTO
+> annonce (§4.4) sont **conservés nullable pour compatibilité mais non
+> alimentés** ; leur retrait est à réévaluer.
+
 | Champ | Type | Contraintes | Notes |
 |---|---|---|---|
-| `parcelle` | **FK → Parcelle** | requis | OneToMany : l'historique des scores est le futur jeu d'entraînement ML |
-| `score_global` | integer 0–100 | requis | |
-| `sous_scores` | JSONField | requis | ⚠️ **Clés PROVISOIRES en attente de finalisation des critères (MT4)** : `fertilite`, `situation_hydrique`, `accessibilite`, `situation_juridique`, `potentiel_valorisation`. Le front ne doit pas typer ces clés en dur — itérer dynamiquement sur l'objet |
-| `version_ponderation` | varchar | requis | Traçabilité : quel jeu de poids a produit ce score |
-| `created_at` | datetime | auto | |
+| `parcelle` | FK → Parcelle | requis | *(legacy)* |
+| `score_global` | integer 0–100 | requis | *(legacy)* |
+| `sous_scores` | JSONField | requis | *(legacy — clés jamais finalisées)* |
+| `version_ponderation` | varchar | requis | *(legacy)* |
+| `created_at` | datetime | auto | *(legacy)* |
 
-**Règles :**
-- Le « score courant » d'une parcelle = le plus récent `created_at`. Jamais de mise à jour en place.
-- `score_courant` est **nullable côté API** : si aucun score n'a encore été calculé, le champ vaut `null` et le front affiche « Score en cours de calcul » — jamais d'erreur, jamais de 0 trompeur.
+**Règle DTO annonce (inchangée) :** `score_courant` est **nullable côté API** ;
+`null` aujourd'hui pour toutes les annonces (plus rien ne l'alimente). Le front
+affiche « Score en cours de calcul » — jamais d'erreur, jamais de 0 trompeur.
+Le vrai potentiel agronomique passe par le passeport (§4.8).
 
 ### 3.6 Photo
 | Champ | Type | Contraintes | Notes |
@@ -141,8 +160,16 @@ Authentification : **hors périmètre v1** (endpoints de lecture publics). Avena
 |---|---|---|
 | GET | `/api/annonces/` | Liste paginée, filtres en query params |
 | GET | `/api/annonces/<slug>/` | Détail complet (annonce + parcelle + photos + score courant). `404` si slug inconnu |
+| POST | `/api/annonces/<id>/vue/` | Enregistre une vue de fiche (beacon anonyme). `204` systématique. Voir §4.9 |
+| GET | `/api/parcelles/<id>/passeport/` | Passeport AgriScore d'une parcelle, calculé à la demande. `404` parcelle inconnue, `422` non géolocalisée. Voir §4.8 |
 | GET | `/api/geo/regions/` | Référentiel régions — **non paginé** (référentiel fixe) : `[{ "code": "casablanca-settat", "nom": "Casablanca-Settat" }, …]` |
 | — | `/api/geo/regions/<code>/communes/` | **Convention d'URL réservée**, non implémentée en v1. La cartographie MT4/GIO en aura besoin ; on fixe la convention maintenant pour ne pas la casser plus tard |
+
+> Endpoints d'écriture / espace perso (avenant v1.1, hors tableau ci-dessus) :
+> `GET /api/annonces/mes-annonces/` porte désormais `nb_vues` (total cumulé des
+> vues de la fiche) par annonce ; `GET /api/annonces/mes-annonces/statistiques/`
+> porte `vues_totales` et `vues_30j` (30 jours glissants), en plus de
+> `favoris_recus` / `conversations_recues` / `messages_non_lus`.
 
 ### 4.2 Query params de `/api/annonces/`
 
@@ -250,6 +277,90 @@ Justification : zéro travail back (comportement natif DRF), documenté automati
 1. `MEDIA_URL` pointe vers l'endpoint public MinIO (ou un CDN devant), **jamais** vers le domaine de l'API Django.
 2. Chaque URL reçue est directement utilisable dans `<img src>` — **le front ne concatène jamais de préfixe**.
 3. Bucket **public en lecture** plutôt que pré-signé : les photos d'annonces sont publiques par nature, les URLs stables permettent le cache navigateur/CDN et le SSR Next.js sans expiration. Les documents sensibles futurs (CIN, titres fonciers — F16) iront dans un bucket privé pré-signé distinct, hors périmètre v1.
+
+### 4.8 Passeport AgriScore — `GET /api/parcelles/<id>/passeport/`
+
+Évaluation agronomique d'une **parcelle** (pas d'une annonce), calculée à la
+demande. Public (`AllowAny`, aucune authentification), throttlé (scope `passeport`,
+40/h) : un appel non caché déclenche jusqu'à 5 requêtes vers des API externes
+(Copernicus, Open-Meteo, SoilGrids, OSRM) — le cache Redis par agent rend les
+appels répétés (même parcelle, parcelles voisines) quasi gratuits.
+
+`<id>` = **UUID de la Parcelle** (`parcelle.id` du DTO annonce, §4.4), pas
+l'UUID de l'annonce.
+
+**Codes :** `200` succès · `404` parcelle inconnue · `422` parcelle non
+géolocalisée (`{ "detail": "Parcelle non géolocalisée : passeport indisponible." }`).
+
+La réponse ne contient **jamais** les coordonnées de la parcelle : l'endpoint
+est public et le vrai UUID de parcelle est déjà exposé par `/api/annonces/<slug>/`
+— les renvoyer ici contournerait le floutage de localisation d'une annonce
+confidentielle (§4.4). Le front a déjà les coordonnées (floutées si besoin) via
+le DTO annonce.
+
+```json
+{
+  "parcelle_id": "a1c4e7f0-2b5d-4e8a-b3c6-d9f2a5b8c1e4",
+  "genere_le": "2026-09-02T11:20:00Z",
+  "mode": "reel",
+  "score_global": 68.9,
+  "fiabilite_globale": 80.0,
+  "dimensions": {
+    "sol":    { "statut": "ok", "mode": "reel", "sous_score": 84.4, "confiance": 0.7,
+                "valeurs": { "ph_eau": 7.7, "type_sol": "argileux" },
+                "source": "SoilGrids v2.0 (ISRIC)", "date_collecte": "2026-09-02T11:20:00Z",
+                "resolution_m": 250, "zone_tampon_m": 100,
+                "poids_nominal": 20, "poids_effectif_renormalise": 21.3, "contribution": 17.9 },
+    "climat": { "…": "…" },
+    "ndvi":   { "…": "…" },
+    "topo":   { "…": "…" },
+    "acces":  { "…": "…" }
+  },
+  "dimensions_indisponibles": [],
+  "cultures_suggerees": [
+    { "culture": "olivier", "statut": "compatible", "raison": "…", "reserve": "sous vérification terrain" }
+  ],
+  "avertissement": ""
+}
+```
+
+**Sémantique :**
+
+- `mode` : `"reel"` / `"simule"` / `"mixte"` — nature des sources qui ont
+  **réellement abouti** (résultats `statut="ok"`), pas des agents sollicités.
+  `"simule"` ⇒ drapeau `ConfigurationAgriScore.actif` décoché (démo hors ligne).
+- `score_global` : `null` si **aucune** dimension exploitable. Sinon moyenne
+  pondérée /100 sur les seules dimensions disponibles (les poids sont
+  renormalisés). `fiabilite_globale` : 0–100 %.
+- `dimensions` : dict à 5 clés fixes (`sol`, `climat`, `ndvi`, `topo`, `acces`),
+  ordre stable. Chaque bloc porte `statut` (`ok` / `indisponible`), `sous_score`
+  (`null` si indisponible), `confiance` (0–1), `valeurs` (**dict libre, clés
+  snake_case — le front itère dynamiquement, ne type jamais ces clés en dur**),
+  et la traçabilité (`source`, `resolution_m`, `date_collecte`, poids).
+- `dimensions_indisponibles` : liste ordonnée des dimensions en échec (`[]` si
+  passeport complet).
+- `avertissement` : chaîne (vide si `mode == "reel"` et rien d'indisponible).
+  Concatène le rappel « données simulées » et/ou « Passeport partiel : <libellés>
+  indisponible(s)… ».
+- `cultures_suggerees` : toujours produit (même si `score_global` est `null`) —
+  `statut ∈ {compatible, sous_condition, deconseille}`, `reserve` = « sous
+  vérification terrain ».
+
+### 4.9 Comptage de vues — `POST /api/annonces/<id>/vue/`
+
+Beacon anonyme émis par le front au montage de `/parcelles/<slug>` (la fiche
+étant en SSG, un comptage côté `GET` ne verrait que les fetch de build).
+
+- `authentication_classes = []` (endpoint volontairement anonyme, pas de CSRF) ;
+  throttlé (scope `vue`, 120/h). Corps et en-têtes vides → requête CORS
+  « simple », pas de préflight.
+- **`204` systématique** (comptée ou dédupliquée) — ne révèle pas si l'IP a déjà
+  vu la fiche. `404` si l'annonce n'est pas publique (`en_ligne` + dataset actif).
+- Déduplication 24 h côté serveur par `(annonce, sha256(IP + User-Agent + jour))`
+  dans le cache — ni l'IP ni l'UA ne sont stockés. Le front déduplique aussi
+  localement (localStorage, 6 h) pour éviter les requêtes inutiles.
+- L'exclusion du propriétaire de son propre comptage se fait **côté front**
+  (la fiche connaît `estProprietaire`).
 
 ---
 

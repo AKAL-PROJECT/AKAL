@@ -18,7 +18,7 @@ import { useComparateur } from "@/hooks/useComparateur";
 import { COMPARATEUR_MAX } from "./comparateurStorage";
 import { formatMAD, formatPrixM2 } from "@/lib/format";
 import { estSourceExterne, libelleSource } from "@/lib/annonce-source";
-import { descriptionClimat, formatDistance, genererPasseport } from "@/data/passeportAgronomique";
+import { signalerVueFiche } from "@/lib/vue-beacon";
 import {
   MapPin,
   Heart,
@@ -63,7 +63,15 @@ function agriScoreLegende(score: number | null): string {
   return "Potentiel limité. Convient à des cultures extensives ou à la pâture.";
 }
 
-export default function FicheParcelle({ parcelle: a, estConnecte = false }: { parcelle: Parcelle, estConnecte?: boolean }) {
+export default function FicheParcelle({
+  parcelle: a,
+  estConnecte = false,
+  estProprietaire = false,
+}: {
+  parcelle: Parcelle;
+  estConnecte?: boolean;
+  estProprietaire?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   // `estConnecte` est déterminé côté serveur (page.tsx : `!!utilisateur`) et
@@ -82,6 +90,14 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
       window.history.replaceState({}, "", newUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- nettoyage one-shot au montage, jamais à rejouer si searchParams change ensuite
+  }, []);
+
+  // Comptage de vue (beacon) — une fois au montage, jamais pour le
+  // propriétaire regardant sa propre annonce (le dédup local + le dédup
+  // backend gèrent le reste, cf. lib/vue-beacon.ts).
+  useEffect(() => {
+    if (!estProprietaire) signalerVueFiche(a.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot au montage
   }, []);
 
   const handleContactClick = () => {
@@ -120,12 +136,6 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
       setWhatsappPending(false);
     }
   };
-
-  // Passeport Agronomique — calcul pur/déterministe (aucun réseau, cf.
-  // data/passeportAgronomique.ts), utilisé ici juste pour la
-  // prévisualisation "mini-indicateurs" du teaser plus bas (audit fiche du
-  // 19/08) ; l'écran complet (/passeport) fait le même calcul de son côté.
-  const passeport = genererPasseport(a);
 
   const { favorisIds, toggleFavori } = useFavorisIds();
   const favori = favorisIds.has(a.id);
@@ -289,22 +299,17 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
             </div>
           )}
 
-          {/* Passeport Agronomique (P2-01, prototype) — distinct de l'AgriScore
-              ci-dessus (dormant, cf. AGRISCORE_ACTIF) et de la section
-              "Caractéristiques de la parcelle" plus bas (BlocCaracteristiques,
-              données réelles déclaratives, renommée le 17/08/2026 pour lever
-              l'ambiguïté avec ce Passeport Agronomique — cf. audit final) :
-              ici, un rapport de DÉMONSTRATION à 5 dimensions simulées,
-              jamais présenté comme une vraie analyse scientifique — cf.
-              l'avertissement explicite sur l'écran /passeport lui-même.
-              Traitement "certificat" (audit fiche du 19/08) — dégradé +
-              bordure dédiée pour le distinguer des cartes plates
-              (`.card`) utilisées partout ailleurs sur la fiche : c'est la
-              fonctionnalité différenciante d'AKAL, elle ne doit pas se
-              fondre visuellement dans le reste. Les 4 mini-indicateurs
-              résument le MÊME rapport simulé (jamais une donnée
-              supplémentaire inventée) — juste visible avant même de
-              cliquer, cf. data/passeportAgronomique.ts. */}
+          {/* Passeport Agronomique — distinct de l'AgriScore ci-dessus
+              (dormant, cf. AGRISCORE_ACTIF) et de "Caractéristiques de la
+              parcelle" plus bas (BlocCaracteristiques, données déclaratives).
+              Ici : un simple appel à l'action vers l'écran /passeport, qui
+              interroge le vrai pipeline (5 dimensions, sources ouvertes) à
+              l'ouverture — jamais depuis la fiche, qui reste statique.
+              Traitement "certificat" (dégradé + bordure dédiée) : la
+              fonctionnalité différenciante d'AKAL ne doit pas se fondre dans
+              les cartes plates. Aperçu de valeurs retiré (2026-09-02) : il
+              venait d'un mock, le déclencher pour de vrai à chaque vue de
+              fiche serait trop coûteux. */}
           <div
             style={{
               position: "relative",
@@ -328,7 +333,7 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
               <div style={{ flex: 1, minWidth: "200px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-nuit)" }}>Passeport Agronomique</div>
                 <p style={{ fontSize: "13px", color: "var(--color-secondaire)", margin: "2px 0 0" }}>
-                  Rapport de démonstration — sol, climat, végétation, topographie, accessibilité.
+                  Analyse agronomique — sol, climat, végétation, relief, accès.
                 </p>
               </div>
               <Link
@@ -339,35 +344,6 @@ export default function FicheParcelle({ parcelle: a, estConnecte = false }: { pa
                 Analyser le potentiel
                 <ArrowRight size={14} />
               </Link>
-            </div>
-
-            {/* Aperçu — mêmes 4 dimensions que le rapport complet, en un
-                coup d'œil, sans avoir à cliquer. */}
-            <div style={{ position: "relative", display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {[
-                { label: "Sol", valeur: passeport.sol.valeurs.typeSol },
-                { label: "Climat", valeur: descriptionClimat(passeport.climat.valeurs.precipitationsAnnuellesMm) },
-                { label: "Pente", valeur: `${passeport.topographie.valeurs.pentePourcent}%` },
-                { label: "Route", valeur: `à ${formatDistance(passeport.accessibilite.valeurs.distanceRouteM)}` },
-              ].map((indic) => (
-                <span
-                  key={indic.label}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    padding: "5px 12px",
-                    borderRadius: "var(--radius-full)",
-                    fontSize: "12px",
-                    backgroundColor: "rgba(255,255,255,0.75)",
-                    border: "1px solid var(--color-menthe)",
-                    color: "var(--color-texte)",
-                  }}
-                >
-                  <span style={{ color: "var(--color-tertiaire)" }}>{indic.label} :</span>
-                  <strong style={{ fontWeight: 600, color: "var(--color-foret)" }}>{indic.valeur}</strong>
-                </span>
-              ))}
             </div>
           </div>
 

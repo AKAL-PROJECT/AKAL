@@ -64,9 +64,9 @@ class SignupSerializer(serializers.ModelSerializer):
     (createsuperuser) ; ce champ n'est même pas exposé ici, donc un éventuel
     "role" envoyé dans le payload est silencieusement ignoré par DRF."""
 
-    # LANGUAGE_CODE du projet est 'en-us' (cf. base.py) : le message par
-    # défaut de UniqueValidator ("User with this ... already exists.")
-    # sortirait en anglais au milieu d'un formulaire francophone.
+    # Le message par défaut de UniqueValidator ("User with this ... already
+    # exists.") sort en anglais quelle que soit la locale négociée : on le
+    # force en français au milieu d'un formulaire francophone.
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=User.objects.all(), message='Un compte existe déjà avec cet email.')]
     )
