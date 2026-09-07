@@ -1,8 +1,10 @@
 # pyrefly: ignore [missing-import]
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.gis.db import models as gis_models
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.text import slugify
 
@@ -61,7 +63,13 @@ class Parcelle(models.Model):
         null=True, blank=True,
     )
     surface_ha = models.DecimalField(
-        max_digits=8, decimal_places=2, help_text='Surface en hectares'
+        max_digits=8, decimal_places=2, help_text='Surface en hectares',
+        # Garde-fou serveur : jamais négatif ni nul. Borne haute « anti-saisie
+        # absurde » côté serializer (SURFACE_HA_MAX, annonces/serializers.py) ;
+        # ici c'est l'invariant strict > 0, doublé d'une CheckConstraint (Meta).
+        validators=[MinValueValidator(
+            Decimal('0.01'), message='La superficie doit être strictement positive.',
+        )],
     )
     # Nullable depuis l'import de données scrapées (2026-08-11, cf.
     # annonces/management/commands/import_scraped_data.py) — même logique
@@ -86,6 +94,16 @@ class Parcelle(models.Model):
         db_table = 'parcelle'
         verbose_name = 'Parcelle'
         verbose_name_plural = 'Parcelles'
+        constraints = [
+            # Invariant : une parcelle a toujours une surface strictement
+            # positive. Défense en profondeur sous la validation serializer —
+            # tout autre chemin d'écriture (shell, import, script) est aussi
+            # couvert.
+            models.CheckConstraint(
+                condition=models.Q(surface_ha__gt=0),
+                name='parcelle_surface_ha_positive',
+            ),
+        ]
 
     def is_geolocated(self):
         """
@@ -175,7 +193,14 @@ class Annonce(models.Model):
     titre = models.CharField(max_length=120)
     description = models.TextField()
     prix_mad = models.DecimalField(
-        max_digits=12, decimal_places=2, help_text='Prix en MAD'
+        max_digits=12, decimal_places=2, help_text='Prix en MAD',
+        # Garde-fou serveur : jamais négatif ni nul. Borne haute et contrôle
+        # prix/m² côté serializer (PRIX_MAD_MAX / PRIX_M2_*, annonces/
+        # serializers.py) ; ici l'invariant strict > 0, doublé d'une
+        # CheckConstraint (Meta).
+        validators=[MinValueValidator(
+            Decimal('0.01'), message='Le prix doit être strictement positif.',
+        )],
     )
     statut = models.CharField(
         max_length=20, choices=StatutAnnonce.choices, default=StatutAnnonce.BROUILLON
@@ -234,6 +259,13 @@ class Annonce(models.Model):
                 fields=['source', 'source_id'],
                 condition=models.Q(source_id__isnull=False),
                 name='annonce_unique_source_id',
+            ),
+            # Invariant : le prix est toujours strictement positif. Défense en
+            # profondeur sous la validation serializer (cf. commentaire sur
+            # prix_mad ci-dessus) — couvre aussi shell/import/script.
+            models.CheckConstraint(
+                condition=models.Q(prix_mad__gt=0),
+                name='annonce_prix_mad_positif',
             ),
         ]
 
