@@ -22,8 +22,18 @@ export async function generateStaticParams() {
   // page_size au max autorisé par le contrat (§4.2) — suffisant pour le
   // volume actuel. Générer les pages suivantes nécessitera de paginer ici
   // via `next` une fois le catalogue au-delà de 50 annonces.
-  const { results } = await getParcelles({ page_size: 50 });
-  return results.map((p) => ({ slug: p.slug }));
+  //
+  // API injoignable au moment du build (backend éteint, déploiement front
+  // qui précède le back) → on ne pré-génère aucune fiche plutôt que de
+  // faire échouer tout le `next build`. Les fiches restent générées à la
+  // demande au premier accès (dynamicParams vaut true par défaut).
+  try {
+    const { results } = await getParcelles({ page_size: 50 });
+    return results.map((p) => ({ slug: p.slug }));
+  } catch (err) {
+    console.warn("generateStaticParams: catalogue injoignable au build, aucune fiche pré-générée.", err);
+    return [];
+  }
 }
 
 // Même convention que app/robots.ts et app/sitemap.ts — une seule source

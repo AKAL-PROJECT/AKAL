@@ -84,10 +84,11 @@ export type ApiFetchOptions = Omit<RequestInit, "body"> & {
   timeout?: number;
 };
 
-// Auth : en attendant l'implémentation JWT côté back (cf. audit §4), ce
-// client ne pose pas de header Authorization. Le point d'extension prévu :
-// injecter ici `Authorization: Bearer ${accessToken}` une fois le flux login
-// disponible, sans changer la signature d'apiFetch pour les appelants.
+// Auth : `apiFetch` sert les lectures PUBLIQUES (catalogue, fiche, géo,
+// passeport), appelées côté serveur au rendu — il ne transmet volontairement
+// aucun cookie ni credential. Les appels authentifiés passent par les Server
+// Actions + `fetchWithAuth` (cookie JWT httpOnly + X-CSRFToken), jamais par
+// ce client.
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { params, body, headers, timeout = 10000, ...rest } = options;
 

@@ -230,8 +230,10 @@ export default function PasseportAgronomiqueScreen({ parcelle }: { parcelle: Par
           </div>
         </div>
         <p style={{ fontSize: "12px", color: "var(--color-tertiaire)", marginTop: "10px", lineHeight: 1.6 }}>
-          L&apos;analyse porte sur une zone tampon autour du point de localisation (~100–200 m), pas sur le
-          contour exact de la parcelle — le contour réel reste réservé au propriétaire.
+          L&apos;analyse porte sur une zone tampon autour du point de localisation (résolution propre à
+          chaque source, indiquée dans son onglet), pas sur le contour exact de la parcelle — le contour
+          réel reste réservé au propriétaire. Pour une annonce à localisation masquée, le point est
+          approché au secteur, jamais au parcellaire.
         </p>
       </section>
 

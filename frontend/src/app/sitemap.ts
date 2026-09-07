@@ -12,13 +12,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/parcelles`, changeFrequency: "daily", priority: 0.9 },
   ];
 
-  const { results } = await getParcelles({ page_size: 50 });
-  const annonces: MetadataRoute.Sitemap = results.map((p) => ({
-    url: `${SITE_URL}/parcelles/${p.slug}`,
-    lastModified: p.datePublication ?? p.createdAt,
-    changeFrequency: "weekly",
-    priority: 0.7,
-  }));
+  // API injoignable au build → sitemap réduit aux routes racines plutôt
+  // qu'un `next build` en échec (même parti pris que generateStaticParams,
+  // app/parcelles/[slug]/page.tsx). Régénéré au prochain build réussi.
+  let annonces: MetadataRoute.Sitemap = [];
+  try {
+    const { results } = await getParcelles({ page_size: 50 });
+    annonces = results.map((p) => ({
+      url: `${SITE_URL}/parcelles/${p.slug}`,
+      lastModified: p.datePublication ?? p.createdAt,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    }));
+  } catch (err) {
+    console.warn("sitemap: catalogue injoignable au build, sitemap réduit aux racines.", err);
+  }
 
   return [...racines, ...annonces];
 }
