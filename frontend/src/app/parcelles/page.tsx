@@ -18,6 +18,11 @@ import {
   type Tri,
 } from "@/data/parcelles";
 import { fetchCommuneGeomDetail, fetchProvinceGeomBounds } from "@/lib/geo-api";
+import {
+  etatVideCatalogue,
+  patchElargissement,
+  type NiveauElargissement,
+} from "@/app/parcelles/etatVideCatalogue";
 import CardParcelle from "@/components/parcelles/CardParcelle";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
 import { useComparateur } from "@/hooks/useComparateur";
@@ -105,6 +110,73 @@ function versUrl(filtres: FiltresState, tri: Tri, page: number, vue: ModeAfficha
   if (tailleParPage !== PAGE_SIZE_DEFAUT) sp.set("page_size", String(tailleParPage));
   const qs = sp.toString();
   return qs ? `/parcelles?${qs}` : "/parcelles";
+}
+
+// ── État vide contextuel ───────────────────────────────────────────────────
+// Le texte + le cran d'élargissement viennent d'une fonction pure
+// (etatVideCatalogue) ; ici on ne fait que câbler les boutons. Un lien
+// secondaire "réinitialiser tous les filtres" apparaît dès qu'un filtre
+// non-géographique est actif en plus de la cascade.
+const LABEL_ELARGIR: Record<Exclude<NiveauElargissement, null>, string> = {
+  commune: "Élargir à toute la province",
+  province: "Élargir à toute la région",
+  region: "Voir toutes les régions",
+};
+
+function construireEtatVide(
+  filtres: FiltresState,
+  regions: Region[],
+  patchFiltres: (patch: Partial<FiltresState>) => void,
+  reinitialiser: () => void,
+): { titre: string; description: string; action: React.ReactNode } {
+  const e = etatVideCatalogue(filtres, regions);
+
+  const boutonPrincipal =
+    e.elargir === null ? (
+      <button type="button" className="btn-secondary" onClick={reinitialiser}>
+        Réinitialiser les filtres
+      </button>
+    ) : (
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={() => patchFiltres(patchElargissement(e.elargir))}
+      >
+        {LABEL_ELARGIR[e.elargir]}
+      </button>
+    );
+
+  const lienSecondaire =
+    e.elargir !== null && e.autreFiltreActif ? (
+      <button
+        type="button"
+        onClick={reinitialiser}
+        className="akal-focusable"
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          font: "inherit",
+          color: "var(--color-tertiaire)",
+          textDecoration: "underline",
+          cursor: "pointer",
+          fontSize: "13px",
+        }}
+      >
+        Réinitialiser tous les filtres
+      </button>
+    ) : null;
+
+  return {
+    titre: e.titre,
+    description: e.description,
+    action: (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+        {boutonPrincipal}
+        {lienSecondaire}
+      </div>
+    ),
+  };
 }
 
 // `useSearchParams` doit être encapsulé dans un <Suspense> pour le build de
@@ -505,15 +577,10 @@ function Catalogue() {
             ))}
           </div>
         ) : resultatsAffiches.length === 0 ? (
-          <EtatVide
-            titre="Aucun terrain ne correspond à votre recherche"
-            description="Essayez d'élargir votre recherche ou de réinitialiser les filtres."
-            action={
-              <button type="button" className="btn-secondary" onClick={reinitialiser}>
-                Réinitialiser les filtres
-              </button>
-            }
-          />
+          (() => {
+            const e = construireEtatVide(filtres, regions, patchFiltres, reinitialiser);
+            return <EtatVide titre={e.titre} description={e.description} action={e.action} />;
+          })()
         ) : mode === "grille" ? (
           <div style={GRILLE_STYLE}>
             {resultatsAffiches.map((p, i) => (
