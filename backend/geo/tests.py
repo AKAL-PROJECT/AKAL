@@ -444,3 +444,36 @@ class ImportRegionsIdempotenceTests(TestCase):
 
         self.assertEqual(RegionOfficielle.objects.count(), 12)
         self.assertEqual(RegionOfficielle.objects.get(code=3).slug, 'fes-meknes')
+
+
+class EnsurePostgisCommandTests(TestCase):
+    """`manage.py ensure_postgis` — active PostGIS, idempotent."""
+
+    def test_reussit_et_reste_idempotent(self):
+        from django.core.management import call_command
+        from io import StringIO
+
+        out = StringIO()
+        call_command('ensure_postgis', stdout=out)
+        call_command('ensure_postgis', stdout=out)  # rejouable sans erreur
+
+        self.assertIn('PostGIS actif', out.getvalue())
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'postgis';")
+            self.assertIsNotNone(cursor.fetchone())
+
+
+class HealthzTests(SimpleTestCase):
+    """Sonde /healthz/ pour le load balancer (Render healthCheckPath)."""
+
+    databases = {'default'}
+
+    def test_ok_quand_la_base_repond(self):
+        reponse = self.client.get('/healthz/')
+        self.assertEqual(reponse.status_code, 200)
+        self.assertEqual(reponse.json(), {'status': 'ok'})
+
+    def test_pas_d_authentification_requise(self):
+        # Endpoint public — Render le sonde sans cookie ni token.
+        self.assertEqual(self.client.get('/healthz/').status_code, 200)

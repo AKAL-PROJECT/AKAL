@@ -1,82 +1,104 @@
+# ══════════════════════════════════════════════════════════════════════════
+#  Blueprint Render — pile AKAL complète
+# ══════════════════════════════════════════════════════════════════════════
+#
+#        ┌────────────────┐      ┌────────────────┐
+#        │  akal-frontend │─────▶│  akal-backend  │
+#        │  Next.js (web) │ HTTPS│  Django/DRF    │
+#        └────────────────┘      └───────┬────────┘
+#                                        │
+#                        ┌───────────────┼───────────────┐
+#                        ▼               ▼               ▼
+#                  ┌───────────┐   ┌───────────┐   ┌─────────────┐
+#                  │  akal-db  │   │ akal-redis│   │  S3 externe │
+#                  │ PG+PostGIS│   │ Key Value │   │ (R2/B2/MinIO│
+#                  └───────────┘   └───────────┘   │  auto-héberg)│
+#                                                  └─────────────┘
+#
+# Ce fichier provisionne akal-frontend, akal-backend, akal-db et akal-redis.
+# Le stockage S3 (médias utilisateurs) est un service EXTERNE : Render ne
+# fournit pas d'object storage — pointer AWS_S3_* vers un bucket compatible
+# S3 en offre gratuite (Cloudflare R2, Backblaze B2) ou un MinIO auto-hébergé.
+#
+# Les variables `sync: false` apparaissent dans le dashboard Render de chaque
+# service (Environment) sans valeur : à renseigner une fois à la main, jamais
+# dans ce fichier (secrets, ou URLs connues seulement après le 1er déploiement).
+#
+# PostGIS : la base managée démarre « nue ». `akal-backend` lance
+# `manage.py ensure_postgis` avant `migrate` (cf. backend/Dockerfile) —
+# idempotent, aucune action manuelle requise.
+
 databases:
-  # Base de données PostgreSQL managée
   - name: akal-db
     plan: free
+    region: frankfurt
     databaseName: akal_db
     user: akal_user
+    postgresMajorVersion: "16"
     ipAllowList: []
 
 services:
-  # Cache Redis (« Key Value » chez Render) — référencé par REDIS_URL du
-  # service web ci-dessous. Optionnel : cf. le commentaire sur REDIS_URL.
-  # Retirer ce bloc ET la variable REDIS_URL si on ne provisionne pas de Redis.
+  # ── Cache Redis (« Key Value » chez Render) ─────────────────────────────
+  # Optionnel : le cache est fail-open (IGNORE_EXCEPTIONS, cf.
+  # akal/settings/base.py + docs/plans/2026-08-31-redis-fail-open.md). Sans
+  # REDIS_URL le backend tourne, mais throttling, cache des limites géo et
+  # cache du Passeport AgriScore sont dégradés (chaque appel recalcule).
+  # Retirer ce bloc ET la variable REDIS_URL pour s'en passer.
   - type: keyvalue
     name: akal-redis
     plan: free
+    region: frankfurt
     ipAllowList: []
 
-  # Service Web Django (conteneurisé via Docker)
+  # ── Backend Django / DRF (conteneurisé via backend/Dockerfile) ──────────
   - type: web
     name: akal-backend
-    env: docker
-    rootDir: backend  # <-- LA LIGNE MAGIQUE EST ICI
+    runtime: docker
+    rootDir: backend
     plan: free
-    
+    region: frankfurt
+    healthCheckPath: /healthz/
+
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: akal-db
           property: connectionString
-          
       - key: DJANGO_SETTINGS_MODULE
         value: akal.settings.prod
-        
       - key: SECRET_KEY
         generateValue: true
-        
       - key: PYTHONUNBUFFERED
         value: "1"
+      # (2 x cœurs) + 1 — à ajuster selon le plan Render.
+      - key: WEB_CONCURRENCY
+        value: "3"
 
-      # Connexion Google (GoogleLoginView) — même Client ID OAuth 2.0 que
-      # NEXT_PUBLIC_GOOGLE_CLIENT_ID côté frontend (doivent matcher, cf.
-      # README.md section "Firebase (authentification téléphone) & Google
-      # OAuth"). sync: false : Render affiche le champ dans son dashboard
-      # (Environment → Environment Variables) mais ne fixe ni ne versionne
-      # de valeur ici — à saisir une fois manuellement, jamais dans ce
-      # fichier. Sans elle, le reste du service tourne normalement ; seul
-      # l'endpoint de connexion Google répond 503 (cf. accounts/auth_api_views.py).
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-
-      # ── Cache Redis (django-redis) ───────────────────────────────────
-      # Optionnel : le cache est en fail-open (IGNORE_EXCEPTIONS, cf.
-      # akal/settings/base.py + docs/plans/2026-08-31-redis-fail-open.md).
-      # Sans REDIS_URL le service tourne, mais throttling et cache des
-      # limites géo sont dégradés. Le type de service Render pour Redis est
-      # « Key Value » (25 Mo en offre gratuite).
+      # ── Cache Redis (référence croisée vers le service ci-dessus) ───────
       - key: REDIS_URL
         fromService:
           name: akal-redis
           type: keyvalue
           property: connectionString
 
-      # ── Frontend / CORS / CSRF ───────────────────────────────────────
+      # ── Frontend / CORS / CSRF ────────────────────────────────────────
       # Backend et frontend sont sur des domaines distincts : sans ces
-      # trois variables, prod hérite des défauts localhost de base.py et
-      # bloque silencieusement tout appel du frontend déployé + les liens
-      # de réinitialisation de mot de passe pointent vers localhost.
+      # variables, prod hérite des défauts localhost de base.py → tout appel
+      # du frontend déployé est bloqué et les liens de reset e-mail pointent
+      # vers localhost. Renseigner avec l'URL d'akal-frontend (visible dans
+      # son dashboard après le 1er déploiement).
       - key: FRONTEND_URL
-        sync: false        # ex. https://akal.vercel.app
+        sync: false        # https://akal-frontend-XXXX.onrender.com
       - key: CORS_ALLOWED_ORIGINS
-        sync: false        # ex. https://akal.vercel.app,https://akal.ma
+        sync: false        # même URL (+ éventuel domaine custom, séparés par des virgules)
       - key: CSRF_TRUSTED_ORIGINS
-        sync: false        # mêmes origines que CORS_ALLOWED_ORIGINS
+        sync: false        # idem CORS_ALLOWED_ORIGINS
+      - key: ALLOWED_HOSTS
+        sync: false        # facultatif — `.onrender.com` est déjà couvert par défaut (prod.py)
 
-      # ── Stockage média (django-storages, S3-compatible) ──────────────
+      # ── Stockage média (django-storages, S3-compatible) ───────────────
       # Sans ces variables, S3Storage part avec des identifiants vides et
-      # TOUT upload de photo/avatar échoue en prod. Pointer vers un
-      # fournisseur S3-compatible en offre gratuite (ex. bucket Cloudflare
-      # R2, Backblaze B2, ou un MinIO auto-hébergé).
+      # TOUT upload de photo/avatar échoue. Bucket public en lecture (§4.7).
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
@@ -85,40 +107,110 @@ services:
         value: akal-media
       - key: AWS_S3_ENDPOINT_URL
         sync: false        # ex. https://<account>.r2.cloudflarestorage.com
+      - key: AWS_S3_REGION_NAME
+        sync: false        # ex. "auto" (Cloudflare R2), "us-east-1", "eu-central-003" (B2)…
       - key: AWS_S3_CUSTOM_DOMAIN
-        sync: false        # domaine public/CDN devant le bucket (ex. media.akal.ma) — jamais le domaine de l'API
+        sync: false        # domaine/CDN public devant le bucket (ex. media.akal.ma) — jamais l'API
 
-      # ── E-mail transactionnel (réinitialisation mdp, alertes) ────────
-      # EMAIL_HOST vide → backend console (les e-mails restent dans les
-      # logs). Renseigner pour un vrai envoi SMTP.
+      # ── E-mail transactionnel (reset mdp, alertes de recherche) ───────
+      # EMAIL_HOST vide → backend console (e-mails dans les logs). Renseigner
+      # pour un vrai envoi SMTP.
       - key: EMAIL_HOST
         sync: false
+      - key: EMAIL_PORT
+        value: "587"
       - key: EMAIL_HOST_USER
         sync: false
       - key: EMAIL_HOST_PASSWORD
         sync: false
+      - key: EMAIL_USE_TLS
+        value: "true"
       - key: DEFAULT_FROM_EMAIL
         value: AKAL <no-reply@akal.ma>
 
-      # ── Monitoring Sentry (optionnel, no-op si vide) ─────────────────
+      # ── Monitoring Sentry (no-op si SENTRY_DSN vide) ──────────────────
       - key: SENTRY_DSN
         sync: false
       - key: SENTRY_ENVIRONMENT
         value: production
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.1"
 
-      # ── AgriScore — agent NDVI Sentinel-2 (optionnel) ───────────────
-      # Sans ces deux clés, la dimension NDVI passe en « indisponible » et
-      # le passeport se calcule sur les 4 autres dimensions. Compte gratuit
-      # dataspace.copernicus.eu (cf. docs/ONBOARDING_SECRETS.md).
-      - key: CDSE_CLIENT_ID
+      # ── Auth Google (GoogleLoginView) — même Client ID OAuth 2.0 que
+      # NEXT_PUBLIC_GOOGLE_CLIENT_ID côté frontend (ils DOIVENT matcher).
+      # Sans elle : seul l'endpoint /api/auth/google/ répond 503.
+      - key: GOOGLE_CLIENT_ID
         sync: false
+
+      # ── AgriScore — agents à source externe (tous facultatifs) ────────
+      # Sans clé, l'agent passe « indisponible » et le Passeport se calcule
+      # sur les dimensions restantes. sol/climat/accès/topo sont keyless.
+      - key: CDSE_CLIENT_ID
+        sync: false        # NDVI Sentinel-2 — compte gratuit dataspace.copernicus.eu
       - key: CDSE_CLIENT_SECRET
         sync: false
+      - key: OPENTOPOGRAPHY_API_KEY
+        sync: false        # agent topo GLO-30 optionnel — inutile pour le pipeline par défaut
+      - key: AGRISCORE_HTTP_TIMEOUT_S
+        value: "10"
 
-    # Authentification par téléphone (SMS OTP) : nécessite un secret
-    # firebase-service-account.json monté via l'onglet Secret Files de ce
-    # service (Dashboard → akal-backend → Environment → Secret Files) à
-    # /app/firebase-service-account.json — pas une envVar, non configurable
-    # ici. Voir README.md, section "Firebase (authentification téléphone) &
-    # Google OAuth". Sans ce fichier, le reste du service tourne normalement ;
-    # seul l'endpoint de connexion par téléphone répond 503.
+    # Auth par téléphone (SMS OTP, Firebase) : nécessite le secret
+    # firebase-service-account.json monté via Dashboard → akal-backend →
+    # Environment → Secret Files, à /app/firebase-service-account.json (pas
+    # une envVar). Sans lui, seul /api/auth/phone/verify/ répond 503.
+    # Voir README.md et docs/ONBOARDING_SECRETS.md.
+
+  # ── Frontend Next.js ───────────────────────────────────────────────────
+  # Alternative : déployer sur Vercel (retirer ce bloc). `next build`
+  # interroge le catalogue au build — s'il échoue (backend pas encore
+  # prêt), le build réussit quand même sans pré-générer de fiche (fix de
+  # app/parcelles/[slug]/page.tsx), elles sont rendues à la demande.
+  - type: web
+    name: akal-frontend
+    runtime: node
+    rootDir: frontend
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+
+    envVars:
+      # URL publique d'akal-backend (visible dans son dashboard après le 1er
+      # déploiement) suffixée de /api. Utilisée AU BUILD et au runtime.
+      - key: NEXT_PUBLIC_API_URL
+        sync: false        # https://akal-backend-XXXX.onrender.com/api
+      # URL publique de CE service, pour les URLs canoniques (sitemap, robots).
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false        # https://akal-frontend-XXXX.onrender.com
+      # Jamais "true" en prod (le build échoue par garde-fou, next.config.ts).
+      - key: NEXT_PUBLIC_USE_MOCKS
+        value: "false"
+
+      # Google Sign-In — même valeur que GOOGLE_CLIENT_ID du backend.
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        sync: false
+
+      # Sentry navigateur (un DSN n'est pas un secret — il n'autorise qu'à
+      # envoyer des événements). Vide = monitoring front désactivé.
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+      - key: NEXT_PUBLIC_SENTRY_ENVIRONMENT
+        value: production
+
+      # Firebase (auth téléphone SMS uniquement) — config web publique, cf.
+      # frontend/.env.example et docs/ONBOARDING_SECRETS.md.
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+        sync: false

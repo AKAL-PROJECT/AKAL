@@ -192,6 +192,7 @@ jobs:
       - name: Migrer la base et démarrer Django en arrière-plan
         working-directory: backend
         run: |
+          python manage.py ensure_postgis
           python manage.py migrate --noinput
           python manage.py runserver 0.0.0.0:8000 &
           for i in $(seq 1 30); do
