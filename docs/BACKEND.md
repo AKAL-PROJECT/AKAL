@@ -55,7 +55,7 @@
 
 | Composant | Technologie | Version |
 |---|---|---|
-| **Backend** | Django | 6.0.6 |
+| **Backend** | Django | 6.0.8 |
 | **API REST** | Django REST Framework (DRF) | ≥3.15.0 |
 | **Documentation API** | drf-spectacular (OpenAPI / Swagger) | ≥0.28.0 |
 | **CORS** | django-cors-headers | ≥4.6.0 |
