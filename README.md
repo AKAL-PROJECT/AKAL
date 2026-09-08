@@ -21,41 +21,61 @@ Services externes : Firebase (OTP SMS), Google OAuth, sources ouvertes AgriScore
 - `feat/<domaine>` → une fonctionnalité, mergée dans `main` via PR puis supprimée.
 - `fix/<sujet>` → une correction.
 
-## Démarrage — du clone au serveur
+## Démarrage rapide — tout conteneurisé
 
-Prérequis : Docker, Python 3.13, Node 20+, et les libs système GeoDjango
-(`binutils libproj-dev gdal-bin` — cf. `backend/Dockerfile` pour la liste exacte).
-
-### 1. Services (base de données, cache, stockage)
+Prérequis : **Docker** uniquement.
 
 ```bash
-cd backend
-docker compose up -d          # db (PostGIS, port 5433) + redis + minio + minio-init
+git clone … && cd AKAL
+docker compose up --build
 ```
 
-### 2. Backend
+- http://localhost:3000 — frontend Next.js
+- http://localhost:8000 — API Django/DRF (admin : `/admin/`)
+- http://localhost:9001 — console MinIO (`akal` / `akal12345`)
+
+La pile complète démarre : PostgreSQL 16 + PostGIS, Redis, MinIO, backend,
+frontend. Au 1er lancement, le backend charge le référentiel géo officiel +
+~15 annonces de démonstration. Créer un compte admin :
 
 ```bash
-cd backend
+docker compose exec backend python manage.py createsuperuser
+```
+
+Google Sign-In / Firebase SMS / NDVI Sentinel-2 sont optionnels — copier
+`.env.example` → `.env` à la racine pour les activer. Sans eux, la connexion
+e-mail/mot de passe et tout le parcours acheteur/vendeur fonctionnent.
+
+Le 1er build est long (~10–15 min : GDAL, `next build`) ; les suivants sont
+en cache.
+
+## Démarrage — workflow de dev (app lancée à la main)
+
+Pour itérer plus vite : seuls les services en conteneur, Django et Next
+lancés directement.
+
+Prérequis : Docker, Python 3.13, Node 20+, libs système GeoDjango
+(`binutils libproj-dev gdal-bin` — cf. `backend/Dockerfile`).
+
+```bash
+# 1. services
+cd backend && docker compose up -d      # db (PostGIS :5433) + redis + minio + minio-init
+
+# 2. backend
 python -m venv akal_env && source akal_env/bin/activate
 pip install -r requirements.txt
-
-cp .env.example .env          # SECRET_KEY=change-me suffit en local ; DATABASE_URL pointe déjà sur :5433
+cp .env.example .env                     # SECRET_KEY=change-me suffit ; DATABASE_URL déjà sur :5433
+python manage.py ensure_postgis
 python manage.py migrate
-python manage.py import_geo_officiel        # référentiel géo officiel (12 régions / 75 provinces / 1536 communes)
-python manage.py seed_demo                  # ~15 annonces de démonstration
-python manage.py backfill_commune_geom      # rattache commune_geom aux parcelles seed (filtre province/commune du catalogue)
-python manage.py createsuperuser            # accès /admin/
-python manage.py runserver                  # → http://localhost:8000
-```
+python manage.py import_geo_officiel     # 12 régions / 75 provinces / 1536 communes
+python manage.py seed_demo               # ~15 annonces de démonstration
+python manage.py createsuperuser         # accès /admin/
+python manage.py runserver               # → http://localhost:8000
 
-### 3. Frontend
-
-```bash
-cd frontend
-npm install
-cp .env.example .env.local     # puis passer NEXT_PUBLIC_USE_MOCKS à "false" et renseigner les clés (voir docs/ONBOARDING_SECRETS.md)
-npm run dev                    # → http://localhost:3000
+# 3. frontend (autre terminal)
+cd frontend && npm install
+cp .env.example .env.local               # NEXT_PUBLIC_USE_MOCKS=false, clés : docs/ONBOARDING_SECRETS.md
+npm run dev                              # → http://localhost:3000
 ```
 
 > `next build` (production) interroge le catalogue **au moment du build** :

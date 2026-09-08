@@ -25,7 +25,7 @@ import { mapAnnonceToAnnonceProprietaire, type AnnonceListDTO } from "./mapAnnon
 import type { AnnonceEcriture, ParcelleEcriture } from "@/types/depot-annonce";
 import type { AnnonceProprietaire, StatutAnnonce } from "@/types/parcelle";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+import { API_URL } from "./api-base";
 
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();

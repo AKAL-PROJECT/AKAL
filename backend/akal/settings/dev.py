@@ -40,10 +40,20 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 if 'test' not in sys.argv:
     AKAL_DATASET = env('AKAL_DATASET', default='simulated')
 
-# En dÃ©veloppement, autoriser toutes les origines CORS
+# En développement, autoriser toutes les origines CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
+# CSRF : la connexion JWT par cookie appelle enforce_csrf() (accounts/
+# authentication.py) sur les méthodes non sûres — CsrfViewMiddleware vérifie
+# alors l'Origin contre CSRF_TRUSTED_ORIGINS. localhost:3000 (front local) et
+# localhost:8000 (self) par défaut ; surchargeable pour docker-compose
+# full-stack (le service `frontend` appelle le backend via http://backend:8000).
+CSRF_TRUSTED_ORIGINS = env.list(
+    'CSRF_TRUSTED_ORIGINS',
+    default=['http://localhost:3000', 'http://localhost:8000', 'http://127.0.0.1:3000'],
+)
+
 # localhost sert en HTTP simple : un cookie Secure+SameSite=None ne serait
-# jamais envoyÃ© par le navigateur. cf. SIMPLE_JWT dans base.py.
+# jamais envoyé par le navigateur. cf. SIMPLE_JWT dans base.py.
 SIMPLE_JWT = {**SIMPLE_JWT, 'AUTH_COOKIE_SECURE': False, 'AUTH_COOKIE_SAMESITE': 'Lax'}
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

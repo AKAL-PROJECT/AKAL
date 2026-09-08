@@ -20,7 +20,7 @@ import { fetchWithAuth } from "./fetchWithAuth";
 import { mapAnnonceToParcelle, type AnnonceListDTO } from "./mapAnnonceToParcelle";
 import type { Parcelle } from "@/types/parcelle";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+import { API_URL } from "./api-base";
 
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();

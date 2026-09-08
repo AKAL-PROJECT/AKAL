@@ -18,7 +18,7 @@ import { cookies } from "next/headers";
 import { ApiError, lireErreur } from "./api";
 import { fetchWithAuth } from "./fetchWithAuth";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+import { API_URL } from "./api-base";
 const BASE = `${API_URL}/annonces/recherches-sauvegardees/`;
 
 export type RechercheSauvegardee = {

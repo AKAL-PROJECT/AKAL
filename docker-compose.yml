@@ -1,0 +1,170 @@
+# ══════════════════════════════════════════════════════════════════════════
+#  AKAL — pile complète en un seul `docker compose up`
+# ══════════════════════════════════════════════════════════════════════════
+#
+#   git clone … && cd AKAL && docker compose up --build
+#
+#   → http://localhost:3000   frontend Next.js
+#   → http://localhost:8000   API Django/DRF   (admin : http://localhost:8000/admin/)
+#   → http://localhost:9001   console MinIO    (akal / akal12345)
+#
+# Au 1er démarrage, le backend charge le référentiel géo officiel + ~15
+# annonces de démonstration (SEED_ON_START). Compte admin :
+#   docker compose exec backend python manage.py createsuperuser
+#
+# Variables optionnelles (Google Sign-In, Firebase SMS, NDVI Sentinel-2) :
+# copier .env.example en .env à la racine et renseigner. Sans elles, la
+# connexion e-mail/mot de passe et tout le reste du parcours fonctionnent.
+#
+# Ce fichier est le point d'entrée « tout conteneurisé ». Pour le workflow
+# de dev habituel (Django/Next lancés à la main, seuls les services en
+# conteneur), voir backend/docker-compose.yml.
+
+name: akal
+
+services:
+  # ── PostgreSQL 16 + PostGIS ───────────────────────────────────────────
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: akal
+      POSTGRES_PASSWORD: akal
+      POSTGRES_DB: akal_db
+    ports:
+      - "5433:5432"           # hôte 5433 pour ne pas heurter un Postgres local
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U akal -d akal_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Redis (cache, throttling, cache du Passeport AgriScore) ───────────
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ── MinIO (stockage S3 des médias : photos d'annonces, avatars) ───────
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: akal
+      MINIO_ROOT_PASSWORD: akal12345
+    ports:
+      - "9000:9000"           # API S3 — les URLs de photos pointent ici
+      - "9001:9001"           # console web
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Crée le bucket `akal-media` et le passe en lecture publique (contrat §4.7).
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 akal akal12345 &&
+      mc mb --ignore-existing local/akal-media &&
+      mc anonymous set download local/akal-media
+      "
+    restart: "no"
+
+  # ── Backend Django / DRF ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      DJANGO_SETTINGS_MODULE: akal.settings.dev
+      SECRET_KEY: dev-compose-secret-not-for-production
+      DATABASE_URL: postgis://akal:akal@db:5432/akal_db
+      REDIS_URL: redis://redis:6379/1
+      # boto3 parle à MinIO par le réseau interne…
+      AWS_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: akal
+      AWS_SECRET_ACCESS_KEY: akal12345
+      AWS_STORAGE_BUCKET_NAME: akal-media
+      # …mais les URLs publiques de photos doivent être joignables par le
+      # NAVIGATEUR → localhost:9000, en http (MinIO local sans TLS).
+      AWS_S3_CUSTOM_DOMAIN: localhost:9000
+      AWS_S3_URL_PROTOCOL: "http:"
+      AWS_S3_VERIFY: "False"
+      FRONTEND_URL: http://localhost:3000
+      CSRF_TRUSTED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000
+      SEED_ON_START: "1"
+      # Optionnels (cf. .env.example à la racine) — vides = fonctionnalité
+      # dégradée proprement, jamais un crash.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      CDSE_CLIENT_ID: ${CDSE_CLIENT_ID:-}
+      CDSE_CLIENT_SECRET: ${CDSE_CLIENT_SECRET:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz/').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    restart: unless-stopped
+
+  # ── Frontend Next.js ────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # URL de l'API telle que le NAVIGATEUR la joint (inlinée au build).
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api
+        NEXT_PUBLIC_SITE_URL: http://localhost:3000
+        NEXT_PUBLIC_USE_MOCKS: "false"
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:-}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:-}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
+        NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Rendu SERVEUR (Server Components, Server Actions, middleware) : joint
+      # le backend par le réseau interne du compose.
+      API_URL_INTERNAL: http://backend:8000/api
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  minio_data:

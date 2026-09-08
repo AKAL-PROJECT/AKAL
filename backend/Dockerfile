@@ -36,12 +36,9 @@ RUN pip install --upgrade pip \
 # Copie du reste du code source
 COPY . /app/
 
-# Collecte des fichiers statiques pour WhiteNoise
-# RUN python manage.py collectstatic --noinput (Souvent géré par la plateforme IaC via la start command, 
-# mais peut être fait ici si les variables d'environnement nécessaires sont dispo au build)
-
 # Sécurité : Création d'un utilisateur non-root pour exécuter l'application
-RUN useradd -m akaluser && chown -R akaluser:akaluser /app
+RUN chmod +x /app/docker-entrypoint.sh \
+    && useradd -m akaluser && chown -R akaluser:akaluser /app
 USER akaluser
 
 # Exposition du port (Gunicorn par défaut 8000)
@@ -62,8 +59,10 @@ EXPOSE 8000
 # upload multi-photos légitime sur une connexion lente, sans laisser un
 # worker bloqué indéfiniment sur une requête réellement figée.
 #
-# ensure_postgis AVANT migrate : sur une base PostgreSQL managée « nue »
-# (Render…), l'extension PostGIS n'est pas active par défaut et la première
-# migration géométrique échouerait. Idempotent (no-op si déjà active, ex. en
-# local/CI où l'image postgis/postgis l'active elle-même).
-CMD sh -c "python manage.py collectstatic --noinput && python manage.py ensure_postgis && python manage.py migrate && gunicorn akal.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY:-3} --threads 2 --timeout 60"
+# L'ENTRYPOINT (docker-entrypoint.sh) prépare la base à chaque démarrage :
+# collectstatic → ensure_postgis (extension PostGIS, indispensable sur une
+# base managée « nue » type Render) → migrate → seed optionnel
+# (SEED_ON_START=1, docker-compose full-stack uniquement). Puis il lance la
+# commande ci-dessous. Surchargeable par l'IaC (render.yaml) ou compose.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["sh", "-c", "gunicorn akal.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY:-3} --threads 2 --timeout 60"]

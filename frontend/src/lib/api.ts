@@ -9,7 +9,7 @@
 //
 // cf. audit d'intégration §4.6 (contrat d'erreurs) et §3 (forme des réponses).
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+import { API_URL } from "./api-base";
 
 export type Paginated<T> = {
   count: number;

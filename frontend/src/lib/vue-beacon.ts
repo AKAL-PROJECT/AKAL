@@ -16,7 +16,7 @@
 // - POST sans en-tête ni corps → requête « simple » au sens CORS, pas de
 //   préflight ; `keepalive` pour survivre à une navigation immédiate.
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+import { API_URL } from "./api-base";
 
 const FENETRE_DEDUP_MS = 6 * 60 * 60 * 1000;
 

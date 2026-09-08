@@ -15,7 +15,7 @@ import { ApiError, lireErreur, type FieldErrors } from "./api";
 import { attrsVersOptions, parseSetCookie } from "./cookie-parsing";
 import { fetchWithAuth } from "./fetchWithAuth";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+import { API_URL } from "./api-base";
 
 // Pas de rôle figé à l'inscription (une même personne peut chercher et
 // vendre une terre) : "" par défaut, ADMIN réservé au staff. cf. design doc,

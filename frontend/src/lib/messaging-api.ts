@@ -26,7 +26,7 @@ import { ApiError, lireErreur, type Paginated } from "./api";
 import { fetchWithAuth } from "./fetchWithAuth";
 import type { Conversation, Message } from "@/types/messaging";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+import { API_URL } from "./api-base";
 
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();

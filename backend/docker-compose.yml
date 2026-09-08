@@ -1,3 +1,7 @@
+# Services SEULS pour le workflow de dev (Django/Next lancés à la main).
+# Pour la pile ENTIÈRE en conteneur (backend + frontend inclus) :
+#   docker compose up --build   ← à la racine du dépôt (docker-compose.yml racine)
+
 services:
   # PostgreSQL + PostGIS — la base de l'application. Port hôte 5433 (pas
   # 5432) pour ne pas entrer en conflit avec un Postgres déjà installé

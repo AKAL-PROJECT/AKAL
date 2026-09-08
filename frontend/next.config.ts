@@ -22,6 +22,11 @@ if (!isDev && process.env.NEXT_PUBLIC_USE_MOCKS === "true") {
 }
 
 const nextConfig: NextConfig = {
+  // Sortie autonome (.next/standalone) — image Docker minimale : le
+  // serveur Node + uniquement les dépendances réellement utilisées, sans
+  // tout node_modules. Sans effet sur `next dev` ni sur Vercel.
+  output: "standalone",
+
   // Morph photo catalogue → fiche parcelle (React <ViewTransition>, App
   // Router) — dégrade proprement sans animation sur les navigateurs sans
   // support de la View Transitions API, aucune dépendance ajoutée. Depuis
