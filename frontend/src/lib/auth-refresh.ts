@@ -20,7 +20,7 @@
 import { cookies } from "next/headers";
 import { attrsVersOptions, parseSetCookie } from "./cookie-parsing";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+import { API_URL } from "./api-base";
 
 // Cookies de session gérés par le backend (accounts/views.py::_set_auth_cookies) —
 // tout autre Set-Cookie éventuel (aucun aujourd'hui) est ignoré ici.

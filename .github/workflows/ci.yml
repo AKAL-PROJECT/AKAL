@@ -205,3 +205,40 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000/api
         run: npm run build
+
+  # Valide que `docker compose up --build` (racine) monte toute la pile et
+  # que le parcours de base répond — le test que fait un nouveau développeur.
+  compose:
+    name: Docker Compose (pile complète)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: docker compose config
+        run: docker compose config --quiet
+
+      - name: docker compose up --build
+        run: docker compose up --build -d --wait --wait-timeout 900
+
+      - name: Le backend répond (healthz + catalogue seedé)
+        run: |
+          curl -fsS http://localhost:8000/healthz/ | grep -q '"status": "ok"'
+          test "$(curl -fsS 'http://localhost:8000/api/annonces/?page_size=1' | python3 -c 'import sys,json; print(json.load(sys.stdin)["count"])')" -ge 1
+
+      - name: Le frontend répond et sert le catalogue
+        run: |
+          curl -fsS http://localhost:3000/ > /dev/null
+          curl -fsS http://localhost:3000/parcelles > /dev/null
+
+      - name: PostGIS actif, migrations à jour
+        run: |
+          docker compose exec -T backend python manage.py ensure_postgis
+          docker compose exec -T backend python manage.py migrate --check
+
+      - name: Logs en cas d'échec
+        if: failure()
+        run: docker compose logs --tail 120
+
+      - name: Arrêt
+        if: always()
+        run: docker compose down -v

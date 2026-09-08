@@ -67,8 +67,9 @@ function estRouteProtegee(pathname: string): boolean {
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { attrsVersOptions, parseSetCookie } from "@/lib/cookie-parsing";
+import { API_URL } from "@/lib/api-base";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/+$/, "");
+
 
 // Décode le payload d'un JWT (base64url, aucune vérification de signature —
 // le secret n'est pas côté frontend, cf. commentaire ci-dessus) pour lire
