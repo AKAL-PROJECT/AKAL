@@ -3,7 +3,11 @@ import sys
 from .base import *
 
 DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+# `backend` : nom du service dans docker-compose.yml (racine) — le conteneur
+# `frontend` appelle l'API via http://backend:8000 pour le rendu serveur, et
+# Django rejette en 400 tout Host absent de cette liste, même en DEBUG.
+# Surchargeable par variable d'env pour tout autre nom d'hôte.
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'backend'])
 
 # AKAL_DATASET (cf. base.py, annonces/managers.py::dataset_actif()) :
 # 'simulated' par dÃ©faut partout (prod incluse) â€” ici on bascule le dÃ©faut
@@ -50,7 +54,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 # full-stack (le service `frontend` appelle le backend via http://backend:8000).
 CSRF_TRUSTED_ORIGINS = env.list(
     'CSRF_TRUSTED_ORIGINS',
-    default=['http://localhost:3000', 'http://localhost:8000', 'http://127.0.0.1:3000'],
+    default=[
+        'http://localhost:3000', 'http://localhost:8000',
+        'http://127.0.0.1:3000', 'http://backend:8000',
+    ],
 )
 
 # localhost sert en HTTP simple : un cookie Secure+SameSite=None ne serait
