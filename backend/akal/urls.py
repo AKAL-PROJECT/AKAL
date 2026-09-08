@@ -5,10 +5,32 @@ The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/6.0/topics/http/urls/
 """
 from django.contrib import admin
+from django.db import connection
+from django.http import JsonResponse
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+
+def healthz(_request):
+    """Sonde de santé pour le load balancer (Render ``healthCheckPath``).
+
+    200 si la base répond, 503 sinon — Render met alors l'instance hors
+    rotation au lieu d'y router du trafic. Volontairement minimal : une
+    requête SQL triviale, aucune dépendance à Redis/S3 (fail-open, cf.
+    settings) ni à l'authentification.
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1;")
+            cursor.fetchone()
+    except Exception:  # noqa: BLE001 — toute erreur DB = instance non saine
+        return JsonResponse({'status': 'error', 'database': 'unreachable'}, status=503)
+    return JsonResponse({'status': 'ok'})
+
+
 urlpatterns = [
+    path('healthz/', healthz, name='healthz'),
+
     path('admin/', admin.site.urls),
 
     # ── API REST v1 ──

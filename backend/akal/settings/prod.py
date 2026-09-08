@@ -1,7 +1,12 @@
 from .base import *
 
 DEBUG = False
-ALLOWED_HOSTS = ['akal.ma', 'www.akal.ma','.onrender.com'] # Exemple de domaine pour la mise en prod[cite: 2]
+# `.onrender.com` couvre l'URL par défaut du service Render ; `akal.ma` le
+# domaine cible. Surchargeable par variable d'env (custom domain, autre PaaS)
+# sans toucher au code — même mécanisme que CORS_ALLOWED_ORIGINS ci-dessous.
+ALLOWED_HOSTS = env.list(
+    'ALLOWED_HOSTS', default=['akal.ma', 'www.akal.ma', '.onrender.com'],
+)
 
 # CORS — sans ceci, prod hérite de CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
 # (base.py) et bloque silencieusement tout appel du frontend déployé.

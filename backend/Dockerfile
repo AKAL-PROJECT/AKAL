@@ -61,4 +61,9 @@ EXPOSE 8000
 # --timeout : 60s (le défaut gunicorn est 30s) — laisse la marge pour un
 # upload multi-photos légitime sur une connexion lente, sans laisser un
 # worker bloqué indéfiniment sur une requête réellement figée.
-CMD sh -c "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn akal.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY:-3} --threads 2 --timeout 60"
+#
+# ensure_postgis AVANT migrate : sur une base PostgreSQL managée « nue »
+# (Render…), l'extension PostGIS n'est pas active par défaut et la première
+# migration géométrique échouerait. Idempotent (no-op si déjà active, ex. en
+# local/CI où l'image postgis/postgis l'active elle-même).
+CMD sh -c "python manage.py collectstatic --noinput && python manage.py ensure_postgis && python manage.py migrate && gunicorn akal.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY:-3} --threads 2 --timeout 60"

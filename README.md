@@ -75,12 +75,31 @@ cd frontend && npm run lint && npx tsc --noEmit && npm test
 La CI (`.github/workflows/ci.yml`) rejoue exactement ces validations sur chaque PR
 vers `main` (PostGIS + Redis + MinIO provisionnés, backend démarré pour le build front).
 
+## Déploiement
+
+`backend/render.yaml` est un **blueprint Render de toute la pile** :
+
+```
+akal-frontend (Next.js)  →  akal-backend (Django/DRF)  →  akal-db (PostgreSQL + PostGIS)
+                                                        →  akal-redis (Key Value)
+                                                        →  S3 externe (médias)
+```
+
+1. **S3** : Render ne fournit pas d'object storage — créer un bucket compatible
+   S3 (Cloudflare R2 / Backblaze B2, offre gratuite) ou un MinIO auto-hébergé.
+2. **Render → New → Blueprint**, pointer sur ce dépôt. Les 4 composants sont créés.
+3. Renseigner les variables `sync: false` de chaque service dans son onglet
+   *Environment* (secrets + URLs connues seulement après le 1er déploiement :
+   `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`…).
+4. Auth téléphone : déposer `firebase-service-account.json` dans
+   *akal-backend → Environment → Secret Files* (`/app/firebase-service-account.json`).
+
+PostGIS s'active tout seul (`manage.py ensure_postgis` avant `migrate`, cf.
+`backend/Dockerfile`). Health checks : `/healthz/` (backend), `/` (frontend).
+
 ## Documentation
 
 - `docs/BACKEND.md` — architecture backend, modèles, endpoints, déploiement.
 - `docs/ONBOARDING_SECRETS.md` — comment obtenir les variables d'environnement et secrets.
 - `docs/AKAL_Contrat_Donnees_v1.2.md` — contrat d'API frontend/backend.
 - `docs/plans/` — notes de conception datées (auth, géo, résilience Redis, passeport front).
-- `backend/render.yaml` — blueprint Render du backend : la liste complète des
-  variables d'environnement de production y est déclarée (celles en `sync: false`
-  sont à saisir dans le dashboard Render).
