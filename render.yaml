@@ -54,7 +54,16 @@ services:
   - type: web
     name: akal-backend
     runtime: docker
-    rootDir: backend
+    # PAS de rootDir : sans lui, dockerfilePath / dockerContext sont sans
+    # ambiguïté relatifs à la RACINE du dépôt (les deux pages de doc Render
+    # concordent sur ce cas). Avec rootDir, le dockerfilePath par défaut se
+    # comporte différemment entre les pages « Blueprint Spec » et « Monorepo
+    # Support » — c'est ce qui provoquait « failed to read dockerfile: open
+    # Dockerfile: no such file or directory ». Coût : un push ne touchant que
+    # frontend/ redéclenche aussi un build backend (négligeable en démo).
+    # `dockerContext: backend` = `context: ./backend` de docker-compose.yml.
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
     plan: free
     region: frankfurt
     healthCheckPath: /healthz/
