@@ -34,7 +34,13 @@ ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 ARG NEXT_PUBLIC_FIREBASE_APP_ID=
 ARG NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+# Autorise next/image à charger les médias depuis un MinIO local en
+# http://localhost:9000 — lu par next.config.ts au build. `false` par défaut
+# (vrais déploiements : médias derrière media.akal.ma) ; passé à `true` par le
+# docker-compose full-stack uniquement.
+ARG MEDIA_ALLOW_LOCALHOST=false
+ENV MEDIA_ALLOW_LOCALHOST=$MEDIA_ALLOW_LOCALHOST \
+    NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_PUBLIC_USE_MOCKS=$NEXT_PUBLIC_USE_MOCKS \
     NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID \

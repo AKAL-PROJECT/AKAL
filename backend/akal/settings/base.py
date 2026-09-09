@@ -190,7 +190,8 @@ AWS_S3_OBJECT_PARAMETERS = {
 AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default='')
 # Protocole des URLs publiques construites depuis AWS_S3_CUSTOM_DOMAIN.
 # 'https:' en prod (CDN) ; surchargeable en 'http:' pour un MinIO local servi
-# en clair (ex. docker-compose full-stack, où CUSTOM_DOMAIN=localhost:9000).
+# en clair (ex. docker-compose full-stack, où CUSTOM_DOMAIN vaut
+# `localhost:9000/akal-media` — endpoint + bucket, MinIO étant en path-style).
 AWS_S3_URL_PROTOCOL = env('AWS_S3_URL_PROTOCOL', default='https:')
 
 # Vérification TLS de l'endpoint S3 — sans effet ici (endpoint MinIO dev en
