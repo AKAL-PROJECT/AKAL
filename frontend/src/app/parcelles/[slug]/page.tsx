@@ -1,7 +1,7 @@
 import { ViewTransition } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getParcelleBySlug, getParcelles } from "@/data/parcelles";
+import { getParcelleBySlug } from "@/data/parcelles";
 import { formatMAD } from "@/lib/format";
 import { getCurrentUser } from "@/lib/auth-api";
 import FicheParcelle from "@/components/parcelles/FicheParcelle";
@@ -18,23 +18,16 @@ const TRANSITION_DIRECTIONNELLE = {
   default: "none",
 } as const;
 
-export async function generateStaticParams() {
-  // page_size au max autorisé par le contrat (§4.2) — suffisant pour le
-  // volume actuel. Générer les pages suivantes nécessitera de paginer ici
-  // via `next` une fois le catalogue au-delà de 50 annonces.
-  //
-  // API injoignable au moment du build (backend éteint, déploiement front
-  // qui précède le back) → on ne pré-génère aucune fiche plutôt que de
-  // faire échouer tout le `next build`. Les fiches restent générées à la
-  // demande au premier accès (dynamicParams vaut true par défaut).
-  try {
-    const { results } = await getParcelles({ page_size: 50 });
-    return results.map((p) => ({ slug: p.slug }));
-  } catch (err) {
-    console.warn("generateStaticParams: catalogue injoignable au build, aucune fiche pré-générée.", err);
-    return [];
-  }
-}
+// Rendu dynamique par requête, sans exception. La fiche lit les cookies de
+// session (getCurrentUser, plus bas) pour savoir si le visiteur est le
+// propriétaire de l'annonce — c'est incompatible avec une pré-génération
+// statique par slug. Un `generateStaticParams` était présent ici mais
+// renvoyait toujours `[]` en pratique (l'API est injoignable au moment du
+// `next build` : le front se déploie avant/sans le back), et sa seule
+// conséquence réelle était de faire router Next par un chemin de rendu
+// "statique à la demande" où `cookies()` lève `DYNAMIC_SERVER_USAGE` →
+// 500 sur chaque fiche. `force-dynamic` supprime cette ambiguïté.
+export const dynamic = "force-dynamic";
 
 // Même convention que app/robots.ts et app/sitemap.ts — une seule source
 // pour l'origine publique du site, jamais reconstruite différemment ici.
