@@ -32,8 +32,9 @@ backend/media/
 # Documentation locale
 docs/DATABASE.md
 
-# Environnement virtuel local
+# Environnement virtuel local (+ ancien venv py3.14 cassé, si présent)
 backend/akal_env/
+backend/akal_env.broken-py314-backup/
 
 # Antigravity/Gemini IDE customization directory
 .agents/
@@ -43,8 +44,10 @@ backend/akal_env/
 .playwright-mcp/
 
 # Captures d'écran et notes de session d'audit — jamais versionnées.
-# Le vrai code/doc du projet vit dans frontend/ backend/ docs/ qa/ — jamais
-# à la racine. Seuls README.md et .gitignore sont des fichiers racine suivis.
+# Regroupées sous audits/ pour garder la racine propre ; le vrai code/doc du
+# projet vit dans frontend/ backend/ docs/ qa/. Seuls README.md et .gitignore
+# sont des fichiers racine suivis.
+audits/
 /*.png
 /*.md
 !/README.md

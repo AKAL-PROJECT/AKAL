@@ -8,11 +8,11 @@ import BadgeStatut from "./BadgeStatut";
 import ScoreBar from "./ScoreBar";
 import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
+import BoutonWhatsapp from "./BoutonWhatsapp";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { ContactVendeurPanel } from "@/components/messaging/ContactVendeurPanel";
 import { BanniereDemo } from "@/components/BanniereDemo";
-import { obtenirLienWhatsappAction } from "@/app/actions/whatsapp";
 import { useFavorisIds } from "@/hooks/useFavorisIds";
 import { useComparateur } from "@/hooks/useComparateur";
 import { COMPARATEUR_MAX } from "./comparateurStorage";
@@ -30,7 +30,6 @@ import {
   BarChart,
   Leaf,
   ArrowRight,
-  WhatsAppIcon,
 } from "@/components/icons/Icons";
 import { AGRISCORE_ACTIF } from "@/config/features";
 
@@ -105,35 +104,6 @@ export default function FicheParcelle({
       setIsContactPanelOpen(true);
     } else {
       router.push(`/connexion?next=/parcelles/${a.slug}?contact=1`);
-    }
-  };
-
-  // Contact WhatsApp (hardening 2026-08-30) — le lien wa.me (qui contient le
-  // numéro du vendeur) n'est plus dans le DTO public : on le demande à la
-  // volée via une action authentifiée. `estConnecte` gate le clic côté
-  // client (même motif que « Contacter le vendeur » ci-dessus) ; l'action
-  // reste une seconde barrière côté serveur.
-  const [whatsappPending, setWhatsappPending] = useState(false);
-  const [whatsappErreur, setWhatsappErreur] = useState<string | null>(null);
-
-  const handleWhatsappClick = async () => {
-    if (!estConnecte) {
-      router.push(`/connexion?next=/parcelles/${a.slug}`);
-      return;
-    }
-    setWhatsappErreur(null);
-    setWhatsappPending(true);
-    try {
-      const lien = await obtenirLienWhatsappAction(a.id, `/parcelles/${a.slug}`);
-      if (lien) {
-        window.open(lien, "_blank", "noopener,noreferrer");
-      } else {
-        setWhatsappErreur("Le numéro WhatsApp de ce vendeur n'est pas exploitable.");
-      }
-    } catch {
-      setWhatsappErreur("Impossible d'ouvrir WhatsApp pour le moment. Réessayez.");
-    } finally {
-      setWhatsappPending(false);
     }
   };
 
@@ -439,78 +409,17 @@ export default function FicheParcelle({
               </p>
 
               {/* Contact WhatsApp — second canal, en plus de la messagerie
-                  interne ci-dessus. Le numéro n'existe nulle part côté front :
-                  `whatsappDisponible` dit seulement si le vendeur en a un ;
-                  le lien wa.me est demandé au clic via une action authentifiée
-                  (obtenirLienWhatsappAction → GET /api/annonces/<id>/whatsapp/).
-                  Sans numéro : bouton visible mais désactivé, message explicite,
-                  plutôt que de disparaître silencieusement. */}
-              {a.whatsappDisponible ? (
-                <div>
-                  <button
-                    type="button"
-                    onClick={handleWhatsappClick}
-                    disabled={whatsappPending}
-                    className="akal-focusable"
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      padding: "10px",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid #25D366",
-                      backgroundColor: "#25D366",
-                      color: "white",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      cursor: whatsappPending ? "wait" : "pointer",
-                      opacity: whatsappPending ? 0.7 : 1,
-                      transition: "opacity 200ms ease",
-                    }}
-                  >
-                    <WhatsAppIcon size={16} />
-                    {whatsappPending ? "Ouverture…" : "Contacter via WhatsApp"}
-                  </button>
-                  {whatsappErreur && (
-                    <p role="alert" style={{ fontSize: "12px", color: "var(--color-terre-texte)", textAlign: "center", margin: "6px 0 0" }}>
-                      {whatsappErreur}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <button
-                    type="button"
-                    disabled
-                    aria-disabled="true"
-                    title="Ce vendeur n'a pas renseigné de numéro WhatsApp"
-                    className="akal-focusable"
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      padding: "10px",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--color-bordure)",
-                      backgroundColor: "transparent",
-                      color: "var(--color-tertiaire)",
-                      fontSize: "14px",
-                      cursor: "not-allowed",
-                      opacity: 0.55,
-                    }}
-                  >
-                    <WhatsAppIcon size={16} />
-                    Contacter via WhatsApp
-                  </button>
-                  <p style={{ fontSize: "12px", color: "var(--color-tertiaire)", textAlign: "center", margin: "6px 0 0" }}>
-                    Ce vendeur n&apos;a pas renseigné de numéro WhatsApp.
-                  </p>
-                </div>
-              )}
+                  interne ci-dessus. Le numéro n'existe nulle part côté front
+                  (cf. BoutonWhatsapp) : `whatsappDisponible` dit seulement si
+                  le vendeur en a un, le lien wa.me est demandé au clic via une
+                  action authentifiée. */}
+              <BoutonWhatsapp
+                variant="full"
+                disponible={a.whatsappDisponible}
+                annonceId={a.id}
+                slug={a.slug}
+                estConnecte={estConnecte}
+              />
                 </>
               )}
             </div>
@@ -661,61 +570,15 @@ export default function FicheParcelle({
         >
           Contacter
         </button>
-        {/* Version compacte (icône seule) du bouton WhatsApp — même logique
-            que la colonne desktop (handleWhatsappClick), juste une largeur
-            fixe pour laisser la priorité visuelle à "Contacter" dans une
-            barre déjà à l'étroit sur mobile. */}
-        {a.whatsappDisponible ? (
-          <button
-            type="button"
-            onClick={handleWhatsappClick}
-            disabled={whatsappPending}
-            aria-label="Contacter via WhatsApp"
-            title="Contacter via WhatsApp"
-            className="akal-focusable"
-            style={{
-              flexShrink: 0,
-              width: "44px",
-              height: "44px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "var(--radius-sm)",
-              border: "none",
-              backgroundColor: "#25D366",
-              color: "white",
-              cursor: whatsappPending ? "wait" : "pointer",
-              opacity: whatsappPending ? 0.7 : 1,
-            }}
-          >
-            <WhatsAppIcon size={20} />
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            aria-label="Contacter via WhatsApp"
-            title="Ce vendeur n'a pas renseigné de numéro WhatsApp"
-            className="akal-focusable"
-            style={{
-              flexShrink: 0,
-              width: "44px",
-              height: "44px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--color-bordure)",
-              backgroundColor: "transparent",
-              color: "var(--color-tertiaire)",
-              cursor: "not-allowed",
-              opacity: 0.55,
-            }}
-          >
-            <WhatsAppIcon size={20} />
-          </button>
-        )}
+        {/* Version compacte (icône seule) — largeur fixe pour laisser la
+            priorité visuelle à "Contacter" dans une barre déjà à l'étroit. */}
+        <BoutonWhatsapp
+          variant="compact"
+          disponible={a.whatsappDisponible}
+          annonceId={a.id}
+          slug={a.slug}
+          estConnecte={estConnecte}
+        />
           </>
         )}
       </div>
