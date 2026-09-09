@@ -98,7 +98,9 @@ services:
 
       # ── Stockage média (django-storages, S3-compatible) ───────────────
       # Sans ces variables, S3Storage part avec des identifiants vides et
-      # TOUT upload de photo/avatar échoue. Bucket public en lecture (§4.7).
+      # TOUT upload de photo/avatar échoue. Bucket public en LECTURE seule.
+      # Runbook pas à pas (Cloudflare R2, offre gratuite) :
+      #   docs/DEPLOIEMENT_MEDIA.md
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
@@ -106,11 +108,16 @@ services:
       - key: AWS_STORAGE_BUCKET_NAME
         value: akal-media
       - key: AWS_S3_ENDPOINT_URL
-        sync: false        # ex. https://<account>.r2.cloudflarestorage.com
+        sync: false        # R2 : https://<account_id>.r2.cloudflarestorage.com
       - key: AWS_S3_REGION_NAME
-        sync: false        # ex. "auto" (Cloudflare R2), "us-east-1", "eu-central-003" (B2)…
+        value: auto        # R2 = "auto" ; B2 = "eu-central-003"… ; AWS = "eu-west-3"…
       - key: AWS_S3_CUSTOM_DOMAIN
-        sync: false        # domaine/CDN public devant le bucket (ex. media.akal.ma) — jamais l'API
+        sync: false        # domaine PUBLIC du bucket, SANS protocole ni chemin.
+                           # R2 : le sous-domaine r2.dev du bucket (Settings →
+                           # Public Development URL) ou un domaine custom.
+                           # Ex. "pub-abc123.r2.dev" ou "media.akal.ma".
+                           # DOIT être identique à NEXT_PUBLIC_MEDIA_HOSTNAME
+                           # côté akal-frontend.
 
       # ── E-mail transactionnel (reset mdp, alertes de recherche) ───────
       # EMAIL_HOST vide → backend console (e-mails dans les logs). Renseigner
@@ -186,6 +193,13 @@ services:
       # Jamais "true" en prod (le build échoue par garde-fou, next.config.ts).
       - key: NEXT_PUBLIC_USE_MOCKS
         value: "false"
+
+      # Domaine public du bucket média — next/image refuse toute image d'un
+      # hôte non listé. DOIT être identique à AWS_S3_CUSTOM_DOMAIN côté
+      # akal-backend (juste le hostname). Sans ça : upload OK mais photos
+      # cassées à l'affichage. Utilisée AU BUILD (inlinée dans next.config.ts).
+      - key: NEXT_PUBLIC_MEDIA_HOSTNAME
+        sync: false        # ex. "pub-abc123.r2.dev" ou "media.akal.ma"
 
       # Google Sign-In — même valeur que GOOGLE_CLIENT_ID du backend.
       - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID

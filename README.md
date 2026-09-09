@@ -97,7 +97,7 @@ vers `main` (PostGIS + Redis + MinIO provisionnés, backend démarré pour le bu
 
 ## Déploiement
 
-`backend/render.yaml` est un **blueprint Render de toute la pile** :
+`render.yaml` (racine du dépôt) est un **blueprint Render de toute la pile** :
 
 ```
 akal-frontend (Next.js)  →  akal-backend (Django/DRF)  →  akal-db (PostgreSQL + PostGIS)
@@ -105,12 +105,14 @@ akal-frontend (Next.js)  →  akal-backend (Django/DRF)  →  akal-db (PostgreSQ
                                                         →  S3 externe (médias)
 ```
 
-1. **S3** : Render ne fournit pas d'object storage — créer un bucket compatible
-   S3 (Cloudflare R2 / Backblaze B2, offre gratuite) ou un MinIO auto-hébergé.
+1. **Stockage média** : Render ne fournit pas d'object storage — créer un
+   bucket S3-compatible (Cloudflare R2, offre gratuite). Procédure pas à
+   pas : [`docs/DEPLOIEMENT_MEDIA.md`](docs/DEPLOIEMENT_MEDIA.md).
 2. **Render → New → Blueprint**, pointer sur ce dépôt. Les 4 composants sont créés.
 3. Renseigner les variables `sync: false` de chaque service dans son onglet
    *Environment* (secrets + URLs connues seulement après le 1er déploiement :
-   `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`…).
+   `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, les `AWS_*`
+   + `NEXT_PUBLIC_MEDIA_HOSTNAME`…).
 4. Auth téléphone : déposer `firebase-service-account.json` dans
    *akal-backend → Environment → Secret Files* (`/app/firebase-service-account.json`).
 
