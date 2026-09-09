@@ -11,7 +11,6 @@ Dépendances:
 """
 
 import os
-import random
 from decimal import Decimal
 from io import BytesIO
 
@@ -24,7 +23,7 @@ from django.utils import timezone
 
 from accounts.models import User
 from geo.models import Region, Province, Commune
-from annonces.models import Parcelle, Annonce, AgriScore, Photo
+from annonces.models import Parcelle, Annonce, Photo
 
 
 # ══════════════════════════════════════════════════════════════
@@ -615,7 +614,7 @@ class Command(BaseCommand):
         # Étape 3: Utilisateurs de test
         users = self._create_test_users()
 
-        # Étape 4: Parcelles, Annonces, Photos, AgriScores
+        # Étape 4: Parcelles, Annonces, Photos
         self._create_parcelles_and_annonces(commune_map, users)
 
         # Résumé final
@@ -626,7 +625,6 @@ class Command(BaseCommand):
             f'\n   Parcelles  : {Parcelle.objects.count()}'
             f'\n   Annonces   : {Annonce.objects.count()}'
             f'\n   Photos     : {Photo.objects.count()}'
-            f'\n   AgriScores : {AgriScore.objects.count()}'
             f'\n   Vendeurs   : {User.objects.filter(email__endswith="@akal.ma").exclude(email="admin@akal.ma").count()}'
             f'\n   Communes   : {Commune.objects.count()}'
             f'\n   ==========================================\n'
@@ -645,10 +643,10 @@ class Command(BaseCommand):
         seed_annonces = Annonce.objects.filter(proprietaire__email__in=seed_emails)
         parcelle_ids = list(seed_annonces.values_list('parcelle_id', flat=True))
 
-        # Supprimer les parcelles (cascade → annonces → photos + agriscore)
+        # Supprimer les parcelles (cascade → annonces → photos)
         if parcelle_ids:
             deleted = Parcelle.objects.filter(id__in=parcelle_ids).delete()
-            self.stdout.write(f'   -> Supprime : {deleted[0]} objets (parcelles + annonces + photos + scores)')
+            self.stdout.write(f'   -> Supprime : {deleted[0]} objets (parcelles + annonces + photos)')
         else:
             self.stdout.write('   -> Aucune donnee seed a nettoyer')
 
@@ -726,7 +724,7 @@ class Command(BaseCommand):
     # ──────────────────────────────────────────────
 
     def _create_parcelles_and_annonces(self, commune_map, users):
-        """Créer les 18 parcelles avec annonces, photos et AgriScores."""
+        """Créer les 18 parcelles avec annonces et photos."""
         self.stdout.write('\n[4/4] Creation des parcelles et annonces...')
 
         # Préparer le répertoire de cache des images seed
@@ -783,27 +781,10 @@ class Command(BaseCommand):
                 filename = f'agricole_p{idx:02d}_img{photo_idx + 1}.jpg'
                 photo.image.save(filename, ContentFile(image_data), save=True)
 
-            # ── Créer l'AgriScore ──
-            score = round(random.uniform(40.0, 95.0), 1)
-            AgriScore.objects.create(
-                parcelle=parcelle,
-                score_global=score,
-                sous_scores={
-                    'sol': round(random.uniform(30.0, 100.0), 1),
-                    'eau': round(random.uniform(20.0, 100.0), 1),
-                    'climat': round(random.uniform(40.0, 100.0), 1),
-                    'accessibilite': round(random.uniform(30.0, 100.0), 1),
-                },
-                indice_confiance=round(random.uniform(0.5, 0.95), 2),
-                version_ponderation='v1.0-seed',
-                calculated_at=timezone.now(),
-            )
-
-            status = '[++]' if score >= 70 else '[+ ]' if score >= 50 else '[--]'
             self.stdout.write(
-                f'   {idx:2d}/18 | {status} {data["titre"][:40]:<40} | '
+                f'   {idx:2d}/18 | {data["titre"][:40]:<40} | '
                 f'{data["surface"]:>6} ha | {Decimal(data["prix"]):>12,.0f} MAD | '
-                f'{data["num_photos"]} photos | Score: {score}'
+                f'{data["num_photos"]} photos'
             )
 
     # ──────────────────────────────────────────────

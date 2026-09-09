@@ -10,8 +10,8 @@ Particularités (conformes au PDF Amelioration I-4) :
     - Régions variées, statuts fonciers variés
     - Une annonce SANS photo (test du cas photo_principale=null)
     - Photos avec ordre commençant à 0 (photo principale = ordre 0)
-    - Ne sème plus de lignes annonces.AgriScore (modèle legacy retiré de
-      l'API) — la vraie évaluation est le Passeport (app agriscore).
+    - Aucun score semé : le modèle legacy annonces.AgriScore a été supprimé
+      (2026-09-09) — la vraie évaluation est le Passeport (app agriscore/).
 """
 
 import os
@@ -89,7 +89,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'melkia', 'acces_eau': 'irriguee',
         'topographie': 'plat', 'acces_routier': 'goudron',
         'cultures': ['Blé', 'Olivier'], 'lat': 33.89, 'lon': -5.55,
-        'has_agriscore': True, 'score': 82.5, 'sous_scores': {'sol': 85, 'eau': 90, 'climat': 75, 'acces': 80},
         'nb_photos': 3,
         # Cas de démo « localisation confidentielle » : fiche/carte publiques
         # ne montrent qu'une position floutée déterministe (cf. serializers.py).
@@ -104,7 +103,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'immatricule', 'acces_eau': 'irriguee',
         'topographie': 'plat', 'acces_routier': 'goudron',
         'cultures': ['Olivier'], 'lat': 31.50, 'lon': -7.85,
-        'has_agriscore': True, 'score': 91.0, 'sous_scores': {'sol': 88, 'eau': 95, 'climat': 90, 'acces': 92},
         'nb_photos': 3,
     },
     {
@@ -116,7 +114,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'melkia', 'acces_eau': 'irriguee',
         'topographie': 'plat', 'acces_routier': 'goudron',
         'cultures': ['Agrumes', 'Maraîchage'], 'lat': 30.40, 'lon': -9.00,
-        'has_agriscore': True, 'score': 88.0, 'sous_scores': {'sol': 82, 'eau': 92, 'climat': 88, 'acces': 90},
         'nb_photos': 2,
     },
     {
@@ -129,7 +126,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'soulaliya', 'acces_eau': 'irriguee',
         'topographie': 'plat', 'acces_routier': 'piste',
         'cultures': ['Maraîchage', 'Fourrage'], 'lat': 34.26, 'lon': -6.58,
-        'has_agriscore': True, 'score': 76.0, 'sous_scores': {'sol': 90, 'eau': 85, 'climat': 70, 'acces': 60},
         'nb_photos': 2,
     },
     {
@@ -141,7 +137,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'guich', 'acces_eau': 'bour',
         'topographie': 'vallonne', 'acces_routier': 'piste',
         'cultures': ['Blé', 'Fourrage'], 'lat': 34.23, 'lon': -5.71,
-        'has_agriscore': False,  # ← Pas d'AgriScore (test cas null)
         'nb_photos': 2,
     },
     {
@@ -154,7 +149,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'immatricule', 'acces_eau': 'mixte',
         'topographie': 'pentu', 'acces_routier': 'goudron',
         'cultures': ['Olivier', 'Amandier'], 'lat': 32.34, 'lon': -6.36,
-        'has_agriscore': True, 'score': 85.0, 'sous_scores': {'sol': 80, 'eau': 78, 'climat': 88, 'acces': 95},
         'nb_photos': 3,
     },
     {
@@ -166,7 +160,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'habous', 'acces_eau': 'bour',
         'topographie': 'vallonne', 'acces_routier': 'piste',
         'cultures': ['Blé', 'Vigne'], 'lat': 34.03, 'lon': -5.00,
-        'has_agriscore': False,  # ← Pas d'AgriScore (test cas null)
         'nb_photos': 1,
     },
     {
@@ -179,7 +172,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'melkia', 'acces_eau': 'irriguee',
         'topographie': 'plat', 'acces_routier': 'goudron',
         'cultures': ['Palmier dattier'], 'lat': 31.93, 'lon': -4.43,
-        'has_agriscore': True, 'score': 78.0, 'sous_scores': {'sol': 65, 'eau': 80, 'climat': 82, 'acces': 85},
         'nb_photos': 2,
     },
     {
@@ -191,7 +183,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'soulaliya', 'acces_eau': 'bour',
         'topographie': 'pentu', 'acces_routier': 'piste',
         'cultures': ['Arganier'], 'lat': 30.42, 'lon': -9.48,
-        'has_agriscore': True, 'score': 72.0, 'sous_scores': {'sol': 70, 'eau': 55, 'climat': 85, 'acces': 78},
         'nb_photos': 2,
     },
     {
@@ -203,7 +194,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'immatricule', 'acces_eau': 'irriguee',
         'topographie': 'plat', 'acces_routier': 'goudron',
         'cultures': ['Blé', 'Maraîchage', 'Fourrage'], 'lat': 32.05, 'lon': -7.41,
-        'has_agriscore': True, 'score': 94.0, 'sous_scores': {'sol': 92, 'eau': 96, 'climat': 90, 'acces': 98},
         'nb_photos': 3,
     },
     {
@@ -215,7 +205,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'melkia', 'acces_eau': 'irriguee',
         'topographie': 'plat', 'acces_routier': 'goudron',
         'cultures': ['Maraîchage'], 'lat': 34.27, 'lon': -6.57,
-        'has_agriscore': True, 'score': 86.0, 'sous_scores': {'sol': 88, 'eau': 90, 'climat': 80, 'acces': 86},
         'nb_photos': 2,
     },
     {
@@ -227,7 +216,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'melkia', 'acces_eau': 'mixte',
         'topographie': 'pentu', 'acces_routier': 'goudron',
         'cultures': ['Vigne'], 'lat': 33.69, 'lon': -5.37,
-        'has_agriscore': False,  # ← Pas d'AgriScore (test cas null)
         'nb_photos': 2,
     },
     {
@@ -239,7 +227,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'guich', 'acces_eau': 'mixte',
         'topographie': 'pentu', 'acces_routier': 'difficile',
         'cultures': ['Fourrage', 'Cactus'], 'lat': 32.93, 'lon': -5.67,
-        'has_agriscore': True, 'score': 45.0, 'sous_scores': {'sol': 50, 'eau': 40, 'climat': 55, 'acces': 35},
         'nb_photos': 1,
     },
     {
@@ -251,7 +238,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'melkia', 'acces_eau': 'irriguee',
         'topographie': 'plat', 'acces_routier': 'goudron',
         'cultures': ['Maraîchage', 'Palmier dattier'], 'lat': 30.92, 'lon': -6.90,
-        'has_agriscore': True, 'score': 80.0, 'sous_scores': {'sol': 72, 'eau': 85, 'climat': 78, 'acces': 85},
         'nb_photos': 0,  # ← PAS DE PHOTO (test du cas photo_principale=null)
     },
     {
@@ -263,7 +249,6 @@ DEMO_ANNONCES = [
         'statut_foncier': 'melkia', 'acces_eau': 'bour',
         'topographie': 'plat', 'acces_routier': 'piste',
         'cultures': ['Blé'], 'lat': 33.95, 'lon': -5.22,
-        'has_agriscore': True, 'score': 68.0, 'sous_scores': {'sol': 75, 'eau': 45, 'climat': 72, 'acces': 80},
         'nb_photos': 2,
     },
 ]
@@ -278,7 +263,7 @@ SEED_USERS = [
 class Command(BaseCommand):
     help = (
         'Génère ~15 annonces réalistes pour la démo d\'intégration front/back. '
-        'Régions variées, statuts variés, certaines sans AgriScore, une sans photo.'
+        'Régions variées, statuts variés, une sans photo.'
     )
 
     def add_arguments(self, parser):
@@ -409,14 +394,9 @@ class Command(BaseCommand):
                 loc_confidentielle=data.get('loc_confidentielle', False),
             )
 
-            # AgriScore : le modèle legacy annonces.AgriScore n'est plus
-            # exposé (retiré de l'API le 2026-08-30) et n'était alimenté que
-            # par des random.uniform() — présenter du hasard comme une mesure.
-            # La vraie évaluation est le Passeport (app agriscore, calcul en
-            # direct sur sources ouvertes). On ne sème donc plus de lignes
-            # AgriScore ; les clés `has_agriscore`/`score`/`sous_scores` de
-            # DEMO_ANNONCES sont conservées uniquement pour l'affichage du
-            # bilan ci-dessous (« sans AgriScore » = variété du jeu de démo).
+            # Pas de score semé : le modèle legacy annonces.AgriScore a été
+            # supprimé (2026-09-09). La vraie évaluation est le Passeport
+            # (app agriscore/), calculée en direct, jamais stockée.
 
             # Photos (si nb_photos > 0)
             nb_photos = data.get('nb_photos', 0)
@@ -434,12 +414,7 @@ class Command(BaseCommand):
                     save=True,
                 )
 
-            status = []
-            if not data.get('has_agriscore'):
-                status.append('sans AgriScore')
-            if nb_photos == 0:
-                status.append('sans photo')
-            extra = f" ({', '.join(status)})" if status else ""
+            extra = " (sans photo)" if nb_photos == 0 else ""
 
             self.stdout.write(f'   [{i+1}/{len(DEMO_ANNONCES)}] {data["titre"]}{extra}')
 

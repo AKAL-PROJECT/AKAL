@@ -225,7 +225,7 @@ class FavoriListAPIView(generics.ListAPIView):
                 'annonce__parcelle__commune__province', 'annonce__parcelle__commune__province__region',
                 'annonce__proprietaire',
             )
-            .prefetch_related('annonce__photos', 'annonce__parcelle__scores')
+            .prefetch_related('annonce__photos')
         )
 
 
