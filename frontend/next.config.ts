@@ -18,8 +18,19 @@ const composeMinio = process.env.MEDIA_ALLOW_LOCALHOST === "true";
 // Autorise next/image à charger les médias depuis un MinIO local en
 // http://localhost:9000. Vrai en dev (next dev tourne sur l'hôte, qui atteint
 // MinIO) ou dans le profil compose. Jamais sur un déploiement réel, où les
-// médias sont derrière media.akal.ma en https.
+// médias sont derrière un domaine public https (cf. mediaHostnames).
 const mediaLocalhost = isDev || composeMinio;
+
+// Domaine(s) public(s) du bucket média, à autoriser pour next/image. DOIT
+// correspondre à AWS_S3_CUSTOM_DOMAIN du backend (juste le hostname, sans
+// protocole ni chemin). Renseigné au déploiement (NEXT_PUBLIC_MEDIA_HOSTNAME,
+// cf. render.yaml) : le domaine public d'un bucket R2/B2/CDN n'est connu
+// qu'après sa création. Défaut `media.akal.ma` (exemple du contrat §4.7).
+// Plusieurs valeurs possibles, séparées par des virgules.
+const mediaHostnames = (process.env.NEXT_PUBLIC_MEDIA_HOSTNAME || "media.akal.ma")
+  .split(",")
+  .map((h) => h.trim())
+  .filter(Boolean);
 
 // Garde de build (audit du 2026-07-30) : les mocks du catalogue ne doivent
 // jamais atteindre la production — si NEXT_PUBLIC_USE_MOCKS="true" survit
@@ -48,10 +59,10 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       // Mock data du catalogue (photos Unsplash) — à retirer avec les mocks.
       { protocol: "https", hostname: "images.unsplash.com" },
-      // Bucket MinIO public en lecture (contrat v1.1 §4.7) — URLs absolues,
-      // jamais de préfixe concaténé côté front. Domaine d'après l'exemple du
-      // contrat (media.akal.ma) ; à ajuster si Ibrahim confirme un autre host/CDN.
-      { protocol: "https", hostname: "media.akal.ma" },
+      // Domaine(s) public(s) du bucket média (S3-compatible : R2 / B2 / CDN).
+      // URLs absolues construites par django-storages, jamais de préfixe
+      // concaténé côté front. Configurable au déploiement (cf. mediaHostnames).
+      ...mediaHostnames.map((hostname) => ({ protocol: "https" as const, hostname })),
       // MinIO local — en dev, AWS_S3_CUSTOM_DOMAIN est vide (cf.
       // backend/.env.example) et les URLs de photo pointent directement vers
       // l'endpoint MinIO ; en docker-compose full-stack, elles pointent vers

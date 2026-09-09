@@ -25,6 +25,10 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ARG NEXT_PUBLIC_USE_MOCKS=false
+# Hostname du domaine public du bucket média (next/image allowlist). Vide →
+# next.config.ts retombe sur `media.akal.ma`. Doit matcher AWS_S3_CUSTOM_DOMAIN
+# du backend. Sans objet pour le docker-compose (médias en localhost:9000).
+ARG NEXT_PUBLIC_MEDIA_HOSTNAME=
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 ARG NEXT_PUBLIC_SENTRY_DSN=
 ARG NEXT_PUBLIC_FIREBASE_API_KEY=
@@ -40,6 +44,7 @@ ARG NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
 # docker-compose full-stack uniquement.
 ARG MEDIA_ALLOW_LOCALHOST=false
 ENV MEDIA_ALLOW_LOCALHOST=$MEDIA_ALLOW_LOCALHOST \
+    NEXT_PUBLIC_MEDIA_HOSTNAME=$NEXT_PUBLIC_MEDIA_HOSTNAME \
     NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_PUBLIC_USE_MOCKS=$NEXT_PUBLIC_USE_MOCKS \
