@@ -3,7 +3,7 @@ from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import Parcelle, Annonce, AgriScore, Photo, DonneesGeo, RechercheSauvegardee, StatistiqueAnnonce
+from .models import Parcelle, Annonce, Photo, DonneesGeo, RechercheSauvegardee, StatistiqueAnnonce
 from .transitions import transition_autorisee
 
 
@@ -119,12 +119,6 @@ class AnnonceAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             return super().get_readonly_fields(request, obj)
         return super().get_readonly_fields(request, obj) + ('statut',)
-
-
-@admin.register(AgriScore)
-class AgriScoreAdmin(admin.ModelAdmin):
-    list_display = ('parcelle', 'score_global', 'indice_confiance', 'version_ponderation', 'calculated_at')
-    list_filter = ('version_ponderation',)
 
 
 @admin.register(Photo)

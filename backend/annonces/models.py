@@ -324,31 +324,11 @@ class StatistiqueAnnonce(models.Model):
         return f"{self.annonce} — {self.date} — {self.vues} vues"
 
 
-# ──────────────────────────────────────────────
-# AGRISCORE — Évaluation de la parcelle
-# ──────────────────────────────────────────────
-
-class AgriScore(models.Model):
-    """Score agricole calculé pour une parcelle."""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    parcelle = models.ForeignKey(
-        Parcelle, on_delete=models.CASCADE, related_name='scores'
-    )
-    score_global = models.FloatField(blank=True, null=True)
-    sous_scores = models.JSONField(blank=True, null=True)
-    indice_confiance = models.FloatField(blank=True, null=True)
-    version_ponderation = models.CharField(max_length=50)
-    calculated_at = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'agriscore'
-        verbose_name = 'AgriScore'
-        verbose_name_plural = 'AgriScores'
-
-    def __str__(self):
-        return f"AgriScore {self.parcelle} — {self.score_global}"
+# Le modèle AgriScore legacy (score /100 stocké sur la parcelle) a été retiré
+# le 2026-09-09 : il était dormant depuis le 2026-08-30 (sorti de l'API
+# publique) et le pipeline actuel — app `agriscore/`, endpoint
+# /api/parcelles/<id>/passeport/ — calcule le Passeport à la volée sans rien
+# persister. Migration 0013_delete_agriscore.
 
 
 # ──────────────────────────────────────────────

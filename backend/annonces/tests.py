@@ -28,7 +28,7 @@ from messaging.models import Conversation, Favori, Message, Notification
 from . import transitions
 from .admin import publier_selection, rejeter_selection
 from .alertes import notifier_recherches_correspondantes
-from .models import AgriScore, Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
+from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
 from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
 ANNONCES_URL = '/api/annonces/'
@@ -2391,64 +2391,6 @@ class MessageWhatsAppTests(AnnoncesTestBase):
         self.assertIn('**', data['proprietaire']['telephone_masque'])
 
 
-# ──────────────────────────────────────────────
-# AgriScore — RETIRÉ de l'API publique (hardening 2026-08-30)
-# ──────────────────────────────────────────────
-
-class AgriScoreAbsentDeLAPITests(AnnoncesTestBase):
-    """
-    Le modèle AgriScore reste en base, mais l'API publique ne doit plus
-    exposer `score_courant` / `indice_confiance` / `version_ponderation` :
-    les seules valeurs jamais produites étaient des random.uniform() de seed,
-    pas un résultat calculé.
-    """
-
-    def _annonce_en_ligne_avec_score(self):
-        from .models import AgriScore
-        parcelle = Parcelle.objects.create(
-            commune=self.commune, commune_geom=self.commune_geom, surface_ha=3.0,
-            statut_foncier='melkia', acces_eau='irriguee', topographie='plat',
-            acces_routier='goudron', latitude=33.5, longitude=-5.5,
-        )
-        annonce = Annonce.objects.create(
-            parcelle=parcelle,
-            proprietaire=User.objects.create_user(
-                email='v-score@akal.ma', password='un-mot-de-passe-solide-2026',
-                nom='S', prenom='C',
-            ),
-            titre='Parcelle avec score', description='Description suffisamment longue.',
-            prix_mad=200000, statut=Annonce.StatutAnnonce.EN_LIGNE,
-        )
-        AgriScore.objects.create(
-            parcelle=parcelle, score_global=87.3,
-            sous_scores={'sol': 90}, indice_confiance=0.91, version_ponderation='v1.0-seed',
-        )
-        return annonce
-
-    def test_detail_public_nexpose_aucun_champ_agriscore(self):
-        annonce = self._annonce_en_ligne_avec_score()
-
-        response = self.client.get(f'{ANNONCES_URL}{annonce.slug}/')
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for champ in ('score_courant', 'indice_confiance', 'version_ponderation'):
-            self.assertNotIn(champ, response.data)
-        import json
-        corps = json.dumps(response.data, default=str)
-        self.assertNotIn('v1.0-seed', corps)
-        self.assertNotIn('indice_confiance', corps)
-
-    def test_liste_publique_nexpose_aucun_champ_agriscore(self):
-        self._annonce_en_ligne_avec_score()
-
-        response = self.client.get(ANNONCES_URL)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['results'])
-        for annonce_data in response.data['results']:
-            self.assertNotIn('score_courant', annonce_data)
-
-
 class SourceAnnonceDansLAPITests(AnnoncesTestBase):
     """La fiche expose `source` et `source_url` — le front s'en sert pour
     masquer la messagerie/WhatsApp AKAL sur une annonce importée et renvoyer
@@ -2768,8 +2710,6 @@ class NettoyerBaseDemoTests(APITestCase):
         )
         # Parcelle orpheline (supprimée)
         self.orpheline = Parcelle.objects.create(surface_ha=Decimal('1'))
-        # AgriScore legacy (supprimé)
-        AgriScore.objects.create(parcelle=pd, version_ponderation='v1.0')
 
     def test_supprime_les_residus_mais_pas_le_scrape_ni_la_demo(self):
         call_command('nettoyer_base_demo')
@@ -2788,10 +2728,8 @@ class NettoyerBaseDemoTests(APITestCase):
         self.assertFalse(Annonce.objects.filter(pk=self.annonce_test.pk).exists())
         self.assertFalse(Parcelle.objects.filter(pk=self.orpheline.pk).exists())
         self.assertFalse(User.objects.filter(email='uat-truc-123@akal.ma').exists())
-        self.assertEqual(AgriScore.objects.count(), 0)
 
     def test_dry_run_n_ecrit_rien(self):
         call_command('nettoyer_base_demo', dry_run=True)
         self.assertTrue(Annonce.objects.filter(pk=self.annonce_test.pk).exists())
         self.assertTrue(Parcelle.objects.filter(pk=self.orpheline.pk).exists())
-        self.assertEqual(AgriScore.objects.count(), 1)

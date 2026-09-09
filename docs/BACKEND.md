@@ -114,7 +114,7 @@ AKAL/
 │   │   └── migrations/
 │   │
 │   ├── annonces/                     # 🏞️ Cœur métier
-│   │   ├── models.py                 # Parcelle, DonneesGeo, Annonce, StatistiqueAnnonce, AgriScore, Photo
+│   │   ├── models.py                 # Parcelle, DonneesGeo, Annonce, StatistiqueAnnonce, Photo
 │   │   ├── serializers.py            # 🆕 Serializers DRF (liste + détail)
 │   │   ├── api_views.py              # 🆕 Vues API REST (DRF)
 │   │   ├── api_urls.py               # 🆕 Routes API /api/annonces/
@@ -376,20 +376,13 @@ def save(self, *args, **kwargs):
 ```
 Le slug est composé du titre slugifié + les 8 premiers caractères de l'UUID, garantissant l'unicité.
 
-#### Modèle `AgriScore`
-**Table** : `agriscore`
+#### ~~Modèle `AgriScore`~~ *(supprimé le 2026-09-09, migration `0013_delete_agriscore`)*
 
-Score de qualité agricole calculé automatiquement pour chaque parcelle. Relation **ForeignKey** : une parcelle peut avoir plusieurs AgriScores (historisation), le plus récent est le score courant.
-
-| Champ | Type | Contraintes | Description |
-|---|---|---|---|
-| `id` | `UUIDField` | PK, auto | Identifiant unique |
-| `parcelle` | `ForeignKey → Parcelle` | NOT NULL, CASCADE | Parcelle évaluée |
-| `score_global` | `FloatField` | NULLABLE | Score global (0–100) |
-| `sous_scores` | `JSONField` | NULLABLE | Détail par critère (ex: `{"sol": 85, "eau": 72}`) |
-| `indice_confiance` | `FloatField` | NULLABLE | Fiabilité du score (0–1) |
-| `version_ponderation` | `CharField(50)` | NOT NULL | Version de la pondération de scoring |
-| `calculated_at` | `DateTimeField` | NULLABLE | Date du dernier calcul |
+Ancien score /100 stocké par parcelle. Dormant depuis le 2026-08-30 (sorti de
+l'API publique) puis retiré : il n'était alimenté que par des `random.uniform()`
+de seed. La vraie évaluation agronomique est le **Passeport**, calculé à la
+demande par l'app `agriscore/` — `GET /api/parcelles/<id>/passeport/`, 5
+dimensions issues de sources ouvertes, rien n'est persisté sur l'annonce.
 
 #### Modèle `Photo`
 **Table** : `photo`

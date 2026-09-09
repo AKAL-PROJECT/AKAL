@@ -75,21 +75,16 @@ class PhotoSerializer(serializers.ModelSerializer):
         return None
 
 
-# AgriScore — RETIRÉ de l'API publique (hardening pré-soutenance, 2026-08-30).
+# AgriScore — absent de l'API publique des annonces, volontairement.
 #
-# Le modèle AgriScore (annonces/models.py) et le composant front ScoreBar
-# restent en place, dormants (feature flag AGRISCORE_ACTIF=false côté front) :
-# la fonctionnalité reviendra quand un vrai moteur de calcul existera. En
-# attendant, les seules valeurs jamais produites étaient des random.uniform()
-# de seed — jamais un résultat calculé. Les exposer (même masquées dans l'UI)
-# via `score_courant` / `indice_confiance` / `version_ponderation` sur
-# GET /api/annonces/ et /api/annonces/<slug>/ revenait à présenter du hasard
-# comme une mesure. Les serializers AgriScoreListSerializer /
-# AgriScoreDetailSerializer et les SerializerMethodField `score_courant` ont
-# donc été supprimés d'AnnonceListSerializer / AnnonceDetailSerializer — pas
-# remplacés par un faux score constant, simplement absents du contrat public.
-# Réactivation : recréer un serializer nourri par un calcul réel, jamais par
-# un tirage aléatoire ni une constante.
+# `score_courant` / `indice_confiance` / `version_ponderation` ont été retirés
+# d'AnnonceListSerializer / AnnonceDetailSerializer le 2026-08-30 : les seules
+# valeurs jamais produites étaient des random.uniform() de seed, pas un
+# résultat calculé. Le modèle legacy annonces.AgriScore a ensuite été supprimé
+# (2026-09-09, migration 0013). Le vrai potentiel agronomique vit désormais
+# dans l'app `agriscore/` — GET /api/parcelles/<id>/passeport/, calculé à la
+# volée depuis des sources ouvertes, jamais stocké sur l'annonce. Le composant
+# front ScoreBar (catalogue) reste en place, masqué par AGRISCORE_ACTIF=false.
 
 
 class RegionNestedSerializer(serializers.Serializer):

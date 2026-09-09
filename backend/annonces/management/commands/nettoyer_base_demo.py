@@ -3,8 +3,7 @@ Management command : nettoyer_base_demo
 
 Ramène la base à un état « démo propre » : le jeu de démonstration interne
 (seed_demo) + le référentiel géo + les comptes essentiels, sans les résidus
-de développement — annonces de test, parcelles orphelines, comptes UAT,
-anciennes lignes AgriScore du modèle legacy.
+de développement — annonces de test, parcelles orphelines, comptes UAT.
 
 ╔══════════════════════════════════════════════════════════════════════════╗
 ║  NE TOUCHE JAMAIS aux données scrapées (source = avito / mubawab).       ║
@@ -32,7 +31,7 @@ from django.db import transaction
 from django.db.models import Count
 
 from accounts.models import User
-from annonces.models import AgriScore, Annonce, Parcelle
+from annonces.models import Annonce, Parcelle
 
 # Comptes du jeu de démonstration (cf. seed_demo.SEED_USERS) + comptes système
 # à ne jamais supprimer.
@@ -51,7 +50,7 @@ SOURCES_SCRAPEES = ['avito', 'mubawab']
 class Command(BaseCommand):
     help = (
         "Nettoie les résidus de dev (annonces de test, parcelles orphelines, "
-        "comptes UAT, AgriScore legacy). Ne touche JAMAIS aux données scrapées."
+        "comptes UAT). Ne touche JAMAIS aux données scrapées."
     )
 
     def add_arguments(self, parser):
@@ -82,7 +81,6 @@ class Command(BaseCommand):
         with transaction.atomic():
             n_annonces = self._supprimer_annonces_de_test(dry)
             n_parcelles = self._supprimer_parcelles_orphelines(dry)
-            n_agriscore = self._supprimer_agriscore_legacy(dry)
             n_users = self._supprimer_comptes_de_test(dry)
 
             if dry:
@@ -90,10 +88,9 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.MIGRATE_HEADING('\n== Bilan ==\n'))
         self.stdout.write(
-            f"annonces de test        : {n_annonces}\n"
-            f"parcelles orphelines    : {n_parcelles}\n"
-            f"lignes AgriScore legacy : {n_agriscore}\n"
-            f"comptes de test         : {n_users}"
+            f"annonces de test     : {n_annonces}\n"
+            f"parcelles orphelines : {n_parcelles}\n"
+            f"comptes de test      : {n_users}"
         )
 
         # Filet de sécurité : le scrapé doit être rigoureusement intact.
@@ -137,16 +134,7 @@ class Command(BaseCommand):
         n = qs.count()
         self.stdout.write(f"  {n} parcelle(s) orpheline(s)")
         if not dry:
-            qs.delete()  # cascade : donnees_geo, scores
-        return n
-
-    def _supprimer_agriscore_legacy(self, dry):
-        """Modèle annonces.AgriScore : dormant (retiré de l'API publique le
-        2026-08-30), alimenté seulement par des random.uniform() de seed."""
-        n = AgriScore.objects.count()
-        self.stdout.write(f"  {n} ligne(s) AgriScore (modèle legacy dormant)")
-        if not dry:
-            AgriScore.objects.all().delete()
+            qs.delete()  # cascade : donnees_geo
         return n
 
     def _supprimer_comptes_de_test(self, dry):
