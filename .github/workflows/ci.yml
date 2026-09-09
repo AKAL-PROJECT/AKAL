@@ -230,6 +230,22 @@ jobs:
           curl -fsS http://localhost:3000/ > /dev/null
           curl -fsS http://localhost:3000/parcelles > /dev/null
 
+      - name: Les photos s'affichent réellement (parcours catalogue → fiche)
+        run: |
+          # URL de photo d'une annonce seedée (django-storages → MinIO). Le
+          # segment /akal-media/ (bucket) doit être présent — sinon MinIO 404.
+          PHOTO=$(curl -fsS 'http://localhost:8000/api/annonces/?page_size=15' \
+            | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(a["photo_principale"] for a in d["results"] if a.get("photo_principale")))')
+          echo "photo: $PHOTO"
+          echo "$PHOTO" | grep -q '/akal-media/' || { echo "URL de photo sans segment bucket"; exit 1; }
+          # 1. la photo est servie en 200, en tant qu'image, par le bucket public
+          test "$(curl -fsS -o /dev/null -w '%{content_type}' "$PHOTO" | cut -d/ -f1)" = "image"
+          # 2. le HTML de la fiche référence bien cette URL (next/image en
+          #    passthrough non optimisé sur ce profil — cf. next.config.ts)
+          SLUG=$(curl -fsS 'http://localhost:8000/api/annonces/?page_size=15' \
+            | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(a["slug"] for a in d["results"] if a.get("photo_principale")))')
+          curl -fsS "http://localhost:3000/parcelles/$SLUG" | grep -q 'localhost:9000/akal-media/'
+
       - name: PostGIS actif, migrations à jour
         run: |
           docker compose exec -T backend python manage.py ensure_postgis

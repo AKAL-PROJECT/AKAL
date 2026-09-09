@@ -106,8 +106,12 @@ services:
       AWS_SECRET_ACCESS_KEY: akal12345
       AWS_STORAGE_BUCKET_NAME: akal-media
       # …mais les URLs publiques de photos doivent être joignables par le
-      # NAVIGATEUR → localhost:9000, en http (MinIO local sans TLS).
-      AWS_S3_CUSTOM_DOMAIN: localhost:9000
+      # NAVIGATEUR. Le domaine public pointe donc sur l'endpoint MinIO exposé
+      # sur l'hôte, bucket inclus : MinIO est en path-style (cf.
+      # AWS_S3_ADDRESSING_STYLE dans settings/base.py), l'URL publique doit
+      # être …/<bucket>/<clé>, pas …/<clé>. Sans le segment `/akal-media`,
+      # MinIO répond 404/403 (bucket introuvable).
+      AWS_S3_CUSTOM_DOMAIN: localhost:9000/akal-media
       AWS_S3_URL_PROTOCOL: "http:"
       AWS_S3_VERIFY: "False"
       FRONTEND_URL: http://localhost:3000
@@ -142,6 +146,11 @@ services:
         NEXT_PUBLIC_API_URL: http://localhost:8000/api
         NEXT_PUBLIC_SITE_URL: http://localhost:3000
         NEXT_PUBLIC_USE_MOCKS: "false"
+        # Ce profil sert les photos depuis un MinIO local en
+        # http://localhost:9000 (cf. AWS_S3_CUSTOM_DOMAIN du service backend) —
+        # next/image doit donc autoriser cet hôte dans ce build de prod.
+        # Jamais activé sur un vrai déploiement (médias derrière media.akal.ma).
+        MEDIA_ALLOW_LOCALHOST: "true"
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
         NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}

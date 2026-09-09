@@ -10,6 +10,17 @@ import { withSentryConfig } from "@sentry/nextjs";
 // les images.
 const isDev = process.env.NODE_ENV !== "production";
 
+// Profil docker-compose full-stack : les photos sont servies par un MinIO
+// local en http://localhost:9000/akal-media (cf. AWS_S3_CUSTOM_DOMAIN du
+// service backend). Signalé au build par MEDIA_ALLOW_LOCALHOST=true.
+const composeMinio = process.env.MEDIA_ALLOW_LOCALHOST === "true";
+
+// Autorise next/image à charger les médias depuis un MinIO local en
+// http://localhost:9000. Vrai en dev (next dev tourne sur l'hôte, qui atteint
+// MinIO) ou dans le profil compose. Jamais sur un déploiement réel, où les
+// médias sont derrière media.akal.ma en https.
+const mediaLocalhost = isDev || composeMinio;
+
 // Garde de build (audit du 2026-07-30) : les mocks du catalogue ne doivent
 // jamais atteindre la production — si NEXT_PUBLIC_USE_MOCKS="true" survit
 // jusqu'à un build de prod, c'est une erreur de configuration, pas un choix
@@ -41,15 +52,28 @@ const nextConfig: NextConfig = {
       // jamais de préfixe concaténé côté front. Domaine d'après l'exemple du
       // contrat (media.akal.ma) ; à ajuster si Ibrahim confirme un autre host/CDN.
       { protocol: "https", hostname: "media.akal.ma" },
-      // MinIO en dev local — AWS_S3_CUSTOM_DOMAIN est vide en dev (cf.
-      // backend/.env.example), les URLs de photo pointent donc directement
-      // vers l'endpoint MinIO, jamais vers Django (qui ne sert plus les
-      // médias depuis le passage à django-storages).
-      ...(isDev
+      // MinIO local — en dev, AWS_S3_CUSTOM_DOMAIN est vide (cf.
+      // backend/.env.example) et les URLs de photo pointent directement vers
+      // l'endpoint MinIO ; en docker-compose full-stack, elles pointent vers
+      // localhost:9000/akal-media. Dans les deux cas l'hôte à autoriser est
+      // localhost:9000. Jamais Django (qui ne sert plus les médias depuis le
+      // passage à django-storages).
+      ...(mediaLocalhost
         ? [{ protocol: "http" as const, hostname: "localhost", port: "9000", pathname: "/**" }]
         : []),
     ],
-    ...(isDev ? { dangerouslyAllowLocalIP: true } : {}),
+    // localhost résout vers une IP loopback : next/image la bloque par défaut
+    // (protection SSRF), même hôte autorisé ci-dessus. Levé uniquement quand on
+    // sert réellement depuis un MinIO local.
+    ...(mediaLocalhost ? { dangerouslyAllowLocalIP: true } : {}),
+    // Profil compose : l'optimiseur next/image tourne DANS le conteneur
+    // frontend, où `localhost:9000` ne pointe pas vers MinIO (le navigateur,
+    // lui, l'atteint via le mapping de port de l'hôte). On sert donc les
+    // images non optimisées — le navigateur charge l'URL MinIO directement.
+    // Aucun effet en dev (next dev tourne sur l'hôte) ni en prod
+    // (media.akal.ma, joignable des deux côtés). Les photos de démo sont des
+    // placeholders 800×600, l'optimisation n'apporterait rien ici.
+    ...(composeMinio ? { unoptimized: true } : {}),
   },
 };
 
