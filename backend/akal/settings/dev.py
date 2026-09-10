@@ -39,8 +39,9 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'ba
 # textes tiers, geoloc au centroide de commune, comptes bot). 'simulated'
 # montre quand meme toute annonce publiee localement via /publier
 # (source='interne') ; seul l'echantillon scrape est masque. Pour le voir en
-# local : `AKAL_DATASET=all ./manage.py runserver`. prod.py fige la meme
-# valeur en dur, non surchargeable.
+# local : `AKAL_DATASET=all ./manage.py runserver`. prod.py a le meme defaut
+# 'simulated', pilotable par variable d'env AKAL_DATASET sur le service Render
+# (2026-09-10 : defige, l'import scrape exige --force sous settings.prod).
 if 'test' not in sys.argv:
     AKAL_DATASET = env('AKAL_DATASET', default='simulated')
 
