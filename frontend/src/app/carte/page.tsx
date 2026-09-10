@@ -1,64 +1,159 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
+  FILTRES_INITIAUX,
+  filtresActifs,
+  filtresVersParams,
   getParcelles,
   getRegions,
   type BboxCarte,
+  type FiltresState,
   type ParcellesPage,
   type Region,
+  type Tri,
 } from "@/data/parcelles";
+import { fetchCommuneGeomDetail, fetchProvinceGeomBounds } from "@/lib/geo-api";
 import type { RegionActive } from "@/components/parcelles/CarteRegions";
-import { ChevronLeft } from "@/components/icons/Icons";
+import FiltresSidebar from "@/components/parcelles/FiltresSidebar";
+import TiroirResultats from "@/components/parcelles/carte/TiroirResultats";
+import FicheContactFlottante from "@/components/parcelles/carte/FicheContactFlottante";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { ChevronLeft, Filter } from "@/components/icons/Icons";
 
 // Chargement client uniquement — Leaflet touche `window` (même contrainte
-// que CarteParcelles.tsx). Importé directement (pas via CarteParcelles) :
-// ce composant impose une hauteur fixe de 500px + bordure/ombre pensées
-// pour une carte encastrée dans le catalogue, pas pour cette page plein
-// écran (edge-to-edge, cf. mise en page ci-dessous).
+// que CarteParcelles.tsx).
 const CarteLeaflet = dynamic(() => import("@/components/parcelles/CarteLeaflet"), {
   ssr: false,
   loading: () => (
-    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--color-menthe)", color: "var(--color-foret)", fontSize: "14px" }}>
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "var(--color-menthe)",
+        color: "var(--color-foret)",
+        fontSize: "14px",
+      }}
+    >
       Chargement de la carte…
     </div>
   ),
 });
 
-// Même limite que la vue carte du catalogue (TAILLE_CARTE, app/parcelles/page.tsx)
-// et que la carte de couverture de la Home — 50 = max_page_size côté
-// backend (annonces/api_views.py), au-delà seules les plus récentes
-// apparaissent pour un même filtre.
+// 50 = max_page_size côté backend (annonces/api_views.py) — même limite que
+// la vue carte du catalogue et la carte de couverture de la Home.
 const TAILLE_CARTE = 50;
+// Tri figé « plus récentes » au niveau de la requête ; le tri visible du
+// tiroir est géographique (distance au centre de la carte, calculé côté
+// client, cf. resultatsTries plus bas — design 1c).
+const TRI_CARTE: Tri = "recent";
 
-// Vue carte plein écran dédiée (19/08) — remplace, pour la navigation
-// principale, le renvoi vers /parcelles?vue=carte (toggle interne du
-// catalogue, toujours présent et inchangé par ailleurs) : pas de sidebar de
-// filtres ici, la carte occupe tout le viewport sous la Navbar. Sélection
-// de région et "Rechercher cette zone" restent les deux seules façons de
-// restreindre la recherche, directement sur la carte (cf. CarteLeaflet.tsx)
-// — volontairement pas de filtres avancés (prix/surface/statut foncier...),
-// qui restent le rôle du catalogue (/parcelles).
+// ── URL ↔ filtres (carte plein écran partageable) ──────────────────────────
+function lireFiltres(sp: URLSearchParams): FiltresState {
+  return {
+    recherche: sp.get("q") ?? "",
+    region: sp.get("region") ?? "",
+    province: sp.get("province") ?? "",
+    commune: sp.get("commune") ?? "",
+    statutFoncier: (sp.get("statut_foncier") as FiltresState["statutFoncier"]) ?? "",
+    eau: (sp.get("eau") as FiltresState["eau"]) ?? "tous",
+    prixMin: sp.has("prix_min") ? Number(sp.get("prix_min")) : null,
+    prixMax: sp.has("prix_max") ? Number(sp.get("prix_max")) : null,
+    surfaceMin: sp.has("surface_min") ? Number(sp.get("surface_min")) : null,
+    surfaceMax: sp.has("surface_max") ? Number(sp.get("surface_max")) : null,
+  };
+}
+
+function versUrl(f: FiltresState): string {
+  const sp = new URLSearchParams();
+  if (f.recherche) sp.set("q", f.recherche);
+  if (f.region) sp.set("region", f.region);
+  if (f.province) sp.set("province", f.province);
+  if (f.commune) sp.set("commune", f.commune);
+  if (f.statutFoncier) sp.set("statut_foncier", f.statutFoncier);
+  if (f.eau !== "tous") sp.set("eau", f.eau);
+  if (f.prixMin != null) sp.set("prix_min", String(f.prixMin));
+  if (f.prixMax != null) sp.set("prix_max", String(f.prixMax));
+  if (f.surfaceMin != null) sp.set("surface_min", String(f.surfaceMin));
+  if (f.surfaceMax != null) sp.set("surface_max", String(f.surfaceMax));
+  const qs = sp.toString();
+  return qs ? `/carte?${qs}` : "/carte";
+}
+
+// Distance² euclidienne en degrés — approximation suffisante pour ordonner un
+// tiroir d'au plus 50 éléments, pas pour un calcul métrique.
+function distance2(c: { lat: number; lng: number }, p: { latitude: number; longitude: number }): number {
+  const dLat = c.lat - p.latitude;
+  const dLng = c.lng - p.longitude;
+  return dLat * dLat + dLng * dLng;
+}
+
+const pilule: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  padding: "10px 16px",
+  borderRadius: "var(--radius-full)",
+  backgroundColor: "white",
+  color: "var(--color-texte)",
+  fontSize: "13px",
+  fontWeight: 500,
+  textDecoration: "none",
+  boxShadow: "var(--shadow-2)",
+  border: "none",
+};
+
+// Carte plein écran (design 1c) — la carte EST la navigation : elle occupe
+// tout le viewport sous la Navbar, les résultats sont un tiroir rétractable
+// à gauche, la mise en relation se fait via la fiche de contact flottante,
+// et les filtres (mêmes que le catalogue) s'ouvrent en panneau hors-champ.
 function CartePleinEcran() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  // Lu une seule fois au montage — un lien externe (ex. Navbar, Footer)
-  // peut présélectionner une région ; les changements ultérieurs sont émis
-  // par cette page elle-même (cf. useEffect de synchro URL plus bas), même
-  // convention que app/parcelles/page.tsx.
-  const regionInitiale = useMemo(() => searchParams.get("region") ?? "", []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Lu une seule fois au montage ; les changements ultérieurs sont ceux que
+  // cette page écrit elle-même (cf. effet de synchro URL plus bas).
+  const initial = useMemo(() => lireFiltres(searchParams), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [regionCode, setRegionCode] = useState(regionInitiale);
-  // "Rechercher cette zone" (CarteLeaflet.tsx) — effacée dès qu'une région
-  // est sélectionnée autrement, même principe que app/parcelles/page.tsx
-  // (les deux façons de restreindre la recherche ne se cumulent pas).
+  const [filtres, setFiltres] = useState<FiltresState>(initial);
+  // "Rechercher cette zone" (CarteLeaflet.tsx) — action ponctuelle, hors
+  // FiltresState/URL comme dans le catalogue ; effacée dès qu'un filtre change.
   const [bbox, setBbox] = useState<BboxCarte | null>(null);
   const [regions, setRegions] = useState<Region[]>([]);
   const [donnees, setDonnees] = useState<ParcellesPage | null>(null);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [filtresOuverts, setFiltresOuverts] = useState(false);
+
+  // Sélection : source unique dont dérivent le repère actif, la carte du
+  // tiroir et la fiche de contact (design 1c — « ne pas dupliquer l'état par
+  // calque »). `parcelleChoisie` = le choix explicite de l'utilisateur ;
+  // `parcelleActiveId` (dérivé, plus bas) retombe sur la 1re annonce du lot
+  // si ce choix n'y est plus — sans effet de synchro (react-hooks).
+  const [parcelleChoisie, setParcelleChoisie] = useState<string | null>(null);
+  // Objet neuf à chaque sélection DEPUIS LE TIROIR → la carte vole vers la
+  // parcelle. Un clic sur un repère ne le met pas à jour (pas de recadrage).
+  const [volVersParcelle, setVolVersParcelle] = useState<{ lat: number; lng: number } | null>(null);
+  const [centreCarte, setCentreCarte] = useState<{ lat: number; lng: number } | null>(null);
+
+  const estMobile = useMediaQuery("(max-width: 768px)");
+  const [tiroirOuvert, setTiroirOuvert] = useState(true);
+  // Sur mobile le tiroir démarre replié pour ne pas masquer la carte.
+  // setState différé d'un micro-tick — même convention que le reste du
+  // fichier (react-hooks/set-state-in-effect).
+  useEffect(() => {
+    let annule = false;
+    Promise.resolve().then(() => {
+      if (!annule) setTiroirOuvert(!estMobile);
+    });
+    return () => {
+      annule = true;
+    };
+  }, [estMobile]);
 
   useEffect(() => {
     getRegions()
@@ -68,22 +163,14 @@ function CartePleinEcran() {
 
   useEffect(() => {
     let annule = false;
-    // setChargement/setErreur différés d'un micro-tick — même convention
-    // que app/parcelles/page.tsx (react-hooks/set-state-in-effect).
+    // setChargement/setErreur différés d'un micro-tick — même convention que
+    // app/parcelles/page.tsx (react-hooks/set-state-in-effect).
     Promise.resolve()
       .then(() => {
         if (annule) return undefined;
         setChargement(true);
         setErreur(null);
-        return getParcelles({
-          region: regionCode || undefined,
-          page_size: TAILLE_CARTE,
-          ordering: "-date_publication",
-          lat_min: bbox?.latMin,
-          lat_max: bbox?.latMax,
-          lng_min: bbox?.lngMin,
-          lng_max: bbox?.lngMax,
-        });
+        return getParcelles(filtresVersParams(filtres, TRI_CARTE, 1, TAILLE_CARTE, bbox));
       })
       .then((res) => {
         if (!annule && res) setDonnees(res);
@@ -97,17 +184,45 @@ function CartePleinEcran() {
     return () => {
       annule = true;
     };
-  }, [regionCode, bbox]);
+  }, [filtres, bbox]);
+
+  // URL partageable — navigation sans rechargement (router.replace shallow).
+  useEffect(() => {
+    router.replace(versUrl(filtres), { scroll: false });
+  }, [filtres, router]);
 
   const resultats = useMemo(() => donnees?.results ?? [], [donnees]);
 
-  // Centre dérivé des vraies parcelles chargées (même principe que
-  // regionActive dans app/parcelles/page.tsx — jamais un centroïde inventé
-  // côté front) : `resultats` est déjà filtré par région côté serveur
-  // (filtres.region envoyé à l'API) une fois une région sélectionnée.
+  // Dérivé (pas d'effet de synchro) : la parcelle active est le choix
+  // explicite s'il est encore dans le lot, sinon la première — la fiche de
+  // contact n'est donc jamais vide (design 1c).
+  const parcelleActiveId = useMemo(
+    () =>
+      parcelleChoisie && resultats.some((p) => p.id === parcelleChoisie)
+        ? parcelleChoisie
+        : resultats[0]?.id ?? null,
+    [parcelleChoisie, resultats],
+  );
+
+  // Tiroir trié par distance au centre courant de la carte (design 1c —
+  // « triés par distance au centre »).
+  const resultatsTries = useMemo(() => {
+    if (!centreCarte) return resultats;
+    return [...resultats].sort(
+      (a, b) => distance2(centreCarte, a.parcelle) - distance2(centreCarte, b.parcelle),
+    );
+  }, [resultats, centreCarte]);
+
+  const parcelleActive = useMemo(
+    () => resultats.find((p) => p.id === parcelleActiveId) ?? null,
+    [resultats, parcelleActiveId],
+  );
+
+  // Centre dérivé des parcelles réelles de la région (jamais un centroïde
+  // inventé côté front — même principe que app/parcelles/page.tsx).
   const regionActive: RegionActive = useMemo(() => {
-    if (!regionCode) return null;
-    const r = regions.find((rg) => rg.code === regionCode);
+    if (!filtres.region) return null;
+    const r = regions.find((rg) => rg.code === filtres.region);
     if (!r) return null;
     const centre: [number, number] | null = resultats.length
       ? [
@@ -116,18 +231,82 @@ function CartePleinEcran() {
         ]
       : null;
     return { code: r.code, nom: r.nom, centre };
-  }, [regionCode, regions, resultats]);
+  }, [filtres.region, regions, resultats]);
 
-  const selectionnerRegion = (code: string) => {
+  // Cadrage cascade région/province/commune (cf. app/parcelles/page.tsx).
+  const [zoneGeometrie, setZoneGeometrie] = useState<unknown | null>(null);
+  useEffect(() => {
+    let annule = false;
+    if (filtres.commune) {
+      fetchCommuneGeomDetail(Number(filtres.commune))
+        .then((c) => {
+          if (!annule) setZoneGeometrie(c.geometry ?? null);
+        })
+        .catch(() => {
+          if (!annule) setZoneGeometrie(null);
+        });
+    } else if (filtres.province && filtres.region) {
+      fetchProvinceGeomBounds(filtres.region, Number(filtres.province))
+        .then((geom) => {
+          if (!annule) setZoneGeometrie(geom);
+        })
+        .catch(() => {
+          if (!annule) setZoneGeometrie(null);
+        });
+    } else {
+      Promise.resolve().then(() => {
+        if (!annule) setZoneGeometrie(null);
+      });
+    }
+    return () => {
+      annule = true;
+    };
+  }, [filtres.commune, filtres.province, filtres.region]);
+
+  const patchFiltres = useCallback((patch: Partial<FiltresState>) => {
+    setFiltres((prev) => ({ ...prev, ...patch }));
     setBbox(null);
-    setRegionCode((actuel) => (actuel === code ? "" : code));
-  };
+  }, []);
+
+  const reinitialiser = useCallback(() => {
+    setFiltres(FILTRES_INITIAUX);
+    setBbox(null);
+  }, []);
+
+  const rechercherZone = useCallback((zone: BboxCarte) => {
+    setFiltres((f) => ({ ...f, region: "", province: "", commune: "" }));
+    setBbox(zone);
+  }, []);
+
+  const onCentreCarte = useCallback((c: { lat: number; lng: number }) => setCentreCarte(c), []);
+
+  // Sélection depuis le tiroir → sélectionne ET fait voler la carte.
+  const selectionnerDepuisTiroir = useCallback(
+    (id: string) => {
+      setParcelleChoisie(id);
+      const p = resultats.find((r) => r.id === id);
+      if (p) setVolVersParcelle({ lat: p.parcelle.latitude, lng: p.parcelle.longitude });
+    },
+    [resultats],
+  );
+
+  const total = donnees?.count ?? 0;
+  const compteAffiche = donnees ? Math.min(resultats.length, total) : 0;
 
   return (
-    <div style={{ height: "calc(100vh - 64px)", width: "100%", position: "relative" }}>
-      {/* Barre flottante minimaliste — pas de sidebar de filtres sur cette
-          page (rôle du catalogue) : juste un retour vers Explorer et le
-          compte de résultats. */}
+    <div style={{ height: "calc(100dvh - 64px)", width: "100%", position: "relative", overflow: "hidden" }}>
+      <FiltresSidebar
+        flottante
+        ouverte={filtresOuverts}
+        onFermer={() => setFiltresOuverts(false)}
+        filtres={filtres}
+        onChange={patchFiltres}
+        onReinitialiser={reinitialiser}
+        regions={regions}
+        onAppliquer={() => setFiltresOuverts(false)}
+      />
+
+      {/* Barre flottante haut-gauche — retour catalogue, filtres, compteur. */}
       <div
         style={{
           position: "absolute",
@@ -137,72 +316,91 @@ function CartePleinEcran() {
           display: "flex",
           alignItems: "center",
           gap: "10px",
+          flexWrap: "wrap",
+          maxWidth: "calc(100% - 32px)",
         }}
       >
-        <Link
-          href="/parcelles"
-          className="akal-focusable"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "10px 16px",
-            borderRadius: "var(--radius-full)",
-            backgroundColor: "white",
-            color: "var(--color-texte)",
-            fontSize: "14px",
-            fontWeight: 500,
-            textDecoration: "none",
-            boxShadow: "var(--shadow-2)",
-          }}
-        >
+        <Link href="/parcelles" className="akal-focusable" style={pilule}>
           <ChevronLeft size={16} /> Explorer
         </Link>
-        {!erreur && !chargement && donnees && (
-          <span
-            style={{
-              padding: "10px 16px",
-              borderRadius: "var(--radius-full)",
-              backgroundColor: "white",
-              color: "var(--color-secondaire)",
-              fontSize: "13px",
-              fontWeight: 500,
-              boxShadow: "var(--shadow-2)",
-            }}
-          >
+        <button
+          type="button"
+          onClick={() => setFiltresOuverts(true)}
+          className="akal-focusable"
+          style={{
+            ...pilule,
+            cursor: "pointer",
+            ...(filtresActifs(filtres) ? { backgroundColor: "var(--color-foret)", color: "white" } : {}),
+          }}
+        >
+          <Filter size={15} /> Filtres
+        </button>
+        {!erreur && donnees && (
+          <span style={{ ...pilule, color: "var(--color-secondaire)", cursor: "default" }}>
             {regionActive ? `${regionActive.nom} — ` : ""}
-            <strong style={{ color: "var(--color-texte)" }}>{Math.min(resultats.length, donnees.count)}</strong>
-            {donnees.count > resultats.length ? ` sur ${donnees.count}` : ""} annonce{donnees.count > 1 ? "s" : ""}
+            <strong style={{ color: "var(--color-texte)", margin: "0 3px" }}>{compteAffiche}</strong>
+            {total > resultats.length ? `sur ${total} ` : ""}
+            annonce{total > 1 ? "s" : ""}
           </span>
         )}
       </div>
 
       {erreur ? (
-        <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "12px", padding: "20px", textAlign: "center" }}>
+        <div
+          style={{
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            gap: "12px",
+            padding: "20px",
+            textAlign: "center",
+          }}
+        >
           <p style={{ fontSize: "15px", color: "var(--color-terre-texte)" }}>{erreur}</p>
-          <button type="button" className="btn-secondary" onClick={() => setRegionCode((r) => r)}>
+          <button type="button" className="btn-secondary" onClick={() => setFiltres((f) => ({ ...f }))}>
             Réessayer
           </button>
         </div>
       ) : (
-        <CarteLeaflet
-          parcelles={resultats}
-          regions={regions}
-          regionActive={regionActive}
-          onSelectionnerRegion={selectionnerRegion}
-          onRechercherZone={(zone) => {
-            setRegionCode("");
-            setBbox(zone);
-          }}
-        />
+        <>
+          <CarteLeaflet
+            parcelles={resultats}
+            regions={regions}
+            regionActive={regionActive}
+            onSelectionnerRegion={(code) =>
+              patchFiltres({ region: filtres.region === code ? "" : code, province: "", commune: "" })
+            }
+            onRechercherZone={rechercherZone}
+            zoneGeometrie={zoneGeometrie}
+            parcelleActiveId={parcelleActiveId}
+            onSelectionnerParcelle={setParcelleChoisie}
+            onCentreCarte={onCentreCarte}
+            volVersParcelle={volVersParcelle}
+          />
+
+          <TiroirResultats
+            parcelles={resultatsTries}
+            total={total}
+            chargement={chargement}
+            parcelleActiveId={parcelleActiveId}
+            onSelectionner={selectionnerDepuisTiroir}
+            ouvert={tiroirOuvert}
+            onToggle={() => setTiroirOuvert((v) => !v)}
+            estMobile={estMobile}
+          />
+
+          <FicheContactFlottante parcelle={parcelleActive} estMobile={estMobile} />
+        </>
       )}
     </div>
   );
 }
 
 export default function CartePage() {
-  // useSearchParams() doit être encapsulé dans un <Suspense> pour le build
-  // de production (même contrainte que app/parcelles/page.tsx).
+  // useSearchParams() doit être encapsulé dans un <Suspense> pour le build de
+  // production (même contrainte que app/parcelles/page.tsx).
   return (
     <Suspense fallback={null}>
       <CartePleinEcran />

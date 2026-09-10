@@ -283,6 +283,25 @@
     z-index: 30;
   }
 
+  /* Variante « flottante » — carte plein écran (/carte, design 1c). Le
+     panneau devient un tiroir hors-champ À TOUTES LES TAILLES (pas la
+     colonne sticky du catalogue, qui rognerait la carte), même glissement
+     que la version mobile ci-dessous. z-index au-dessus des overlays de la
+     carte (barre, tiroir de résultats, fiche de contact : 1000-1001). */
+  .filtres-sidebar--flottante {
+    position: fixed;
+    left: 0;
+    top: 64px;
+    height: calc(100dvh - 64px);
+    transform: translateX(-100%);
+    transition: transform 300ms ease;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.15);
+    z-index: 1200;
+  }
+  .filtres-sidebar--flottante.filtres-sidebar--ouverte {
+    transform: translateX(0);
+  }
+
   /* --- Espace personnel (Tableau de bord/Mes annonces/Mes recherches/Mon
      profil, 20/08) — cf. app/(espace-perso)/layout.tsx. Même pattern sticky
      que .filtres-sidebar ci-dessus (top: 64px, sous la navbar), mais en

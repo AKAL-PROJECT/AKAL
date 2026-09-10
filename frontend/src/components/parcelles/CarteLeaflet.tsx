@@ -15,6 +15,7 @@ import {
   VolVersRegion,
   RecalculTailleCarte,
   MarqueurParcelle,
+  MarqueurParcellePrix,
   boundsDeRegion,
   boundsNationalDe,
   EVENEMENT_RECADRAGE_CARTE,
@@ -185,6 +186,91 @@ function BoutonRechercherZone({
   );
 }
 
+// Reporte le centre courant de la carte au parent (moveend) — la carte plein
+// écran (/carte) s'en sert pour trier le tiroir de résultats par proximité
+// (design 1c). Rendu uniquement quand `onChange` est fourni : aucun coût sur
+// les autres cartes.
+function RapporteurCentre({ onChange }: { onChange?: (c: { lat: number; lng: number }) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!onChange) return;
+    const maj = () => {
+      const c = map.getCenter();
+      onChange({ lat: c.lat, lng: c.lng });
+    };
+    maj();
+    map.on("moveend", maj);
+    return () => {
+      map.off("moveend", maj);
+    };
+  }, [map, onChange]);
+  return null;
+}
+
+// Vol vers la parcelle sélectionnée DEPUIS LE TIROIR (design 1c) — pas depuis
+// un clic sur un repère, où recadrer serait désorientant. `cible` est un
+// objet neuf à chaque sélection tiroir côté page (nonce implicite), l'effet
+// se rejoue donc même si l'id ne change pas. Fire EVENEMENT_RECADRAGE_CARTE
+// pour que BoutonRechercherZone ne prenne pas ce vol programmatique pour un
+// geste utilisateur.
+function VolVersParcelleActive({ cible }: { cible: { lat: number; lng: number } | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!cible) return;
+    map.flyTo([cible.lat, cible.lng], Math.max(map.getZoom(), 12), { duration: 0.7 });
+    map.fire(EVENEMENT_RECADRAGE_CARTE);
+  }, [map, cible]);
+  return null;
+}
+
+// Contrôle de zoom flottant (design 1c : colonne blanche, deux cases +/−) —
+// remplace le zoomControl Leaflet natif, désactivé en mode sélection pour
+// libérer le coin haut-gauche (barre flottante de la page). Posé sous la
+// bascule de fond de carte (FondCarte.tsx, top:12 right:12).
+function ZoomFlottant() {
+  const map = useMap();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (ref.current) L.DomEvent.disableClickPropagation(ref.current);
+  }, []);
+  const caseStyle: React.CSSProperties = {
+    width: "34px",
+    height: "34px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "none",
+    background: "white",
+    color: "var(--color-nuit)",
+    fontSize: "18px",
+    lineHeight: 1,
+    cursor: "pointer",
+  };
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "absolute",
+        top: "60px",
+        right: "12px",
+        zIndex: 1000,
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: "var(--radius-sm)",
+        overflow: "hidden",
+        boxShadow: "var(--shadow-2)",
+      }}
+    >
+      <button type="button" aria-label="Zoomer" onClick={() => map.zoomIn()} style={{ ...caseStyle, borderBottom: "1px solid var(--color-bordure)" }}>
+        +
+      </button>
+      <button type="button" aria-label="Dézoomer" onClick={() => map.zoomOut()} style={caseStyle}>
+        −
+      </button>
+    </div>
+  );
+}
+
 export default function CarteLeaflet({
   parcelles,
   regions,
@@ -192,6 +278,10 @@ export default function CarteLeaflet({
   onSelectionnerRegion,
   onRechercherZone,
   zoneGeometrie,
+  parcelleActiveId,
+  onSelectionnerParcelle,
+  onCentreCarte,
+  volVersParcelle,
 }: {
   parcelles: Parcelle[];
   // Les 12 régions officielles (référentiel PostGIS, jamais de tracé
@@ -209,7 +299,19 @@ export default function CarteLeaflet({
   // de cadrage exacte. Omis (undefined) sur les cartes sans cette cascade
   // de filtres (ex. couverture Home, région seule).
   zoneGeometrie?: unknown | null;
+  // ── Mode « sélection » (carte plein écran /carte, design 1c) ────────────
+  // Activé dès que `onSelectionnerParcelle` est fourni : les repères
+  // deviennent des pastilles de prix cliquables (MarqueurParcellePrix) au
+  // lieu de pins + popup, le zoom natif est remplacé par ZoomFlottant, et le
+  // centre de la carte est reporté via `onCentreCarte`. Toutes ces props
+  // sont omises par le catalogue / la couverture Home → comportement
+  // strictement inchangé pour eux.
+  parcelleActiveId?: string | null;
+  onSelectionnerParcelle?: (id: string) => void;
+  onCentreCarte?: (centre: { lat: number; lng: number }) => void;
+  volVersParcelle?: { lat: number; lng: number } | null;
 }) {
+  const modeSelection = !!onSelectionnerParcelle;
   const limites = useLimitesRegions(regions);
   // Fond satellite par défaut sur cette carte (finalisation §1.3) — mêmes
   // TuileSatellite/BasculeFondCarte que la fiche annonce, cf. FondCarte.tsx.
@@ -234,10 +336,17 @@ export default function CarteLeaflet({
       // aucune perte : impossible de dézoomer plus loin que "voir tout le
       // pays" de toute façon utile ici.
       minZoom={5}
+      // Mode sélection (/carte) : zoom natif désactivé, remplacé par
+      // ZoomFlottant (design 1c) — libère le coin haut-gauche pour la barre
+      // flottante de la page.
+      zoomControl={!modeSelection}
       style={{ height: "100%", width: "100%", borderRadius: "var(--radius-card)" }}
     >
       {vue === "satellite" ? <TuileSatellite /> : <TuileOSM />}
       <BasculeFondCarte vue={vue} onChange={setVue} />
+      {modeSelection && <ZoomFlottant />}
+      {modeSelection && <RapporteurCentre onChange={onCentreCarte} />}
+      {modeSelection && <VolVersParcelleActive cible={volVersParcelle ?? null} />}
 
       <RecalculTailleCarte />
       <VolVersRegion
@@ -266,13 +375,31 @@ export default function CarteLeaflet({
           au code de région : react-leaflet-cluster ne re-indexe pas ses
           clusters tout seul quand le jeu de marqueurs change de région,
           remonter le groupe entier est la façon documentée de le forcer. */}
-      <MarkerClusterGroup key={regionActive?.code ?? "tout"} chunkedLoading maxClusterRadius={45}>
+      <MarkerClusterGroup
+        key={regionActive?.code ?? "tout"}
+        chunkedLoading
+        maxClusterRadius={45}
+        // Mode sélection : au-delà du zoom région les pastilles de prix se
+        // séparent toutes (design 1c — repères individuels cliquables) ; en
+        // deçà, le regroupement reste utile sur une zone dense.
+        disableClusteringAtZoom={modeSelection ? 10 : undefined}
+        spiderfyOnMaxZoom={modeSelection}
+      >
         {/* latitude/longitude non-null par contrat (cf. types/parcelle.ts,
             décision d'équipe du 2026-08-15) — pas de filtre ici, la garde vit
             dans MarqueurParcelle lui-même (source unique, CarteRegions.tsx). */}
-        {parcelles.map((p) => (
-          <MarqueurParcelle key={p.id} parcelle={p} />
-        ))}
+        {parcelles.map((p) =>
+          modeSelection ? (
+            <MarqueurParcellePrix
+              key={p.id}
+              parcelle={p}
+              actif={p.id === parcelleActiveId}
+              onSelect={onSelectionnerParcelle!}
+            />
+          ) : (
+            <MarqueurParcelle key={p.id} parcelle={p} />
+          ),
+        )}
       </MarkerClusterGroup>
     </MapContainer>
   );
