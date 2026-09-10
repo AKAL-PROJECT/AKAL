@@ -211,7 +211,12 @@ services:
     # copie pas `public/` ni `.next/static/` — à faire à la main après le
     # build (cf. doc Next « output »). Même serveur que frontend/Dockerfile.
     buildCommand: npm ci && npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
-    startCommand: node .next/standalone/server.js
+    # HOSTNAME=0.0.0.0 : server.js fait `process.env.HOSTNAME || '0.0.0.0'` et
+    # l'environnement Render (runtime node) définit HOSTNAME = nom du pod → le
+    # serveur se lie à `<pod>:10000` au lieu de `0.0.0.0:10000`, injoignable
+    # par le routeur Render → 502. Le Dockerfile frontend force déjà
+    # ENV HOSTNAME=0.0.0.0 ; ici il faut le refaire côté startCommand.
+    startCommand: HOSTNAME=0.0.0.0 node .next/standalone/server.js
     # Route Handler statique (app/healthz/route.ts) — répond 200 sans toucher
     # à l'API. Pointer `/` ici couplait le succès du déploiement à l'état du
     # backend : si l'API n'est pas joignable au moment du health check (cold
