@@ -49,12 +49,26 @@ services:
     plan: free
     region: frankfurt
     ipAllowList: []
+    # Cache pur (throttling, limites géo, Passeport AgriScore) — aucune donnée
+    # à conserver : éviction LRU quand la mémoire est pleine, pas de snapshot
+    # sur disque. Redémarrage = cache vide, rechauffé au vol (fail-open).
+    maxmemoryPolicy: allkeys-lru
+    persistenceMode: "off"   # quoté : YAML lit `off` nu comme le booléen false
 
   # ── Backend Django / DRF (conteneurisé via backend/Dockerfile) ──────────
   - type: web
     name: akal-backend
     runtime: docker
-    rootDir: backend
+    # PAS de rootDir : sans lui, dockerfilePath / dockerContext sont sans
+    # ambiguïté relatifs à la RACINE du dépôt (les deux pages de doc Render
+    # concordent sur ce cas). Avec rootDir, le dockerfilePath par défaut se
+    # comporte différemment entre les pages « Blueprint Spec » et « Monorepo
+    # Support » — c'est ce qui provoquait « failed to read dockerfile: open
+    # Dockerfile: no such file or directory ». Coût : un push ne touchant que
+    # frontend/ redéclenche aussi un build backend (négligeable en démo).
+    # `dockerContext: backend` = `context: ./backend` de docker-compose.yml.
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
     plan: free
     region: frankfurt
     healthCheckPath: /healthz/
@@ -70,9 +84,22 @@ services:
         generateValue: true
       - key: PYTHONUNBUFFERED
         value: "1"
-      # (2 x cœurs) + 1 — à ajuster selon le plan Render.
+      # Plan free = 0,1 CPU / 512 Mo : 2 workers gunicorn tiennent, 3 font
+      # ramer (OOM sous charge). Monter avec le plan.
       - key: WEB_CONCURRENCY
-        value: "3"
+        value: "2"
+
+      # Peuplement initial de la base au démarrage du conteneur (cf.
+      # backend/docker-entrypoint.sh) : "1" charge le référentiel géo officiel
+      # (12 régions / 75 provinces / 1536 communes, shapefiles embarqués dans
+      # l'image) + ~15 annonces de démonstration. SANS lui, la base déployée
+      # est VIDE : catalogue vide et `can_publish()` refuse toute annonce
+      # (aucune commune à géolocaliser). Idempotent (import géo transactionnel,
+      # seed_demo sauté si des annonces de démo existent déjà). Le laisser à
+      # "1" en permanence est sûr (coût : ~15 s de réimport par redeploy) ;
+      # ou le passer à "0" / le retirer une fois la base peuplée.
+      - key: SEED_ON_START
+        value: "1"
 
       # ── Cache Redis (référence croisée vers le service ci-dessus) ───────
       - key: REDIS_URL
@@ -111,13 +138,13 @@ services:
         sync: false        # R2 : https://<account_id>.r2.cloudflarestorage.com
       - key: AWS_S3_REGION_NAME
         value: auto        # R2 = "auto" ; B2 = "eu-central-003"… ; AWS = "eu-west-3"…
+      # Domaine PUBLIC du bucket R2, SANS protocole ni chemin. Ce n'est pas un
+      # secret (URL de lecture seule, visible dans le bundle navigateur) :
+      # figé ici pour garantir qu'il est IDENTIQUE à NEXT_PUBLIC_MEDIA_HOSTNAME
+      # côté akal-frontend — un décalage entre les deux = photos cassées à
+      # l'affichage. Changer de bucket = éditer cette valeur ET l'autre.
       - key: AWS_S3_CUSTOM_DOMAIN
-        sync: false        # domaine PUBLIC du bucket, SANS protocole ni chemin.
-                           # R2 : le sous-domaine r2.dev du bucket (Settings →
-                           # Public Development URL) ou un domaine custom.
-                           # Ex. "pub-abc123.r2.dev" ou "media.akal.ma".
-                           # DOIT être identique à NEXT_PUBLIC_MEDIA_HOSTNAME
-                           # côté akal-frontend.
+        value: pub-0028b352e2f74416afa532bee8e719bf.r2.dev
 
       # ── E-mail transactionnel (reset mdp, alertes de recherche) ───────
       # EMAIL_HOST vide → backend console (e-mails dans les logs). Renseigner
@@ -195,11 +222,12 @@ services:
         value: "false"
 
       # Domaine public du bucket média — next/image refuse toute image d'un
-      # hôte non listé. DOIT être identique à AWS_S3_CUSTOM_DOMAIN côté
-      # akal-backend (juste le hostname). Sans ça : upload OK mais photos
-      # cassées à l'affichage. Utilisée AU BUILD (inlinée dans next.config.ts).
+      # hôte non listé. Figé ici, IDENTIQUE à AWS_S3_CUSTOM_DOMAIN côté
+      # akal-backend. Pas un secret. Sans ça : upload OK mais photos cassées à
+      # l'affichage. Utilisée AU BUILD (inlinée dans next.config.ts) → tout
+      # changement impose un « Manual Deploy → Clear build cache & deploy ».
       - key: NEXT_PUBLIC_MEDIA_HOSTNAME
-        sync: false        # ex. "pub-abc123.r2.dev" ou "media.akal.ma"
+        value: pub-0028b352e2f74416afa532bee8e719bf.r2.dev
 
       # Google Sign-In — même valeur que GOOGLE_CLIENT_ID du backend.
       - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
