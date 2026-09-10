@@ -18,24 +18,47 @@ const RAISONS = [
   { icone: MessageSquare, titre: "Des échanges directs", desc: "Un espace pour mettre en relation propriétaires et acheteurs, sans intermédiaire." },
 ];
 
+// Rendu à la demande, jamais pré-généré. Cette page lit le catalogue via
+// l'API au moment du rendu ; au build (Docker / Render) le backend n'est pas
+// joignable. Sans ça, Next tenterait un prerender, capterait la version
+// dégradée (catalogue vide, cf. try/catch ci-dessous) et la figerait en HTML
+// statique servie ensuite en permanence. `force-dynamic` = même choix que
+// app/parcelles/[slug]/page.tsx.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
-  // Même appel que le catalogue (/parcelles) et generateStaticParams
-  // (app/parcelles/[slug]/page.tsx) — page_size au max autorisé par le
-  // contrat (§4.2), aucun flux de données spécifique à la Home. `count` est
-  // le vrai total serveur (peut dépasser 50), jamais recalculé côté client.
-  // `ordering: "-date_publication"` (finalisation §3) — déjà garanti par
-  // Meta.ordering côté modèle (annonces/models.py, audit du 2026-07-30) même
-  // sans ce paramètre, mais explicite ici pour la même raison de clarté que
-  // app/carte/page.tsx : cet échantillon alimente à la fois
+  // Même appel que le catalogue (/parcelles) — page_size au max autorisé par
+  // le contrat (§4.2), aucun flux de données spécifique à la Home. `count`
+  // est le vrai total serveur (peut dépasser 50), jamais recalculé côté
+  // client. `ordering: "-date_publication"` (finalisation §3) — déjà garanti
+  // par Meta.ordering côté modèle (annonces/models.py, audit du 2026-07-30)
+  // même sans ce paramètre, mais explicite ici pour la même raison de clarté
+  // que app/carte/page.tsx : cet échantillon alimente à la fois
   // SelectionTerrainsSlider ("dernières annonces") et CouvertureSection.
   // `getRegions()` (référentiel des 12 régions officielles, même source que
   // FiltresSidebar/CouvertureSection) alimente le <select> du formulaire de
-  // recherche du Hero ci-dessous — remplace l'ancienne liste de 5 régions
-  // codée en dur ici (incomplète, désynchronisée du vrai référentiel).
-  const [{ results: parcelles, count: totalCount }, regions] = await Promise.all([
-    getParcelles({ page_size: 50, ordering: "-date_publication" }),
-    getRegions(),
-  ]);
+  // recherche du Hero ci-dessous.
+  //
+  // API injoignable (cold start du backend en offre gratuite, redéploiement,
+  // panne) → on dégrade : la page d'accueil reste une vitrine (hero, valeur,
+  // CTA) qui a du sens sans catalogue. Les composants en aval gèrent déjà le
+  // vide (SelectionTerrainsSlider retourne null, CouvertureSection affiche 0).
+  // Le catalogue lui-même (/parcelles, /carte — composants client) affiche,
+  // lui, une vraie erreur : c'est là que l'utilisateur attend des données.
+  let parcelles: Awaited<ReturnType<typeof getParcelles>>["results"] = [];
+  let totalCount = 0;
+  let regions: Awaited<ReturnType<typeof getRegions>> = [];
+  try {
+    const [page, regionsResult] = await Promise.all([
+      getParcelles({ page_size: 50, ordering: "-date_publication" }),
+      getRegions(),
+    ]);
+    parcelles = page.results;
+    totalCount = page.count;
+    regions = regionsResult;
+  } catch (err) {
+    console.error("[home] catalogue injoignable, rendu dégradé :", err);
+  }
 
   return (
     <div>

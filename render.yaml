@@ -205,9 +205,18 @@ services:
     rootDir: frontend
     plan: free
     region: frankfurt
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start
-    healthCheckPath: /
+    # `output: "standalone"` (next.config.ts) → le serveur de prod est
+    # `.next/standalone/server.js`, PAS `next start` (qui, avec standalone,
+    # avertit « does not work » et n'est pas le chemin supporté). server.js ne
+    # copie pas `public/` ni `.next/static/` — à faire à la main après le
+    # build (cf. doc Next « output »). Même serveur que frontend/Dockerfile.
+    buildCommand: npm ci && npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
+    startCommand: node .next/standalone/server.js
+    # Route Handler statique (app/healthz/route.ts) — répond 200 sans toucher
+    # à l'API. Pointer `/` ici couplait le succès du déploiement à l'état du
+    # backend : si l'API n'est pas joignable au moment du health check (cold
+    # start free tier, ordre de déploiement), `/` renvoie 500 → `Timed Out`.
+    healthCheckPath: /healthz
 
     envVars:
       # URL publique d'akal-backend (visible dans son dashboard après le 1er

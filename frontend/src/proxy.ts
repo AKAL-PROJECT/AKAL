@@ -188,9 +188,10 @@ export async function proxy(request: NextRequest) {
 
 // Toute page HTML — exclut uniquement les assets Next.js (_next/static,
 // _next/image), le favicon, les fichiers statiques (extensions courantes,
-// couvre notamment public/uploads/*.svg) et un éventuel /api/ futur (aucun
-// Route Handler Next.js n'existe aujourd'hui, le backend Django est sur une
-// origine séparée — exclusion conservée par précaution/convention standard).
+// couvre notamment public/uploads/*.svg), un éventuel /api/ futur (le backend
+// Django est sur une origine séparée — exclusion conservée par convention) et
+// /healthz (Route Handler statique, sonde Render : aucun besoin du proxy, et
+// on lui évite tout démarrage à froid du runtime Edge).
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: ["/((?!api|healthz|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };
