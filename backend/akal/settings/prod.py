@@ -57,19 +57,23 @@ SECURE_HSTS_PRELOAD = True
 
 
 # ──────────────────────────────────────────────
-# DATASET DE DÉMONSTRATION — figé (hardening pré-soutenance, 2026-08-30)
+# DATASET DE DÉMONSTRATION — piloté par variable d'env, défaut sûr
 # ──────────────────────────────────────────────
 #
-# base.py lit AKAL_DATASET depuis l'environnement (défaut 'simulated'). Ici
-# on le FIGE en dur : l'environnement de démo/soutenance ne sert QUE le jeu
-# de démonstration interne (seed_demo/seed_parcelles, source='interne') —
-# jamais les annonces scrapées Avito/Mubawab (photos et contenus tiers,
-# géolocalisation au centroïde de commune, comptes bot, attributs manquants).
-# Non surchargeable par variable d'env pour éviter tout basculement
-# accidentel côté Render. Les scripts d'import restent dans le dépôt pour le
-# travail futur ; c'est seulement leur EXPOSITION publique qui est coupée.
-# Pour revenir à un comportement configurable, retirer cette ligne.
-AKAL_DATASET = 'simulated'
+# Défaut 'simulated' : la démo/soutenance ne sert QUE le jeu interne
+# (source='interne', seed_demo/seed_parcelles). Sans variable explicite, les
+# annonces scrapées Avito/Mubawab (photos et contenus tiers, géolocalisation
+# au centroïde de commune, comptes bot, attributs manquants) ne sont JAMAIS
+# exposées publiquement — c'est le durcissement pré-soutenance du 2026-08-30,
+# ici sous forme de défaut plutôt que de valeur figée.
+#
+# Pour les montrer temporairement (captures d'écran, revue) : poser
+# AKAL_DATASET=all (démo + scrapées) ou =scraped sur le service Render, puis
+# revenir à 'simulated'. Valeurs : cf. annonces/managers.py::SOURCES_PAR_DATASET.
+# Même mécanisme de surcharge par variable d'env que ALLOWED_HOSTS / CORS
+# ci-dessus. L'import lui-même exige --force sous ce settings (garde-fou dans
+# annonces/management/commands/import_scraped_data.py).
+AKAL_DATASET = env('AKAL_DATASET', default='simulated')
 
 
 # ──────────────────────────────────────────────

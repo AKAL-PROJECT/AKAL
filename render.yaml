@@ -101,6 +101,25 @@ services:
       - key: SEED_ON_START
         value: "1"
 
+      # Jeu de données servi au catalogue PUBLIC (cf. akal/settings/prod.py +
+      # annonces/managers.py::SOURCES_PAR_DATASET) :
+      #   simulated → source 'interne' seule (seed_demo)          ← défaut sûr
+      #   scraped   → 'avito' + 'mubawab'
+      #   all       → les trois
+      # Défaut sûr : les annonces scrapées (photos/contenus tiers, géoloc au
+      # centroïde de commune, comptes bot) ne sortent pas sans action explicite.
+      # Passer à "all" temporairement pour des captures/revue, puis revenir.
+      - key: AKAL_DATASET
+        value: simulated
+
+      # "1" : au démarrage, importe l'échantillon d'annonces scrapées
+      # (annonces/data/scraped_perf/, ~92 publiables avec photo) pour une démo
+      # du catalogue à volume réaliste. Idempotent (dédup par source_id). Ne
+      # devient visible QUE si AKAL_DATASET vaut "all" ou "scraped". Repasser à
+      # "0" après le 1er import. Fichier surchargeable par SEED_SCRAPED_FILE.
+      - key: SEED_SCRAPED_ON_START
+        value: "0"
+
       # ── Cache Redis (référence croisée vers le service ci-dessus) ───────
       - key: REDIS_URL
         fromService:
