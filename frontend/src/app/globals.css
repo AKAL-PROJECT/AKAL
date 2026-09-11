@@ -583,7 +583,6 @@
     50%      { opacity: 0.85; }
   }
 
-  .connexion-shell { display: flex; flex-direction: row; }
   .connexion-map-col { display: flex; }
   /* Sous 820px, le panneau carte (.connexion-map-col) disparaît entièrement
      — purement décoratif, sans valeur fonctionnelle pour quelqu'un qui vient
@@ -592,10 +591,23 @@
      hauteur (ex. iPhone SE), il repoussait à lui seul le bouton Google et
      une partie du champ téléphone sous la ligne de flottaison, avec une
      rupture de fond beige/crème artificielle entre le bandeau et le
-     formulaire (audit mobile du 19/08). */
+     formulaire (audit mobile du 19/08). Depuis le calque 2a (11 sept),
+     .connexion-shell n'est plus un flex row/column — le fond carte est en
+     position absolute plein écran (cf. AuthMapPanel.tsx), donc plus rien à
+     rebasculer en colonne ici ; seule la disparition sous 820px reste
+     nécessaire. */
   @media (max-width: 820px) {
-    .connexion-shell { flex-direction: column; }
     .connexion-map-col { display: none !important; }
+  }
+
+  /* Carte flottante « Sans compte aussi » (calque 2a) — accompagne
+     visuellement le fond carte, donc masquée au même seuil que lui : sans
+     fond carte sous 820px, elle flotterait seule sur un aplat uni, un
+     élément flottant de plus à empiler avec le champ téléphone et le
+     bouton Google sur un écran déjà contraint (même raisonnement que
+     .connexion-map-col ci-dessus). */
+  @media (max-width: 820px) {
+    .connexion-guest-card { display: none !important; }
   }
 
   /* Filigrane carte, mobile (<820px) uniquement — cf. ConnexionScreen.tsx
@@ -627,6 +639,17 @@
      Navbar.tsx). */
   @media (max-width: 480px) {
     .connexion-form-col { padding: 28px 20px 40px !important; }
+  }
+  /* ≥820px (calque 2a, 11 sept) : carte du formulaire à gauche plutôt que
+     centrée — sinon elle couvre exactement la zone où se trouve la
+     majorité des régions cliquables du fond carte (cf. AuthMapPanel.tsx,
+     centré à droite sur ce même seuil), les rendant inatteignables au
+     clic. !important : la valeur de base (centré) vient du style inline
+     React de ConnexionScreen.tsx (comportement mobile), qu'une règle
+     externe sans !important ne peut pas surcharger (même piège que
+     .akal-nav-*, cf. Navbar.tsx). */
+  @media (min-width: 820px) {
+    .connexion-form-col { align-items: flex-start !important; }
   }
 
   .connexion-intro {

@@ -48,6 +48,10 @@ export default function ConnexionScreen({
   const [vue, setVue] = useState<Vue>("accueil");
   const [methode, setMethode] = useState<Methode>("telephone");
   const [modeEmail, setModeEmail] = useState<ModeEmail>("connexion");
+  // Région cliquée sur la carte de fond (calque 2a) — accusé de réception
+  // visuel uniquement, cf. docs/plans/2026-09-11-connexion-inscription-2a-design.md :
+  // ne touche jamais `next`, aucune navigation déclenchée.
+  const [regionRetenue, setRegionRetenue] = useState<string | null>(null);
   const [, startGoogleTransition] = useTransition();
   const [googleError, setGoogleError] = useState<string | null>(null);
   const googleFormRef = useRef<HTMLFormElement>(null);
@@ -154,7 +158,7 @@ export default function ConnexionScreen({
   return (
     <div
       className="connexion-shell"
-      style={{ minHeight: "100vh", background: "#F8F5F0", color: "#1B3A2D", boxSizing: "border-box" }}
+      style={{ position: "relative", minHeight: "100vh", background: "#F8F5F0", color: "#1B3A2D", boxSizing: "border-box", overflow: "hidden" }}
     >
       {/* Container reCAPTCHA invisible */}
       <div id="recaptcha-container" />
@@ -164,6 +168,12 @@ export default function ConnexionScreen({
         <input type="hidden" name="next" value={next} />
         <input type="hidden" name="token" ref={googleTokenRef} />
       </form>
+
+      {/* Fond plein écran (calque 2a, 11 sept) — remplace la colonne carte
+          à largeur fixe qui partageait l'écran avec le formulaire. Masqué
+          sous 820px comme avant (cf. .connexion-map-col, globals.css) ; le
+          filigrane mobile (.connexion-watermark, plus bas) prend le relais. */}
+      <AuthMapPanel onRegionClick={setRegionRetenue} />
 
       <div className="connexion-intro" aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -190,39 +200,67 @@ export default function ConnexionScreen({
         />
       </div>
 
-      {/* Colonne formulaire — padding vertical resserré sous 480px (audit
-          mobile du 19/08, cf. .connexion-form-col dans globals.css) :
-          64px de padding fixe haut+bas avait du sens quand le bandeau
-          carte (retiré, cf. AuthMapPanel.tsx) précédait déjà ce bloc sur
-          mobile, plus maintenant que ce bloc démarre en tout premier.
-          position/zIndex : passe au-dessus du filigrane ci-dessus (fixed,
-          donc hors du flux normal — sans ceci l'ordre de peinture par
+      {/* En-tête flottant minimal (calque 2a) — sorti de la carte
+          flottante ci-dessous, par-dessus le fond carte. Contenu inchangé
+          (logo + wordmark + tifinagh, lien vers l'accueil — cf. commentaire
+          d'origine plus bas), seule la position change. */}
+      <div style={{ position: "absolute", top: 24, left: "clamp(20px,4vw,48px)", zIndex: 2 }}>
+        {/* Logo, lien vers l'accueil (2026-08-17) — /connexion et
+            /inscription sont des routes "chromeless" (pas de Navbar, cf.
+            SiteChrome.tsx CHROMELESS_ROUTES) : avant ce correctif, ce logo
+            était purement décoratif (aria-hidden sur l'intro, <img> nu ici)
+            et rien sur l'écran ne ramenait à l'accueil. */}
+        <Link
+          href="/"
+          className="akal-logo-in akal-focusable"
+          style={{ display: "flex", alignItems: "center", gap: 14, width: "fit-content", textDecoration: "none" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/uploads/akal-logo.svg" alt="" style={{ width: 44, height: 44, display: "block" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/uploads/akal-wordmark.svg" alt="AKAL" style={{ height: 20, width: "auto", display: "block" }} />
+            {/* var(--color-tertiaire) plutôt que #8A8378 littéral — 3,75:1
+                sur blanc, sous les 4,5:1 AA (audit final du 20/08). */}
+            <span className="tifinagh" style={{ fontSize: 12, letterSpacing: "5px", color: "var(--color-tertiaire)" }}>ⴰⴽⴰⵍ</span>
+          </div>
+        </Link>
+      </div>
+
+      {/* Carte flottante du formulaire (calque 2a) — remplace la colonne
+          pleine largeur d'origine : `.connexion-form-col` centre désormais
+          cette carte sur tout l'écran plutôt que de partager la largeur
+          avec le panneau carte (devenu fond, cf. AuthMapPanel ci-dessus).
+          position/zIndex : passe au-dessus du fond et du filigrane mobile
+          (tous deux hors du flux normal — sans ceci l'ordre de peinture par
           défaut d'un élément positionné n'est pas garanti rester sous ses
           voisins statiques, cf. règles de stacking CSS). */}
-      <div className="connexion-form-col" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", padding: "64px clamp(28px,6vw,96px)", boxSizing: "border-box", position: "relative", zIndex: 1 }}>
-        <div style={{ width: "100%", maxWidth: 440 }}>
-
-          {/* Logo, désormais un lien vers l'accueil (2026-08-17) — /connexion
-              et /inscription sont des routes "chromeless" (pas de Navbar,
-              cf. SiteChrome.tsx CHROMELESS_ROUTES) : avant ce correctif, ce
-              logo était purement décoratif (aria-hidden sur l'intro,
-              <img> nu ici) et rien sur l'écran ne ramenait à l'accueil. */}
-          <Link
-            href="/"
-            className="akal-logo-in akal-focusable"
-            style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 40, width: "fit-content", textDecoration: "none" }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/uploads/akal-logo.svg" alt="" style={{ width: 54, height: 54, display: "block" }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/uploads/akal-wordmark.svg" alt="AKAL" style={{ height: 23, width: "auto", display: "block" }} />
-              {/* var(--color-tertiaire) plutôt que #8A8378 littéral — 3,75:1
-                  sur blanc, sous les 4,5:1 AA (audit final du 20/08). */}
-              <span className="tifinagh" style={{ fontSize: 13, letterSpacing: "5px", color: "var(--color-tertiaire)" }}>ⴰⴽⴰⵍ</span>
-            </div>
-          </Link>
-
+      {/* alignItems: "center" ici = comportement mobile (pas de fond carte à
+          dégager, cf. AuthMapPanel.tsx). ≥820px, .connexion-form-col
+          bascule la carte à gauche (cf. globals.css) : centrée par-dessus
+          la carte de fond, elle couvrirait exactement la zone où se
+          trouvent la plupart des régions cliquables (Casablanca-Settat,
+          Marrakech-Safi, Souss-Massa...), les rendant inatteignables au
+          clic — repéré en vérifiant l'écran réel après implémentation. */}
+      <div className="connexion-form-col" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px clamp(20px,6vw,48px) 40px", boxSizing: "border-box", position: "relative", zIndex: 1 }}>
+        {/* position:relative — sert d'ancrage à l'accusé de réception de
+            région (position absolute, cf. plus bas) : en position absolute,
+            il n'ajoute rien à la hauteur de ce conteneur (qui resterait
+            sinon parfois plus haute que 100vh une fois le message affiché,
+            poussant la page à défiler pour un simple accusé de réception
+            décoratif — repéré en vérifiant l'écran réel après
+            implémentation). */}
+        <div style={{ position: "relative", width: "100%", maxWidth: 440 }}>
+        {/* Pas la classe .card partagée (globals.css) : elle porte un
+            :hover (léger soulèvement + ombre renforcée) pensé pour des
+            cartes cliquables (ex. CardParcelle) — appliqué ici, survoler un
+            champ du formulaire ferait bouger toute la carte, une
+            distraction sans rapport avec un conteneur de formulaire
+            statique. Styles inline équivalents (fond blanc, coins arrondis,
+            ombre), sans le comportement au survol. */}
+        <div
+          style={{ width: "100%", background: "#fff", borderRadius: 16, boxShadow: "0 20px 50px rgba(27,58,45,0.16)", padding: "40px clamp(24px,5vw,40px)", boxSizing: "border-box" }}
+        >
         {/* ═══ VUE ACCUEIL (Téléphone, Email & Google) ═════════════════════ */}
         {vue === "accueil" && (
           <div className="akal-rise">
@@ -737,9 +775,54 @@ export default function ConnexionScreen({
         )}
 
         </div>
+
+        {/* Accusé de réception du clic sur la carte de fond (calque 2a) —
+            jamais une navigation ni une réécriture de `next`, cf.
+            docs/plans/2026-09-11-connexion-inscription-2a-design.md.
+            position absolute (cf. le wrapper ci-dessus) : flotte sous la
+            carte sans agrandir ce conteneur. Absent tant qu'aucune région
+            n'a été cliquée (fond masqué sous 820px, donc jamais atteignable
+            au clavier/tactile — rien à annoncer aux lecteurs d'écran). */}
+        {regionRetenue && (
+          <p className="akal-alert-in" style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 10, fontSize: 13, color: "#1B3A2D", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderRadius: 10, padding: "8px 14px", textAlign: "center" }}>
+            Vous cherchez en <strong>{regionRetenue}</strong> ? Vous pourrez préciser votre recherche une fois connecté.
+          </p>
+        )}
+        </div>
       </div>
 
-      <AuthMapPanel />
+      {/* Carte flottante « Sans compte aussi » (calque 2a) — rappel que la
+          consultation du catalogue ne nécessite pas de compte (capacité
+          déjà existante, pas une promesse décorative) : lien réel vers
+          /parcelles. Masquée sous 820px, même seuil que le fond carte
+          qu'elle accompagne visuellement (cf. .connexion-guest-card,
+          globals.css). */}
+      <Link
+        href="/parcelles"
+        className="connexion-guest-card akal-focusable"
+        style={{
+          position: "absolute",
+          bottom: 28,
+          right: "clamp(20px,4vw,48px)",
+          zIndex: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          border: "1px solid rgba(255,255,255,0.6)",
+          borderRadius: 12,
+          padding: "12px 18px",
+          boxShadow: "0 8px 24px rgba(27,58,45,0.14)",
+          textDecoration: "none",
+          color: "#1B3A2D",
+          fontSize: 13,
+          fontWeight: 500,
+        }}
+      >
+        Consulter les annonces sans créer de compte
+      </Link>
     </div>
   );
 }
