@@ -82,21 +82,6 @@ export type ParcelleTerrain = {
   contour: { latitude: number; longitude: number }[] | null;
 };
 
-// AgriScore courant.
-//
-// 2026-08-30 (hardening pré-soutenance) : l'API PUBLIQUE n'expose plus
-// l'AgriScore — les seules valeurs jamais produites étaient des
-// random.uniform() de seed. `scoreCourant` est donc toujours `null` en
-// provenance du backend réel. Le type est conservé (dormant) : le composant
-// ScoreBar, les blocs conditionnés par AGRISCORE_ACTIF (config/features.ts)
-// et les mocks de dev (data/parcelles.ts) le référencent encore, et il
-// reviendra quand un vrai moteur de calcul existera.
-export type ScoreCourant = {
-  scoreGlobal: number;
-  sousScores: Record<string, number> | null;
-  versionPonderation: string | null;
-};
-
 // Ligne d'annonce pour le dashboard propriétaire (GET /api/annonces/mes-annonces/).
 // Volontairement distinct de Parcelle : ne porte aucun champ géo/région
 // (latitude/longitude/region), non garantis tant que l'annonce n'a pas
@@ -129,7 +114,13 @@ export type Parcelle = {
   createdAt: string;
   badge: string | null;
   parcelle: ParcelleTerrain;
-  scoreCourant: ScoreCourant | null; // toujours null de l'API réelle (cf. ScoreCourant)
+  // AgriScore : plus de champ ici depuis le 2026-09-11 (réintégration au
+  // catalogue) — l'ancien `scoreCourant` n'était jamais alimenté par un vrai
+  // calcul (random.uniform() de seed, retiré de l'API publique le
+  // 2026-08-30). Le vrai score est calculé à la volée, jamais persisté sur
+  // l'annonce : cf. AgriScoreResume (components/parcelles/passeport/), qui
+  // l'obtient via GET /api/parcelles/<id>/passeport/ (lib/passeport-api.ts)
+  // à partir de `parcelle.id` ci-dessus.
   // Provenance (cf. lib/annonce-source.ts). Absent en liste allégée du contrat
   // d'origine → optionnel. `interne` = messagerie AKAL + WhatsApp ; sinon
   // (avito/mubawab) le CTA AKAL est masqué, on renvoie vers `sourceUrl`.
