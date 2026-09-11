@@ -33,6 +33,11 @@ type Props = {
   regions: Region[];
   // Mobile : ferme simplement le drawer (la liste est déjà à jour en live).
   onAppliquer: () => void;
+  // « Flottante » (carte plein écran, /carte — design 1c) : le panneau est un
+  // tiroir hors-champ à TOUTES les tailles (pas la colonne sticky du
+  // catalogue), avec voile et bouton de fermeture toujours visibles. Défaut
+  // false = comportement catalogue inchangé.
+  flottante?: boolean;
 };
 
 // ── Champ plage numérique (min/max) — P1-02 ────────────────────────────────
@@ -324,6 +329,7 @@ export default function FiltresSidebar({
   onReinitialiser,
   regions,
   onAppliquer,
+  flottante = false,
 }: Props) {
   const f = filtres;
   const pathname = usePathname();
@@ -400,7 +406,8 @@ export default function FiltresSidebar({
 
   return (
     <>
-      {/* Overlay mobile */}
+      {/* Voile — mobile seulement pour le catalogue (colonne sticky en
+          desktop), à toutes les tailles en variante flottante (/carte). */}
       {ouverte && (
         <div
           onClick={onFermer}
@@ -409,14 +416,14 @@ export default function FiltresSidebar({
             inset: 0,
             top: "64px",
             backgroundColor: "rgba(17,26,21,0.4)",
-            zIndex: 25,
+            zIndex: flottante ? 1150 : 25,
           }}
-          className="hidden-desktop akal-fade-in"
+          className={`${flottante ? "" : "hidden-desktop"} akal-fade-in`}
         />
       )}
 
       <aside
-        className={`filtres-sidebar ${ouverte ? "filtres-sidebar--ouverte" : ""}`}
+        className={`filtres-sidebar ${flottante ? "filtres-sidebar--flottante" : ""} ${ouverte ? "filtres-sidebar--ouverte" : ""}`}
         aria-label="Filtres de recherche"
       >
         <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -444,7 +451,7 @@ export default function FiltresSidebar({
                 type="button"
                 onClick={onFermer}
                 aria-label="Fermer les filtres"
-                className="hidden-desktop"
+                className={flottante ? "" : "hidden-desktop"}
                 style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-tertiaire)", display: "flex" }}
               >
                 <X size={18} />

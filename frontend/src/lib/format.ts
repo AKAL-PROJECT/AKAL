@@ -43,3 +43,19 @@ export function formatDistance(metres: number): string {
   if (!Number.isFinite(metres) || metres < 0) return "—";
   return metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
 }
+
+// Prix abrégé pour les repères de la carte plein écran (pastilles posées sur
+// la carte, /carte — design 1c) : 1 450 000 → « 1,45 M », 980 000 → « 980 k ».
+// Volontairement court pour rester lisible sur le fond de carte ; le prix
+// complet reste affiché partout ailleurs (tiroir, fiche de contact) via
+// formatMAD.
+export function formatPrixCourt(prix: number): string {
+  if (!Number.isFinite(prix) || prix <= 0) return "—";
+  if (prix >= 1_000_000) {
+    const millions = prix / 1_000_000;
+    const texte = millions.toFixed(millions < 10 ? 2 : 1).replace(/\.?0+$/, "");
+    return `${texte.replace(".", ",")} M`;
+  }
+  if (prix >= 1_000) return `${Math.round(prix / 1_000)} k`;
+  return formatMAD.format(prix);
+}

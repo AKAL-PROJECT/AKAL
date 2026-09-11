@@ -7,7 +7,7 @@ import Link from "next/link";
 import type * as GJ from "geojson";
 import { apiFetch } from "@/lib/api";
 import { LIMITES_MAROC, iconeAkal } from "@/lib/leaflet";
-import { formatMAD } from "@/lib/format";
+import { formatMAD, formatPrixCourt } from "@/lib/format";
 import type { Parcelle } from "@/types/parcelle";
 
 // Région active côté carte : centre dérivé de la moyenne des parcelles
@@ -427,5 +427,47 @@ export function MarqueurParcelle({ parcelle: p }: { parcelle: Parcelle }) {
         </div>
       </Popup>
     </Marker>
+  );
+}
+
+// Repère « pastille de prix » de la carte plein écran (/carte — design 1c) :
+// pas de popup, un clic sélectionne l'annonce (le tiroir et la fiche de
+// contact en dérivent, source unique côté page). État actif = vert plein +
+// ombre marquée, comme dans la maquette. Distinct de MarqueurParcelle
+// ci-dessus (pin + popup, utilisé par le catalogue / la couverture Home).
+// Hex littéraux comme le reste du fichier (contenu injecté en HTML brut dans
+// un L.divIcon, pas de cascade var(--…) accessible ici).
+export function MarqueurParcellePrix({
+  parcelle: p,
+  actif,
+  onSelect,
+}: {
+  parcelle: Parcelle;
+  actif: boolean;
+  onSelect: (id: string) => void;
+}) {
+  if (!Number.isFinite(p.parcelle.latitude) || !Number.isFinite(p.parcelle.longitude)) {
+    return null;
+  }
+
+  const fond = actif ? "#2D6A4F" : "#FFFFFF";
+  const texte = actif ? "#FFFFFF" : "#1B3A2D";
+  const bordure = actif ? "1.5px solid #1B3A2D" : "1px solid #E8E4DE";
+  const ombre = actif ? "0 8px 20px rgba(27,58,45,.28)" : "0 2px 8px rgba(27,58,45,.14)";
+
+  const icone = L.divIcon({
+    className: "",
+    html: `<span style="box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:999px;font:600 12px/1 'Manrope',system-ui,sans-serif;background:${fond};color:${texte};border:${bordure};box-shadow:${ombre};">${formatPrixCourt(p.prix)}</span>`,
+    iconSize: [78, 26],
+    iconAnchor: [39, 13],
+  });
+
+  return (
+    <Marker
+      position={[p.parcelle.latitude, p.parcelle.longitude]}
+      icon={icone}
+      zIndexOffset={actif ? 1000 : 0}
+      eventHandlers={{ click: () => onSelect(p.id) }}
+    />
   );
 }
