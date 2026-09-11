@@ -205,6 +205,12 @@ class Annonce(models.Model):
     statut = models.CharField(
         max_length=20, choices=StatutAnnonce.choices, default=StatutAnnonce.BROUILLON
     )
+    # Rempli uniquement quand la modération automatique (cf. moderation.py)
+    # a détourné une publication brouillon → en_ligne vers en_attente — les
+    # raisons du signal, pour que le groupe Modérateurs (AnnonceAdmin) sache
+    # QUOI regarder sans deviner. Vide dans tous les autres cas (jamais
+    # rempli à la main, jamais lu ailleurs que dans l'admin).
+    motif_moderation = models.TextField(blank=True, default='')
     loc_confidentielle = models.BooleanField(default=False)
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.INTERNE)
     # Identifiant de l'annonce chez la source externe (ex. id_annonce Avito) —

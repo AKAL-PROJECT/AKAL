@@ -57,6 +57,12 @@ export function EtapePhotosPublication({
   // ouverte en modification ne doit pas réafficher l'écran "vient d'être
   // publiée", seulement une vraie publication fraîche doit le déclencher.
   const [vientDePublier, setVientDePublier] = useState(false);
+  // Statut RÉELLEMENT obtenu après la tentative de publication — capturé à
+  // part de `annonce` (prop) plutôt que relu dessus : la modération
+  // automatique (backend/annonces/moderation.py) peut renvoyer `en_attente`
+  // au lieu de `en_ligne` demandé, et l'écran ci-dessous doit refléter CE
+  // résultat sans dépendre du timing de re-render du parent.
+  const [statutObtenu, setStatutObtenu] = useState<AnnonceEcriture["statut"] | null>(null);
   const [raisonsBlocage, setRaisonsBlocage] = useState<string[] | null>(null);
   const [erreurPublication, setErreurPublication] = useState<string | null>(null);
   const [suppressionEnCours, setSuppressionEnCours] = useState<string | null>(null);
@@ -114,8 +120,19 @@ export function EtapePhotosPublication({
       const resultat = await publierAction(annonce.id);
       if (resultat?.annonce) {
         onAnnonceMiseAJour(resultat.annonce);
+        setStatutObtenu(resultat.annonce.statut);
         setVientDePublier(true);
-        router.push(`/parcelles/${resultat.annonce.slug}`);
+        // La modération automatique (backend/annonces/moderation.py) peut
+        // détourner cette publication vers `en_attente` au lieu du
+        // `en_ligne` demandé — la fiche publique (AnnonceDetailAPIView,
+        // filtrée sur en_ligne()) répondrait alors 404 si on y redirigeait
+        // quand même. Vers le tableau de bord dans ce cas, jamais vers la
+        // fiche.
+        if (resultat.annonce.statut === "en_ligne") {
+          router.push(`/parcelles/${resultat.annonce.slug}`);
+        } else {
+          router.push("/compte/annonces");
+        }
       } else if (resultat?.fieldErrors?.statut) {
         setRaisonsBlocage(resultat.fieldErrors.statut);
       } else if (resultat?.error) {
@@ -125,6 +142,7 @@ export function EtapePhotosPublication({
   }
 
   if (vientDePublier) {
+    const enAttente = statutObtenu === "en_attente";
     return (
       <div className="akal-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", textAlign: "center", padding: "32px 0" }}>
         <span
@@ -141,8 +159,14 @@ export function EtapePhotosPublication({
         >
           <Check size={26} strokeWidth={2} />
         </span>
-        <h2 style={{ fontSize: 20, margin: 0 }}>Votre annonce est en ligne</h2>
-        <p style={{ color: "var(--color-secondaire)", margin: 0 }}>Redirection vers votre annonce…</p>
+        <h2 style={{ fontSize: 20, margin: 0 }}>
+          {enAttente ? "Annonce reçue, en cours de vérification" : "Votre annonce est en ligne"}
+        </h2>
+        <p style={{ color: "var(--color-secondaire)", margin: 0 }}>
+          {enAttente
+            ? "Elle sera publiée après une vérification rapide par notre équipe — vous serez averti."
+            : "Redirection vers votre annonce…"}
+        </p>
       </div>
     );
   }

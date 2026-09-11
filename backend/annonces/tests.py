@@ -28,6 +28,7 @@ from messaging.models import Conversation, Favori, Message, Notification
 from . import transitions
 from .admin import publier_selection, rejeter_selection
 from .alertes import notifier_recherches_correspondantes
+from .moderation import evaluer_signal_moderation
 from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
 from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
@@ -681,6 +682,189 @@ class PublicationTests(AnnoncesTestBase):
         self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
 
 
+class SignalModerationTests(SimpleTestCase):
+    """Unitaires sur evaluer_signal_moderation() seul — fonction pure, pas
+    de base de données (cf. moderation.py)."""
+
+    def test_description_agricole_correcte_nest_pas_suspecte(self):
+        signal = evaluer_signal_moderation(
+            'Belle parcelle agricole à Chichaoua',
+            "Terrain de 3 hectares, sol argileux, accès à l'eau par puits, "
+            "idéal pour l'arboriculture (oliviers, amandiers).",
+        )
+        self.assertFalse(signal.suspect)
+        self.assertEqual(signal.raisons, [])
+
+    def test_description_trop_courte_est_suspecte(self):
+        signal = evaluer_signal_moderation('Terrain', 'Beau terrain.')
+        self.assertTrue(signal.suspect)
+        self.assertTrue(any('courte' in r for r in signal.raisons))
+
+    def test_aucun_vocabulaire_agricole_est_suspect(self):
+        # Ni le titre ni la description ne contiennent le moindre terme du
+        # domaine (cf. VOCABULAIRE_AGRICOLE) — assez long pour ne pas être
+        # rejeté sur le seul critère de longueur, afin d'isoler ce critère-ci.
+        signal = evaluer_signal_moderation(
+            'Superbe opportunité à ne pas manquer',
+            'Contactez-nous vite pour profiter de cette offre exceptionnelle et unique.',
+        )
+        self.assertTrue(signal.suspect)
+        self.assertTrue(any('Aucun terme agricole' in r for r in signal.raisons))
+
+    def test_lien_url_est_suspect(self):
+        signal = evaluer_signal_moderation(
+            'Terrain agricole',
+            'Belle parcelle agricole, photos et détails sur https://exemple.com/annonce.',
+        )
+        self.assertTrue(signal.suspect)
+        self.assertTrue(any('lien' in r for r in signal.raisons))
+
+    def test_longue_suite_de_chiffres_seule_ne_suffit_pas(self):
+        # Signal "cosmétique" (cf. commentaire MALUS_* de moderation.py) :
+        # un numéro laissé dans le texte, seul, ne fait pas basculer une
+        # annonce par ailleurs plausible — même prudence que pour NDVI/photo
+        # (akal-post-audit-priorities : filtrer les coordonnées dans les
+        # messages n'est même pas acté comme souhaitable côté produit).
+        signal = evaluer_signal_moderation(
+            'Terrain agricole à vendre',
+            'Belle parcelle agricole irriguée, contactez le 06 12 34 56 78 rapidement.',
+        )
+        self.assertFalse(signal.suspect)
+        self.assertTrue(any('chiffres' in r for r in signal.raisons))
+
+    def test_majuscules_excessives_seules_ne_suffisent_pas(self):
+        # Idem : écrire tout en majuscules n'est pas en soi un signe de
+        # spam (clavier, habitude) — reste dans les raisons affichées au
+        # modérateur, mais ne bloque rien à lui seul.
+        signal = evaluer_signal_moderation(
+            'TERRAIN AGRICOLE A VENDRE',
+            'PARCELLE AGRICOLE DE TROIS HECTARES AVEC ACCES A LEAU DISPONIBLE.',
+        )
+        self.assertFalse(signal.suspect)
+        self.assertTrue(any('majuscules' in r for r in signal.raisons))
+
+    def test_signaux_cosmetiques_cumules_avec_un_signal_structurel(self):
+        # Les signaux cosmétiques ne bloquent jamais seuls, mais RENFORCENT
+        # un doute déjà présent (ici : aucun vocabulaire agricole) — le
+        # cumul franchit bien le seuil.
+        signal = evaluer_signal_moderation(
+            'SUPERBE OFFRE',
+            'CONTACTEZ VITE AU 06 12 34 56 78 !!!! DERNIERE CHANCE !!!!',
+        )
+        self.assertTrue(signal.suspect)
+
+    def test_ndvi_et_photo_delibrement_hors_perimetre(self):
+        # Non-régression du choix documenté dans moderation.py : un terrain
+        # agricole réel peut avoir un NDVI quasi nul (jachère, saison sèche,
+        # bâtiments) ou une photo visuellement uniforme — aucun des deux ne
+        # doit peser dans le score, seul le texte compte. Rien à appeler ici
+        # (le signal ne prend que titre/description) : ce test documente
+        # l'absence de paramètre plutôt qu'un comportement à vérifier.
+        import inspect
+        parametres = list(inspect.signature(evaluer_signal_moderation).parameters)
+        self.assertEqual(parametres, ['titre', 'description'])
+
+
+class ModerationPublicationTests(AnnoncesTestBase):
+    """Intégration : une publication détournée par la modération atterrit
+    en_attente, jamais rejetée, et reste invisible du catalogue public —
+    même mécanisme que can_publish(), juste après lui dans update()."""
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+
+    def publier_avec(self, titre, description):
+        creation = self.creer_brouillon(titre=titre, description=description)
+        annonce_id = creation.data['id']
+        self.localiser(annonce_id)
+        self.uploader_une_photo(annonce_id)
+        response = self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+        return annonce_id, response
+
+    def uploader_une_photo(self, annonce_id):
+        return self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+
+    def test_annonce_suspecte_atterrit_en_attente_pas_rejetee(self):
+        annonce_id, response = self.publier_avec(
+            titre='Superbe opportunité',
+            description='Contactez-nous vite : https://exemple.com pour ne pas rater cette offre.',
+        )
+
+        # Jamais un 400 — can_publish() est satisfait (géoloc/photo/prix),
+        # la modération ne fait qu'aiguiller vers un autre statut, jamais
+        # un rejet de la requête elle-même.
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['statut'], 'en_attente')
+
+        annonce = Annonce.objects.get(id=annonce_id)
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_ATTENTE)
+        self.assertIsNone(annonce.date_publication)
+        self.assertNotEqual(annonce.motif_moderation, '')
+
+    def test_annonce_suspecte_absente_du_catalogue_public(self):
+        annonce_id, _ = self.publier_avec(
+            titre='Superbe opportunité',
+            description='Contactez-nous vite : https://exemple.com pour ne pas rater cette offre.',
+        )
+
+        self.client.logout()
+        liste = self.client.get(ANNONCES_URL)
+
+        ids = [a['id'] for a in liste.data['results']]
+        self.assertNotIn(annonce_id, ids)
+
+    def test_annonce_plausible_publiee_normalement_motif_vide(self):
+        annonce_id, response = self.publier_avec(
+            titre='Belle parcelle agricole',
+            description="Terrain de 3 hectares avec accès à l'eau, idéal pour l'arboriculture.",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['statut'], 'en_ligne')
+        annonce = Annonce.objects.get(id=annonce_id)
+        self.assertIsNotNone(annonce.date_publication)
+        self.assertEqual(annonce.motif_moderation, '')
+
+    def test_reactivation_apres_archivage_ignore_la_moderation(self):
+        # cf. transitions.py : archivee → en_ligne est une "réactivation
+        # immédiate... sans étape d'approbation supplémentaire" — même une
+        # annonce dont le texte serait jugé suspect aujourd'hui ne doit PAS
+        # être redétournée vers en_attente à la réactivation, seul le tout
+        # premier passage en ligne (brouillon → en_ligne) est concerné.
+        annonce_id, response = self.publier_avec(
+            titre='Belle parcelle agricole',
+            description="Terrain de 3 hectares avec accès à l'eau, idéal pour l'arboriculture.",
+        )
+        self.assertEqual(response.data['statut'], 'en_ligne')
+
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'statut': 'archivee'},
+            format='json', **self.csrf_headers(),
+        )
+        # Texte remplacé par un contenu qui serait détourné vers en_attente
+        # s'il s'agissait d'un premier dépôt (cf. test ci-dessus).
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/',
+            {'titre': 'Superbe opportunité', 'description': 'Contactez-nous vite : https://exemple.com'},
+            format='json', **self.csrf_headers(),
+        )
+
+        reactivation = self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(reactivation.status_code, status.HTTP_200_OK)
+        self.assertEqual(reactivation.data['statut'], 'en_ligne')
+
+
 class SuppressionPhotoTests(AnnoncesTestBase):
     def setUp(self):
         super().setUp()
@@ -738,7 +922,13 @@ class MesAnnoncesTests(AnnoncesTestBase):
     def test_liste_les_annonces_du_proprietaire_quel_que_soit_le_statut(self):
         self.authentifier()
         brouillon_id = self.creer_brouillon(titre='Brouillon en cours').data['id']
-        annonce_publiee_id = self.creer_brouillon(titre='Annonce publiée').data['id']
+        # Titre gardant du vocabulaire agricole (cf. moderation.py) : ce test
+        # porte sur le filtrage par statut, pas sur le signal de modération
+        # — sans "terrain"/"agricole" ici, la description par défaut seule
+        # ('Une description suffisamment longue pour être valide.', sans
+        # aucun terme du domaine) suffirait à détourner la publication vers
+        # en_attente et fausserait l'assertion `== 'en_ligne'` plus bas.
+        annonce_publiee_id = self.creer_brouillon(titre='Terrain agricole publié').data['id']
         self.localiser(annonce_publiee_id)
         self.client.patch(
             f'{ANNONCES_URL}{annonce_publiee_id}/', {'photos[]': [image_jpeg()]},
