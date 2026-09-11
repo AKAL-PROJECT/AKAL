@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import logging
 
+from django.core.exceptions import ValidationError
 from django.db import DatabaseError, models
+
+from agriscore.aggregation import POIDS_NOMINAUX
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,30 @@ class ConfigurationAgriScore(models.Model):
             "API externe appelée."
         ),
     )
+
+    # Pondérations des 5 dimensions du score (2026-09-11) — ajustables sans
+    # redéploiement, contrairement aux poids nominaux d'origine, codés en dur
+    # dans agriscore.aggregation.POIDS_NOMINAUX (repris ici comme défauts :
+    # une migration qui ajoute ces champs à une ligne singleton déjà en base
+    # ne change donc PAS le comportement de scoring au déploiement). La
+    # validation "somme = 100" vit dans clean() ci-dessous, pas ici : elle a
+    # besoin des 5 valeurs à la fois, qu'un seul champ ne peut pas voir.
+    poids_ndvi = models.PositiveSmallIntegerField(
+        default=POIDS_NOMINAUX['ndvi'], verbose_name='poids NDVI (%)',
+    )
+    poids_climat = models.PositiveSmallIntegerField(
+        default=POIDS_NOMINAUX['climat'], verbose_name='poids climat (%)',
+    )
+    poids_sol = models.PositiveSmallIntegerField(
+        default=POIDS_NOMINAUX['sol'], verbose_name='poids sol (%)',
+    )
+    poids_topo = models.PositiveSmallIntegerField(
+        default=POIDS_NOMINAUX['topo'], verbose_name='poids topographie (%)',
+    )
+    poids_acces = models.PositiveSmallIntegerField(
+        default=POIDS_NOMINAUX['acces'], verbose_name='poids accès (%)',
+    )
+
     modifie_le = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -41,6 +68,14 @@ class ConfigurationAgriScore(models.Model):
 
     def __str__(self) -> str:
         return f"AgriScore — {'actif (API réelles)' if self.actif else 'désactivé (simulé)'}"
+
+    def clean(self):
+        super().clean()
+        total = self.poids_ndvi + self.poids_climat + self.poids_sol + self.poids_topo + self.poids_acces
+        if total != 100:
+            raise ValidationError(
+                f"La somme des pondérations doit faire 100 (actuellement {total})."
+            )
 
     def save(self, *args, **kwargs):
         self.pk = 1  # singleton : jamais qu'une ligne
@@ -62,3 +97,23 @@ class ConfigurationAgriScore(models.Model):
                 "ConfigurationAgriScore illisible — pipeline supposé actif", exc_info=True
             )
             return True
+
+    @classmethod
+    def poids_nominaux(cls) -> dict[str, int]:
+        """Poids des 5 dimensions, avec repli sûr : table absente ou base KO
+        ⇒ les poids nominaux d'origine (agriscore.aggregation.POIDS_NOMINAUX),
+        jamais un 500 sur le passeport. Même patron que pipeline_actif()."""
+        try:
+            c = cls.charger()
+            return {
+                'ndvi': c.poids_ndvi,
+                'climat': c.poids_climat,
+                'sol': c.poids_sol,
+                'topo': c.poids_topo,
+                'acces': c.poids_acces,
+            }
+        except DatabaseError:
+            logger.warning(
+                "ConfigurationAgriScore illisible — poids nominaux par défaut", exc_info=True
+            )
+            return dict(POIDS_NOMINAUX)
