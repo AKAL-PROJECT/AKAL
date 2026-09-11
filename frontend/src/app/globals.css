@@ -1089,6 +1089,16 @@
   .akal-print-uniquement {
     display: block !important;
   }
+  /* Passeport Agronomique — « Télécharger en PDF » (window.print(),
+     PasseportAgronomiqueScreen.tsx) : le bloc à onglets porte un
+     `overflow: hidden` (pour les coins arrondis de sa barre d'onglets) —
+     sans cette levée, un contenu plus haut qu'une page est tronqué net à
+     la limite de page plutôt que de continuer sur la suivante (retour
+     utilisateur du 11 sept, « le PDF coupe bizarrement » — comportement
+     connu des navigateurs à l'impression avec overflow:hidden). */
+  .akal-print-visible {
+    overflow: visible !important;
+  }
 }
 @media screen {
   .akal-print-uniquement {

@@ -118,6 +118,14 @@ services:
       # ALLOWED_HOSTS et CSRF_TRUSTED_ORIGINS : les défauts de akal.settings.dev
       # incluent déjà `backend` (nom de ce service) — rien à surcharger ici.
       SEED_ON_START: "1"
+      # Jeu de données visible localement : 'all' (démo + scrapées avito/
+      # mubawab) par défaut — cette pile ne sert QUE la démo locale, jamais
+      # la prod (prod.py garde son défaut 'simulated', cf. render.yaml).
+      # Surchargeable via AKAL_DATASET dans le .env racine.
+      AKAL_DATASET: ${AKAL_DATASET:-all}
+      # Importe l'échantillon d'annonces scrapées au 1er démarrage (~92
+      # publiables avec photo, cf. docker-entrypoint.sh) — idempotent.
+      SEED_SCRAPED_ON_START: ${SEED_SCRAPED_ON_START:-1}
       # Optionnels (cf. .env.example à la racine) — vides = fonctionnalité
       # dégradée proprement, jamais un crash.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

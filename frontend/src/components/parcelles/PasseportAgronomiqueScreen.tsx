@@ -211,7 +211,7 @@ export default function PasseportAgronomiqueScreen({ parcelle }: { parcelle: Par
       <section style={{ marginBottom: "28px" }}>
         <h2 className="fiche-section-titre">Identification de la parcelle</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
-          <div className="card" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div className="card" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px", breakInside: "avoid" }}>
             <LigneMeta label="Référence" valeur={reference} />
             <LigneMeta label="Région" valeur={p.regionNom} />
             <LigneMeta label="Province" valeur={p.province ?? "Non renseignée"} />
@@ -237,7 +237,7 @@ export default function PasseportAgronomiqueScreen({ parcelle }: { parcelle: Par
       {/* Limites et méthodologie */}
       <section style={{ marginBottom: "24px" }}>
         <h2 className="fiche-section-titre">Limites et méthodologie</h2>
-        <div className="card" style={{ padding: "18px" }}>
+        <div className="card" style={{ padding: "18px", breakInside: "avoid" }}>
           <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", color: "var(--color-secondaire)", lineHeight: 1.8 }}>
             <li>
               Cinq dimensions collectées auprès de sources ouvertes (SoilGrids, Open-Meteo, Sentinel-2,
@@ -407,6 +407,7 @@ function CarteSynthese({
         gridTemplateColumns: "auto 1fr",
         gap: "24px",
         alignItems: "start",
+        breakInside: "avoid",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
@@ -479,6 +480,7 @@ function ARetenir({ passeport }: { passeport: Passeport }) {
         padding: "18px",
         borderLeft: "3px solid var(--color-foret)",
         backgroundColor: "var(--color-rosee, var(--color-fond))",
+        breakInside: "avoid",
       }}
     >
       <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-nuit)", marginBottom: "8px" }}>

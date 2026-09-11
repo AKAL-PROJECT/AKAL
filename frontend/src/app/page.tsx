@@ -6,8 +6,16 @@ import SelectionTerrainsSlider from "@/components/home/SelectionTerrainsSlider";
 import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
 import { BanniereDemo } from "@/components/BanniereDemo";
 
+// "Statut foncier affiché" (pas "déclaré... sur chaque annonce") — retour
+// utilisateur du 11 sept : le statut foncier n'est renseigné que par les
+// annonces AKAL (source interne) ; les annonces importées de sources
+// externes (Avito, Mubawab) ne le documentent pas (cf. backend
+// annonces/management/commands/import_scraped_data.py, champ laissé vide
+// faute de donnée fiable dans l'export d'origine) — le libellé précédent
+// ("sur chaque annonce") était donc inexact dès qu'une source externe est
+// visible (cf. AKAL_DATASET).
 const CONFIANCE = [
-  { icone: Shield, titre: "Statut foncier déclaré", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — informations déclarées par le vendeur sur chaque annonce." },
+  { icone: Shield, titre: "Statut foncier affiché", desc: "Melkia, Soulaliya, Guich, Habous, Immatriculé — affiché dès qu'il est renseigné par le vendeur." },
   { icone: Check, titre: "Sans intermédiaire", desc: "Un espace de mise en relation directe entre propriétaires et acheteurs." },
   { icone: MapIcon, titre: "Couverture nationale", desc: "Des parcelles à travers les régions agricoles du Maroc." },
 ];
@@ -203,6 +211,20 @@ export default async function Home() {
       {/* ═══════════════════════ Valeur — couverture ═══════════════════════ */}
       <CouvertureSection parcelles={parcelles} totalCount={totalCount} />
 
+      {/* ═══════════════════════ Preuves — slider "Sélection de terrains" (P1-05) ═══════════════════════ */}
+      {/* Remplace l'ancienne grille statique à 3 cartes : mêmes vraies
+          annonces que le catalogue (getParcelles(), cf. Home ci-dessus),
+          mais en piste défilante pour montrer plus de terrains sans
+          allonger la page. Favori/comparateur restent décoratifs ici
+          volontairement : la Home est une vitrine de découverte, pas le
+          catalogue interactif (useFavorisIds()/état comparateur vivent
+          dans /parcelles). Placé avant "Pourquoi AKAL" (retour utilisateur,
+          11 sept) : montrer les terrains réels convainc plus vite que
+          l'argumentaire, qui vient ensuite l'étayer. */}
+      <Reveal>
+        <SelectionTerrainsSlider parcelles={parcelles.slice(0, 9)} />
+      </Reveal>
+
       {/* ═══════════════════════ Mission ═══════════════════════ */}
       {/* "Fonctionnement / Comment ça marche" retiré d'ici le 2026-08-17 —
           doublon avec sa page dédiée (/comment-ca-marche,
@@ -235,18 +257,6 @@ export default async function Home() {
           ))}
         </div>
       </section>
-
-      {/* ═══════════════════════ Preuves — slider "Sélection de terrains" (P1-05) ═══════════════════════ */}
-      {/* Remplace l'ancienne grille statique à 3 cartes : mêmes vraies
-          annonces que le catalogue (getParcelles(), cf. Home ci-dessus),
-          mais en piste défilante pour montrer plus de terrains sans
-          allonger la page. Favori/comparateur restent décoratifs ici
-          volontairement : la Home est une vitrine de découverte, pas le
-          catalogue interactif (useFavorisIds()/état comparateur vivent
-          dans /parcelles). */}
-      <Reveal>
-        <SelectionTerrainsSlider parcelles={parcelles.slice(0, 9)} />
-      </Reveal>
 
       {/* ═══════════════════════ Appel à l'action ═══════════════════════ */}
       <Reveal>
