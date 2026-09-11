@@ -126,7 +126,11 @@ export default function AuthMapPanel() {
             le fond blanc quasi-opaque précédent : laisse transparaître le
             dégradé/la trame topo du panneau derrière chaque carte, cohérent
             avec le halo d'élévation de la carte ci-dessus. */}
-        {["Statut foncier vérifié", "Sans intermédiaire", "Couverture nationale"].map((texte) => (
+        {/* "Statut foncier affiché", pas "vérifié" (corrigé 11 sept, même
+            retour utilisateur que la Home) — AKAL ne vérifie aucun titre
+            (déclaratif, cf. la FAQ de /comment-ca-marche : "AKAL vérifie-t-il
+            les titres ? Non."), "vérifié" affirmait le contraire. */}
+        {["Statut foncier affiché", "Sans intermédiaire", "Couverture nationale"].map((texte) => (
           <div
             key={texte}
             style={{

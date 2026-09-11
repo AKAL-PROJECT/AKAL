@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { User } from "@/lib/auth-api";
 import { ChevronDown, ChevronLeft } from "@/components/icons/Icons";
 import { sendPhoneSms, verifyPhoneOtp, type ConfirmationResult } from "@/lib/firebase-client";
@@ -301,6 +302,24 @@ export default function ProfilCompletionGate({
 
             {(error || phoneError) && (
               <p style={{ fontSize: 13, color: "var(--color-erreur)", margin: 0 }}>{error ?? phoneError}</p>
+            )}
+
+            {/* Repli quand l'envoi du SMS échoue (Firebase indisponible,
+                région désactivée, quota…) : Mon compte enregistre déjà le
+                numéro directement, sans vérification (cf. ProfilCarte.tsx)
+                — plutôt qu'un blocage silencieux ici, on documente ce
+                chemin déjà existant (retour utilisateur du 11 sept, « on
+                reste bloqué… mais vers /compte on peut le mettre sans
+                pb »). Le numéro ainsi enregistré rend `profilEstComplet()`
+                vrai au retour sur cette page, sans repasser par le SMS. */}
+            {phoneError && (
+              <p style={{ fontSize: 12.5, color: "var(--color-tertiaire)", margin: 0, lineHeight: 1.5 }}>
+                La vérification par SMS échoue ?{" "}
+                <Link href="/compte" style={{ color: "var(--color-foret)", fontWeight: 500 }}>
+                  Enregistrez votre numéro depuis Mon compte
+                </Link>
+                , sans SMS, puis revenez ici.
+              </p>
             )}
 
             <button

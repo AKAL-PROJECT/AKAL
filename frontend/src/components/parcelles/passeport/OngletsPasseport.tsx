@@ -34,7 +34,7 @@ export default function OngletsPasseport({
   ];
 
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: "18px" }}>
+    <div className="card akal-print-visible" style={{ padding: 0, overflow: "hidden", marginBottom: "18px" }}>
       <div
         role="tablist"
         aria-label="Dimensions du passeport"
