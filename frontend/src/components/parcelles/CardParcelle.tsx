@@ -69,6 +69,15 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
               sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
               className="akal-card-photo-zoom"
               style={{ objectFit: "cover" }}
+              // Mesure de perf du 2026-09-11 (audits/performance/) : sans
+              // priority, next/image charge cette image en lazy — y compris
+              // la toute première carte de la grille, systématiquement
+              // au-dessus du pli. Résultat mesuré : LCP du catalogue dominé
+              // par un délai de découverte de 1,85 s (insight LCPDiscovery).
+              // priority déclenche un <link rel="preload"> + désactive le
+              // lazy loading, uniquement pour la 1ère carte (index 0) — les
+              // suivantes, hors du pli, restent lazy comme avant.
+              priority={index === 0}
             />
           </ViewTransition>
         )}
