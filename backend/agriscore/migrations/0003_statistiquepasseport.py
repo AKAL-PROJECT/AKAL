@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('agriscore', '0001_initial'),
+        ('agriscore', '0002_ponderations_configurables'),
     ]
 
     operations = [

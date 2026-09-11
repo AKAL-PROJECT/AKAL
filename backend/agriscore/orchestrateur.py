@@ -22,11 +22,11 @@ force un run 100 % hors-ligne.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 
-from agriscore.aggregation import agreger_scores
+from agriscore.aggregation import POIDS_NOMINAUX, agreger_scores
 from agriscore.agent_result import AgentResult
 from agriscore.agents import AGENTS_DEFAUT, Agent, horodatage_iso, valider_coordonnees
 from agriscore.interpretation import TEXTURES, ProfilParcelle, suggerer_cultures
@@ -68,6 +68,7 @@ def generer_passeport(
     lat: float,
     lon: float,
     agents: Sequence[Agent] | None = None,
+    poids_nominaux: Mapping[str, int] = POIDS_NOMINAUX,
 ) -> dict:
     """``(lat, lon)`` → Passeport JSON complet.
 
@@ -75,6 +76,10 @@ def generer_passeport(
         lat, lon: coordonnées décimales WGS84.
         agents: agents à interroger. Par défaut ``AGENTS_DEFAUT`` (5 agents
             réels) ; ``AGENTS_SIMULES`` pour un run 100 % hors-ligne.
+        poids_nominaux: transmis tel quel à ``agreger_scores`` (cf. sa
+            docstring). Par défaut ``POIDS_NOMINAUX`` ; l'appelant applicatif
+            (agriscore.passeport) passe la config admin-éditable. Ce module
+            reste pur — il ne lit ``ConfigurationAgriScore`` nulle part.
 
     Returns:
         Le dict du Passeport, JSON-sérialisable : mode, score global,
@@ -88,7 +93,7 @@ def generer_passeport(
 
     resultats = _collecter(agents, lat, lon)
     resultats, sous_scores = _scorer(resultats)
-    agregation = agreger_scores(resultats, sous_scores)
+    agregation = agreger_scores(resultats, sous_scores, poids_nominaux)
     cultures = suggerer_cultures(_profil(resultats))
 
     return _assembler(agents, resultats, sous_scores, agregation, cultures)

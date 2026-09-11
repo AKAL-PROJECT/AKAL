@@ -1,16 +1,15 @@
 "use client";
 
-import { ViewTransition } from "react";
+import { useState, ViewTransition } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import type { AccesEau, Parcelle } from "@/types/parcelle";
 import BadgeStatut from "./BadgeStatut";
-import ScoreBar from "./ScoreBar";
+import AgriScoreResume from "./passeport/AgriScoreResume";
 import { MapPin, X } from "@/components/icons/Icons";
 import { EtatVide } from "@/components/EtatVide";
 import { useComparateur } from "@/hooks/useComparateur";
-import { AGRISCORE_ACTIF } from "@/config/features";
 import { formatMAD, formatPrixM2 } from "@/lib/format";
 
 // Leaflet a besoin de `window`, absent au rendu serveur — même contrainte
@@ -49,25 +48,41 @@ type Ligne = {
   render: (p: Parcelle) => React.ReactNode;
 };
 
-const LIGNES: Ligne[] = [
-  { label: "Prix", valeur: (p) => p.prix, meilleure: "min", render: (p) => `${formatMAD.format(p.prix)} MAD` },
-  { label: "Prix au m²", valeur: (p) => p.prixM2, meilleure: "min", render: (p) => formatPrixM2(p.prixM2) },
-  { label: "Surface", valeur: (p) => p.parcelle.surface, meilleure: "max", render: (p) => `${p.parcelle.surface} ha` },
-  // AgriScore hors périmètre produit actuel (cf. src/config/features.ts) —
-  // ligne conservée, simplement exclue du tableau tant que le flag est faux.
-  ...(AGRISCORE_ACTIF
-    ? [{
-        label: "AgriScore",
-        valeur: (p: Parcelle) => p.scoreCourant?.scoreGlobal ?? null,
-        meilleure: "max" as const,
-        render: (p: Parcelle) => <ScoreBar score={p.scoreCourant?.scoreGlobal ?? null} />,
-      }]
-    : []),
-  { label: "Région", valeur: () => null, render: (p) => p.parcelle.regionNom },
-  { label: "Statut foncier", valeur: () => null, render: (p) => <BadgeStatut statut={p.parcelle.statutFoncier} /> },
-  { label: "Accès à l'eau", valeur: () => null, render: (p) => (p.parcelle.accesEau ? ACCES_EAU_LABEL[p.parcelle.accesEau] : "—") },
-  { label: "Topographie", valeur: () => null, render: (p) => p.parcelle.topographie ?? "—" },
-];
+// AgriScore, seule ligne à dépendre d'un état : le score de chaque parcelle
+// arrive de façon asynchrone (AgriScoreResume, un fetch par parcelle comparée
+// — au plus COMPARATEUR_MAX = 3). `scores` est levé dans ComparateurScreen et
+// peuplé via `onScore`, pour que cette ligne continue de surligner la
+// meilleure valeur comme toutes les autres (prix, surface…) — impossible à
+// faire depuis une fonction `valeur` pure comme les lignes statiques
+// ci-dessous, qui n'ont besoin d'aucun état pour se calculer.
+function construireLignes(
+  scores: Record<string, number | null>,
+  enregistrerScore: (parcelleId: string, score: number | null) => void,
+): Ligne[] {
+  return [
+    { label: "Prix", valeur: (p) => p.prix, meilleure: "min", render: (p) => `${formatMAD.format(p.prix)} MAD` },
+    { label: "Prix au m²", valeur: (p) => p.prixM2, meilleure: "min", render: (p) => formatPrixM2(p.prixM2) },
+    { label: "Surface", valeur: (p) => p.parcelle.surface, meilleure: "max", render: (p) => `${p.parcelle.surface} ha` },
+    {
+      label: "AgriScore",
+      valeur: (p) => scores[p.parcelle.id] ?? null,
+      meilleure: "max",
+      render: (p) => (
+        <AgriScoreResume
+          variante="detaille"
+          parcelleId={p.parcelle.id}
+          slug={p.slug}
+          accesEau={p.parcelle.accesEau}
+          onScore={(score) => enregistrerScore(p.parcelle.id, score)}
+        />
+      ),
+    },
+    { label: "Région", valeur: () => null, render: (p) => p.parcelle.regionNom },
+    { label: "Statut foncier", valeur: () => null, render: (p) => <BadgeStatut statut={p.parcelle.statutFoncier} /> },
+    { label: "Accès à l'eau", valeur: () => null, render: (p) => (p.parcelle.accesEau ? ACCES_EAU_LABEL[p.parcelle.accesEau] : "—") },
+    { label: "Topographie", valeur: () => null, render: (p) => p.parcelle.topographie ?? "—" },
+  ];
+}
 
 // Ignore les lignes non comparables (max/min) ou pour lesquelles moins de 2
 // parcelles ont une valeur connue (rien à distinguer).
@@ -86,6 +101,17 @@ export default function ComparateurScreen() {
   // de basculer sur le tableau dès que l'effet a tourné (un seul tick,
   // jamais perceptible).
   const { parcelles, retirer } = useComparateur();
+
+  // Scores AgriScore, levés ici pour que la ligne du tableau puisse surligner
+  // la meilleure valeur (cf. construireLignes ci-dessus) — peuplés au fil de
+  // la résolution de chaque AgriScoreResume, jamais tous en même temps.
+  // Équivalence de valeur avant d'écrire un nouvel objet : évite un aller-
+  // retour de re-render superflu quand `onScore` est rappelé avec la même
+  // valeur (identité de fonction non stabilisée entre deux rendus).
+  const [scores, setScores] = useState<Record<string, number | null>>({});
+  const enregistrerScore = (parcelleId: string, score: number | null) => {
+    setScores((s) => (s[parcelleId] === score ? s : { ...s, [parcelleId]: score }));
+  };
 
   if (parcelles.length === 0) {
     return (
@@ -106,6 +132,8 @@ export default function ComparateurScreen() {
       </div>
     );
   }
+
+  const lignes = construireLignes(scores, enregistrerScore);
 
   return (
     <div className="akal-fade-in" style={{ maxWidth: "1000px", margin: "0 auto", padding: "32px 20px 64px" }}>
@@ -196,7 +224,7 @@ export default function ComparateurScreen() {
             </tr>
           </thead>
           <tbody>
-            {LIGNES.map((ligne) => {
+            {lignes.map((ligne) => {
               const meilleure = meilleureValeur(ligne, parcelles);
               return (
                 <tr key={ligne.label} style={{ borderTop: "1px solid var(--color-bordure)" }}>
