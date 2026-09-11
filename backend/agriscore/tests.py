@@ -26,11 +26,13 @@ from unittest.mock import Mock, patch
 
 import requests
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.db import DatabaseError
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APITestCase
 
 from agriscore import AgentResult
-from agriscore.aggregation import agreger_scores
+from agriscore.aggregation import POIDS_NOMINAUX, agreger_scores
 from agriscore.agents import (
     AGENTS_DEFAUT,
     AGENTS_SIMULES,
@@ -633,6 +635,26 @@ class AgregationTests(SimpleTestCase):
         )
         json.dumps(out)  # transite vers l'endpoint interne → doit être JSON
 
+    def test_poids_nominaux_personnalises(self):
+        # Poids configurables (2026-09-11) — cinq poids égaux (20 chacun,
+        # somme 100 comme l'exige _valider_poids) plutôt que les poids
+        # nominaux par défaut (25/20/20/20/15) : prouve que le paramètre
+        # change réellement le calcul, pas seulement accepté et ignoré.
+        poids_egaux = {"ndvi": 20, "climat": 20, "sol": 20, "topo": 20, "acces": 20}
+        sous_scores = {"ndvi": 100, "climat": 50, "sol": 50, "topo": 50, "acces": 0}
+
+        out = agreger_scores(_resultats_pipeline(), sous_scores, poids_egaux)
+
+        # Confiances = 1 → pas de renormalisation, poids nominaux = effectifs.
+        # score = (100+50+50+50+0)·20 / 100 = 50.0 (55.0 avec les poids par
+        # défaut, cf. test_toutes_confiances_pleines_poids_nominaux ci-dessus).
+        self.assertEqual(out["score_global"], 50.0)
+        self.assertEqual(out["fiabilite_globale"], 100.0)
+        self.assertEqual(
+            {d: out["detail_par_dimension"][d]["poids_nominal"] for d in _DIMS},
+            poids_egaux,
+        )
+
     def test_entrees_invalides(self):
         base_scores = {d: 50 for d in _DIMS}
 
@@ -670,6 +692,38 @@ class AgregationTests(SimpleTestCase):
             intrus[2] = {"dimension": "sol"}
             with self.assertRaises(TypeError):
                 agreger_scores(intrus, base_scores)
+
+        with self.subTest("poids_nominaux ne somme pas à 100"):
+            with self.assertRaises(ValueError):
+                agreger_scores(
+                    _resultats_pipeline(), base_scores,
+                    {"ndvi": 30, "climat": 20, "sol": 20, "topo": 20, "acces": 15},
+                )
+
+        with self.subTest("poids_nominaux dimension manquante"):
+            with self.assertRaises(ValueError):
+                agreger_scores(
+                    _resultats_pipeline(), base_scores,
+                    {"ndvi": 25, "climat": 20, "sol": 20, "topo": 35},
+                )
+
+        with self.subTest("poids_nominaux dimension inconnue"):
+            with self.assertRaises(ValueError):
+                agreger_scores(
+                    _resultats_pipeline(), base_scores,
+                    {"ndvi": 25, "climat": 20, "sol": 20, "topo": 20, "acces": 15, "hydro": 0},
+                )
+
+        with self.subTest("poids_nominaux valeur négative"):
+            with self.assertRaises(ValueError):
+                agreger_scores(
+                    _resultats_pipeline(), base_scores,
+                    {"ndvi": -5, "climat": 20, "sol": 20, "topo": 20, "acces": 45},
+                )
+
+        with self.subTest("poids_nominaux n'est pas un mapping"):
+            with self.assertRaises(TypeError):
+                agreger_scores(_resultats_pipeline(), base_scores, [25, 20, 20, 20, 15])
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1907,6 +1961,41 @@ class ConfigurationAgriScoreTests(TestCase):
         ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
         self.assertTrue(ConfigurationAgriScore.pipeline_actif())
 
+    # ── Pondérations configurables (2026-09-11) ──────────────────────────
+
+    def test_poids_nominaux_par_defaut(self):
+        # Ligne singleton jamais éditée → les défauts des champs, identiques
+        # aux poids nominaux d'origine (aucun changement de comportement au
+        # déploiement de la migration qui les ajoute).
+        self.assertEqual(ConfigurationAgriScore.poids_nominaux(), dict(POIDS_NOMINAUX))
+
+    def test_poids_nominaux_suit_la_config(self):
+        ConfigurationAgriScore.objects.update_or_create(
+            pk=1,
+            defaults={"poids_ndvi": 10, "poids_climat": 10, "poids_sol": 10, "poids_topo": 10, "poids_acces": 60},
+        )
+        self.assertEqual(
+            ConfigurationAgriScore.poids_nominaux(),
+            {"ndvi": 10, "climat": 10, "sol": 10, "topo": 10, "acces": 60},
+        )
+
+    @patch.object(ConfigurationAgriScore, "charger", side_effect=DatabaseError)
+    def test_poids_nominaux_repli_si_db_ko(self, _charger_mock):
+        # Même philosophie que pipeline_actif() : base injoignable ⇒ poids
+        # nominaux d'origine, jamais un 500 sur le passeport.
+        self.assertEqual(ConfigurationAgriScore.poids_nominaux(), dict(POIDS_NOMINAUX))
+
+    def test_clean_rejette_somme_differente_de_100(self):
+        c = ConfigurationAgriScore(poids_ndvi=30, poids_climat=20, poids_sol=20, poids_topo=20, poids_acces=15)
+        with self.assertRaises(ValidationError):
+            c.full_clean()
+
+    def test_clean_accepte_somme_100_repartition_differente(self):
+        # Répartition volontairement différente du défaut (25/20/20/20/15) —
+        # seule la somme est contrainte, pas la répartition elle-même.
+        c = ConfigurationAgriScore(poids_ndvi=40, poids_climat=15, poids_sol=15, poids_topo=15, poids_acces=15)
+        c.full_clean()  # ne lève pas
+
 
 class PasseportSelectionAgentsTests(TestCase):
     @patch("agriscore.passeport.generer_passeport")
@@ -1926,6 +2015,21 @@ class PasseportSelectionAgentsTests(TestCase):
         passeport_parcelle(31.63, -7.99)
 
         self.assertIs(faux_generer.call_args.kwargs["agents"], AGENTS_SIMULES)
+
+    @patch("agriscore.passeport.generer_passeport")
+    def test_transmet_les_poids_de_la_config(self, faux_generer):
+        from agriscore.passeport import passeport_parcelle
+
+        ConfigurationAgriScore.objects.update_or_create(
+            pk=1,
+            defaults={"poids_ndvi": 10, "poids_climat": 10, "poids_sol": 10, "poids_topo": 10, "poids_acces": 60},
+        )
+        passeport_parcelle(31.63, -7.99)
+
+        self.assertEqual(
+            faux_generer.call_args.kwargs["poids_nominaux"],
+            {"ndvi": 10, "climat": 10, "sol": 10, "topo": 10, "acces": 60},
+        )
 
 
 @override_settings(CACHES=_CACHE_LOCMEM)

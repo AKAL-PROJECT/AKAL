@@ -9,6 +9,21 @@ class ConfigurationAgriScoreAdmin(admin.ModelAdmin):
 
     list_display = ('__str__', 'actif', 'modifie_le')
     readonly_fields = ('modifie_le',)
+    fieldsets = (
+        (None, {'fields': ('actif',)}),
+        (
+            'Pondérations (doit sommer à 100)',
+            {
+                'fields': ('poids_ndvi', 'poids_climat', 'poids_sol', 'poids_topo', 'poids_acces'),
+                'description': (
+                    "Poids /100 de chaque dimension dans le score global. La somme "
+                    "des cinq doit faire 100 — un enregistrement hors de cette "
+                    "contrainte est refusé (message d'erreur affiché ci-dessus)."
+                ),
+            },
+        ),
+        ('Métadonnées', {'fields': ('modifie_le',)}),
+    )
 
     def has_add_permission(self, request):
         return not ConfigurationAgriScore.objects.exists()

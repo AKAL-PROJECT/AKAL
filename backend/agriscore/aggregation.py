@@ -8,7 +8,13 @@ pourcentage.
 
 Algorithme
 ----------
-1. Poids nominaux (somme = 100) : NDVI 25, Climat 20, Sol 20, Topo 20, Accès 15.
+1. Poids nominaux (somme = 100) — par défaut NDVI 25, Climat 20, Sol 20,
+   Topo 20, Accès 15 (``POIDS_NOMINAUX``), mais ``agreger_scores`` accepte
+   tout autre jeu de poids valide en argument (cf. sa docstring) : les
+   valeurs par défaut ne sont plus la seule source depuis que
+   ``ConfigurationAgriScore`` (agriscore.models) les rend éditables sans
+   redéploiement — la lecture de cette config reste hors de ce module,
+   toujours pur (cf. dernier paragraphe).
 2. Poids effectif dᵢ = poids nominalᵢ × confianceᵢ. Une dimension
    ``statut="indisponible"`` est forcée à confiance 0 (donc poids effectif 0),
    quelle que soit la confiance inscrite dans l'``AgentResult``.
@@ -30,17 +36,22 @@ Aucune I/O, aucun réseau, aucune dépendance Django.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from types import MappingProxyType
 
 from agriscore.agent_result import AgentResult
 
-#: Poids nominaux par dimension. Somme = 100 — invariant du modèle.
-POIDS_NOMINAUX: dict[str, int] = {
+#: Poids nominaux par dimension, par défaut. Somme = 100 — invariant du
+#: modèle, revalidé par _valider_poids() pour tout jeu de poids passé en
+#: argument à agreger_scores() (pas seulement celui-ci). MappingProxyType :
+#: immuable, ce dict partagé comme valeur par défaut ne peut pas être muté
+#: par erreur par un appelant.
+POIDS_NOMINAUX: Mapping[str, int] = MappingProxyType({
     "ndvi": 25,
     "climat": 20,
     "sol": 20,
     "topo": 20,
     "acces": 15,
-}
+})
 
 DIMENSIONS: frozenset[str] = frozenset(POIDS_NOMINAUX)
 
@@ -48,6 +59,7 @@ DIMENSIONS: frozenset[str] = frozenset(POIDS_NOMINAUX)
 def agreger_scores(
     resultats: Iterable[AgentResult],
     sous_scores: Mapping[str, float],
+    poids_nominaux: Mapping[str, int] = POIDS_NOMINAUX,
 ) -> dict:
     """Agrège cinq dimensions en un score global, une fiabilité et un détail.
 
@@ -57,6 +69,13 @@ def agreger_scores(
         sous_scores: sous-score /100 par dimension. Obligatoire pour chaque
             dimension ``statut="ok"`` ; facultatif (et ignoré) pour une
             dimension indisponible.
+        poids_nominaux: poids /100 par dimension, exactement les cinq
+            dimensions connues, somme = 100. Par défaut ``POIDS_NOMINAUX``
+            (NDVI 25, Climat 20, Sol 20, Topo 20, Accès 15) ; l'appelant
+            applicatif (agriscore.passeport, via
+            ``ConfigurationAgriScore.poids_nominaux()``) peut passer un jeu
+            différent, éditable sans redéploiement — ce module reste pur,
+            il ne lit rien lui-même.
 
     Returns:
         ``{"score_global": float | None, "fiabilite_globale": float,
@@ -66,17 +85,21 @@ def agreger_scores(
 
     Raises:
         TypeError: ``resultats`` n'est pas un itérable d'``AgentResult``, ou
-            ``sous_scores`` n'est pas un mapping de nombres.
-        ValueError: dimension manquante, en double ou inconnue ; sous-score
-            manquant pour une dimension ``ok`` ; sous-score hors de [0, 100].
+            ``sous_scores``/``poids_nominaux`` n'est pas un mapping de
+            nombres.
+        ValueError: dimension manquante, en double ou inconnue (dans
+            ``resultats`` comme dans ``poids_nominaux``) ; sous-score
+            manquant pour une dimension ``ok`` ou hors de [0, 100] ;
+            ``poids_nominaux`` ne sommant pas à 100.
     """
     par_dimension = _indexer(resultats)
     _valider_sous_scores(par_dimension, sous_scores)
+    _valider_poids(poids_nominaux)
 
     # Étapes 1–2 : confiance effective (0 si indisponible) et poids effectif.
     confiance_effective: dict[str, float] = {}
     poids_effectif: dict[str, float] = {}
-    for dim, poids_nominal in POIDS_NOMINAUX.items():
+    for dim, poids_nominal in poids_nominaux.items():
         resultat = par_dimension[dim]
         confiance = resultat.confiance if resultat.statut == "ok" else 0.0
         confiance_effective[dim] = confiance
@@ -87,7 +110,7 @@ def agreger_scores(
     # Étapes 3–4 : renormalisation, contribution de chaque dimension.
     detail: dict[str, dict] = {}
     contributions: dict[str, float] = {}
-    for dim, poids_nominal in POIDS_NOMINAUX.items():
+    for dim, poids_nominal in poids_nominaux.items():
         resultat = par_dimension[dim]
         if somme_effectifs > 0:
             poids_relatif = poids_effectif[dim] / somme_effectifs * 100
@@ -112,7 +135,7 @@ def agreger_scores(
 
     # Étape 5 : fiabilité sur les poids nominaux, confiance effective.
     fiabilite = sum(
-        confiance_effective[dim] * POIDS_NOMINAUX[dim] for dim in POIDS_NOMINAUX
+        confiance_effective[dim] * poids_nominaux[dim] for dim in poids_nominaux
     )
 
     return {
@@ -179,3 +202,32 @@ def _valider_sous_scores(
             )
         if not 0.0 <= float(valeur) <= 100.0:
             raise ValueError(f"sous_scores[{dim!r}] = {valeur} hors de [0, 100]")
+
+
+def _valider_poids(poids_nominaux: Mapping[str, int]) -> None:
+    """Défense en profondeur : exactement les cinq dimensions connues, somme
+    = 100. Deuxième barrière derrière ConfigurationAgriScore.clean() (validé
+    à la sauvegarde côté admin) — protège agreger_scores() même si une valeur
+    invalide l'atteint par un autre chemin (fixture de test, script one-off,
+    changement de schéma manuel en base)."""
+    if not isinstance(poids_nominaux, Mapping):
+        raise TypeError("poids_nominaux doit être un mapping {dimension: poids}")
+
+    manquantes = DIMENSIONS - poids_nominaux.keys()
+    if manquantes:
+        raise ValueError(f"poids_nominaux : dimensions manquantes {', '.join(sorted(manquantes))}")
+    inconnues = poids_nominaux.keys() - DIMENSIONS
+    if inconnues:
+        raise ValueError(f"poids_nominaux : dimensions inconnues {', '.join(sorted(inconnues))}")
+
+    for dim, valeur in poids_nominaux.items():
+        if isinstance(valeur, bool) or not isinstance(valeur, (int, float)):
+            raise TypeError(
+                f"poids_nominaux[{dim!r}] doit être un nombre, reçu {type(valeur).__name__}"
+            )
+        if valeur < 0:
+            raise ValueError(f"poids_nominaux[{dim!r}] = {valeur} ne peut pas être négatif")
+
+    total = sum(poids_nominaux.values())
+    if total != 100:
+        raise ValueError(f"poids_nominaux doit sommer à 100, reçu {total}")
