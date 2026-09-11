@@ -1,17 +1,19 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 import { Reveal } from "@/components/Reveal";
 
-// Deux parcours distincts (acheteur / vendeur) plutôt qu'un unique
-// "Comment ça marche" acheteur-only — AKAL sert les deux côtés du marché
-// (recherche de parcelle ET dépôt d'annonce), la home ne montrait jusqu'ici
-// que le premier. Bascule à onglets pour garder la section aussi compacte
-// qu'avant (un seul parcours de 3 étapes visible à la fois), plutôt que de
-// doubler sa hauteur avec les deux parcours empilés.
+// Deux parcours distincts (acheteur / vendeur) — AKAL sert les deux côtés
+// du marché (recherche de parcelle ET dépôt d'annonce). Côte à côte,
+// toujours visibles (calque 1f du handoff design, 11 sept) — remplace
+// l'ancienne bascule à onglets (un seul parcours visible à la fois,
+// nécessaire quand ce composant vivait aussi en aperçu compact sur la
+// home ; il n'est plus utilisé que sur /comment-ca-marche depuis le
+// retrait de CommentCaMarcheTeaser.tsx le 17/08, plus de contrainte de
+// hauteur à ménager). Plus de state ni de tabs : Server Component.
 const PARCOURS = {
   acheteur: {
-    label: "Vous achetez",
+    label: "Vous cherchez une terre",
+    sombre: false,
+    cta: { label: "Explorer les parcelles", href: "/parcelles" },
     etapes: [
       { num: "01", titre: "Explorez", desc: "Parcourez des parcelles partout au Maroc, avec leur statut foncier déclaré. Filtrez par région et budget." },
       { num: "02", titre: "Comparez", desc: "Statut foncier, accès à l'eau, prix au m² — comparez les parcelles côte à côte." },
@@ -19,7 +21,9 @@ const PARCOURS = {
     ],
   },
   vendeur: {
-    label: "Vous vendez",
+    label: "Vous avez une terre",
+    sombre: true,
+    cta: { label: "Déposer une annonce", href: "/publier" },
     etapes: [
       { num: "01", titre: "Déposez", desc: "Décrivez votre parcelle, localisez-la sur la carte et ajoutez vos photos — en 3 étapes." },
       { num: "02", titre: "Échangez", desc: "Recevez les messages des acheteurs intéressés, directement, sans intermédiaire." },
@@ -28,73 +32,83 @@ const PARCOURS = {
   },
 } as const;
 
-type Cible = keyof typeof PARCOURS;
-
 export default function CommentCaMarcheSection() {
-  const [cible, setCible] = useState<Cible>("acheteur");
-  const { etapes } = PARCOURS[cible];
-
   return (
-    <section id="comment-ca-marche" style={{ maxWidth: "1000px", margin: "0 auto clamp(64px, 10vw, 120px)", padding: "0 24px" }}>
+    <section id="comment-ca-marche" style={{ maxWidth: "1080px", margin: "0 auto clamp(64px, 10vw, 120px)", padding: "0 24px" }}>
       <Reveal>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <span className="eyebrow" style={{ justifyContent: "center" }}>Fonctionnement</span>
           <h2 className="display-2" style={{ color: "var(--color-nuit)", margin: "14px 0 0" }}>Comment ça marche</h2>
         </div>
       </Reveal>
 
-      <Reveal delayMs={60}>
-        <div
-          role="tablist"
-          aria-label="Parcours acheteur ou vendeur"
-          style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "48px" }}
-        >
-          {(Object.keys(PARCOURS) as Cible[]).map((cle) => {
-            const active = cible === cle;
-            return (
-              <button
-                key={cle}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setCible(cle)}
-                className="akal-focusable"
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
+        {(Object.keys(PARCOURS) as (keyof typeof PARCOURS)[]).map((cle, i) => {
+          const { label, sombre, cta, etapes } = PARCOURS[cle];
+          return (
+            <Reveal key={cle} delayMs={i * 90}>
+              <div
                 style={{
-                  padding: "10px 22px",
-                  borderRadius: "var(--radius-full)",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  backgroundColor: active ? "var(--color-foret)" : "white",
-                  color: active ? "white" : "var(--color-texte)",
-                  border: active ? "none" : "1px solid var(--color-bordure)",
-                  transition: "background-color 150ms ease, color 150ms ease",
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  borderRadius: "var(--radius-md)",
+                  padding: "28px 30px",
+                  boxSizing: "border-box",
+                  // Carte vendeur en fond sombre — même motif que le panneau
+                  // "Passeport agronomique" (FicheParcelle.tsx) et "Espace
+                  // vendeur" (ProfilCarte.tsx), cohérence visuelle plutôt
+                  // qu'un nouveau ton pour cette seule page.
+                  background: sombre ? "var(--gradient-profondeur)" : "white",
+                  border: sombre ? "none" : "1px solid var(--color-bordure)",
+                  boxShadow: sombre ? "var(--shadow-2)" : "0 4px 16px rgba(27,58,45,0.06)",
                 }}
               >
-                {PARCOURS[cle].label}
-              </button>
-            );
-          })}
-        </div>
-      </Reveal>
+                <span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: sombre ? "var(--color-menthe)" : "var(--color-foret)" }}>
+                  {label}
+                </span>
 
-      <div style={{ position: "relative" }}>
-        <svg viewBox="0 0 1000 20" style={{ width: "100%", height: "20px", position: "absolute", top: "32px", left: 0 }} preserveAspectRatio="none">
-          <line x1="100" y1="10" x2="900" y2="10" stroke="var(--color-menthe)" strokeWidth={2} strokeLinecap="round" />
-        </svg>
-        <div key={cible} style={{ display: "flex", gap: "24px", justifyContent: "space-between", position: "relative", zIndex: 2, flexWrap: "wrap" }}>
-          {etapes.map(({ num, titre, desc }, i) => (
-            <Reveal key={titre} delayMs={i * 90}>
-              <div style={{ width: "220px", maxWidth: "100%", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", margin: "0 auto" }}>
-                <div style={{ width: "64px", height: "64px", borderRadius: "50%", backgroundColor: "var(--color-foret)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: 500, boxShadow: "var(--shadow-2)" }}>
-                  {num}
+                <div style={{ display: "flex", flexDirection: "column", gap: "18px", marginTop: "22px" }}>
+                  {etapes.map(({ num, titre, desc }) => (
+                    <div key={titre} style={{ display: "flex", gap: "14px" }}>
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          backgroundColor: sombre ? "rgba(183,215,201,0.16)" : "var(--color-rosee)",
+                          color: sombre ? "var(--color-menthe)" : "var(--color-foret)",
+                        }}
+                      >
+                        {num}
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "15px", fontWeight: 600, color: sombre ? "white" : "var(--color-nuit)" }}>{titre}</div>
+                        <div style={{ fontSize: "13.5px", lineHeight: 1.6, marginTop: "4px", color: sombre ? "var(--color-menthe)" : "var(--color-secondaire)" }}>{desc}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--color-nuit)" }}>{titre}</div>
-                <div style={{ fontSize: "14px", color: "var(--color-secondaire)", lineHeight: 1.5 }}>{desc}</div>
+
+                {/* btn-secondary (fond blanc) sur la carte sombre, pas
+                    btn-primary : ce dernier est vert forêt — quasi invisible
+                    sur un fond qui dégrade vers ce même vert
+                    (--gradient-profondeur). */}
+                <Link href={cta.href} style={{ marginTop: "26px", alignSelf: "flex-start", textDecoration: "none" }}>
+                  <button className={sombre ? "btn-secondary" : "btn-primary"} style={{ padding: "12px 24px", fontSize: "14px" }}>
+                    {cta.label}
+                  </button>
+                </Link>
               </div>
             </Reveal>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </section>
   );
