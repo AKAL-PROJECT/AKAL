@@ -55,7 +55,18 @@ const CYCLE_SECONDS = 4;
 // prop (ou tant que le fetch n'a pas répondu côté AuthMapPanel.tsx), le
 // survol reste silencieux sur le chiffre — jamais de nombre inventé (cf.
 // commit "fix(trust): remove fabricated content from the frontend").
-export default function MoroccoMap({ regionCounts }: { regionCounts?: Record<string, number> }) {
+export default function MoroccoMap({
+  regionCounts,
+  onRegionClick,
+}: {
+  regionCounts?: Record<string, number>;
+  // Optionnel — sans prop, comportement inchangé (survol uniquement). Ajouté
+  // pour l'écran de connexion (calque 2a) : un clic n'y déclenche jamais de
+  // navigation (cf. commentaire onMouseEnter/onMouseLeave ci-dessous, la
+  // même règle vaut ici), seulement un accusé de réception visuel côté
+  // appelant — voir ConnexionScreen.tsx.
+  onRegionClick?: (nomRegion: string) => void;
+}) {
   const [active, setActive] = useState(0);
   const [survolee, setSurvolee] = useState<string | null>(null);
 
@@ -109,15 +120,17 @@ export default function MoroccoMap({ regionCounts }: { regionCounts?: Record<str
         return (
           <div
             key={r.name}
-            style={{ position: "absolute", left: r.x, top: r.y, width: 0, height: 0, cursor: "default" }}
-            // Survol uniquement (pas de onClick) — repère visuel, pas une
-            // navigation : on est sur l'écran de connexion, tout détour vers
-            // le catalogue ferait perdre la saisie en cours (numéro/email
-            // déjà tapé). Sans incidence tactile : ce composant n'est jamais
-            // rendu sous 820px (cf. .connexion-map-col, globals.css), donc
-            // jamais sur un appareil sans souris.
+            style={{ position: "absolute", left: r.x, top: r.y, width: 0, height: 0, cursor: onRegionClick ? "pointer" : "default" }}
+            // Survol : repère visuel. Clic (optionnel, cf. onRegionClick
+            // ci-dessus) : jamais une navigation — on est sur l'écran de
+            // connexion, tout détour vers le catalogue ferait perdre la
+            // saisie en cours (numéro/email déjà tapé) ; l'appelant ne fait
+            // qu'un accusé de réception local. Sans incidence tactile : ce
+            // composant n'est jamais rendu sous 820px (cf. .connexion-map-col,
+            // globals.css), donc jamais sur un appareil sans souris.
             onMouseEnter={() => setSurvolee(r.name)}
             onMouseLeave={() => setSurvolee((v) => (v === r.name ? null : v))}
+            onClick={onRegionClick ? () => onRegionClick(r.name) : undefined}
           >
             <div
               className="akal-pulse"

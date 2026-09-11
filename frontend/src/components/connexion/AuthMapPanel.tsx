@@ -22,7 +22,14 @@ import { getRegions, getStatsParRegion, type Region, type StatRegion } from "@/d
 // "premium" du panneau — dégradé plus profond, carte en légère élévation
 // (halo), cartes d'arguments en verre dépoli, compteur réel par région au
 // survol (regionCounts, cf. plus bas) plutôt qu'un simple rappel visuel.
-export default function AuthMapPanel() {
+//
+// Depuis le calque 2a (11 sept) : sert de fond plein écran (position
+// absolute, derrière la carte flottante du formulaire — cf.
+// ConnexionScreen.tsx) plutôt que de colonne à largeur fixe partageant
+// l'écran avec le formulaire. `onRegionClick` optionnel, transmis tel quel
+// à MoroccoMap (aucune navigation déclenchée ici, cf. commentaire dans
+// MoroccoMap.tsx).
+export default function AuthMapPanel({ onRegionClick }: { onRegionClick?: (nomRegion: string) => void }) {
   // Compteurs réels par région (nom → count), pour le survol de
   // MoroccoMap.tsx — même source que CouvertureSection.tsx (Home) :
   // getRegions() donne le nom officiel par code, getStatsParRegion() le
@@ -48,17 +55,23 @@ export default function AuthMapPanel() {
     <div
       className="connexion-map-col"
       style={{
-        flex: 1,
-        minWidth: 0,
-        position: "relative",
+        position: "absolute",
+        inset: 0,
+        display: "flex",
         flexDirection: "column",
-        alignItems: "center",
+        // flex-end (pas center) — dégage la zone gauche pour la carte
+        // flottante du formulaire (.connexion-form-col aligne à gauche
+        // ≥820px, cf. globals.css) : centrées, les deux se superposeraient
+        // exactement, rendant les régions cliquables du fond inatteignables
+        // au clic (repéré en vérifiant l'écran réel après implémentation).
+        // Sans incidence <820px : ce panneau est masqué entièrement à ce
+        // seuil (cf. .connexion-map-col).
+        alignItems: "flex-end",
         justifyContent: "center",
         gap: 28,
-        padding: "44px 48px",
+        padding: "96px 64px 140px",
         boxSizing: "border-box",
         overflow: "hidden",
-        borderLeft: "1px solid rgba(45,106,79,0.12)",
         // Dégradé approfondi (audit desktop du 19/08) — ancré vert-nuit en
         // haut à gauche plutôt qu'un simple radial beige plat, pour un rendu
         // plus "premium" tout en restant assez clair en zone centrale pour
@@ -107,7 +120,7 @@ export default function AuthMapPanel() {
         }}
       />
 
-      <MoroccoMap regionCounts={regionCounts} />
+      <MoroccoMap regionCounts={regionCounts} onRegionClick={onRegionClick} />
 
       <div
         style={{
