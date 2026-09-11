@@ -25,6 +25,11 @@ const OPTIONS_COMPRESSION = {
 
 const ligneStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--color-secondaire)" };
 
+// Même famille que CardParcelle.tsx/FicheParcelle.tsx (fr-MA, mois en
+// toutes lettres) — mois+année seulement ici, "membre depuis" n'a pas
+// besoin du jour exact.
+const formatMembreDepuis = new Intl.DateTimeFormat("fr-MA", { month: "long", year: "numeric" });
+
 export default function ProfilCarte({ utilisateurInitial }: { utilisateurInitial: User }) {
   const [utilisateur, setUtilisateur] = useState(utilisateurInitial);
   const [succesRecent, setSuccesRecent] = useState<"avatar" | "telephone" | null>(null);
@@ -132,22 +137,34 @@ export default function ProfilCarte({ utilisateurInitial }: { utilisateurInitial
           <h1 style={{ fontSize: 22, fontWeight: 500, color: "var(--color-nuit)", margin: 0 }}>
             {utilisateur.prenom} {utilisateur.nom}
           </h1>
-          {utilisateur.role && (
-            <span
-              style={{
-                display: "inline-block",
-                marginTop: 4,
-                padding: "2px 10px",
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 500,
-                backgroundColor: "var(--color-rosee)",
-                color: "var(--color-foret)",
-              }}
-            >
-              {ROLE_LABELS[utilisateur.role] ?? utilisateur.role}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+            {utilisateur.role && (
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "2px 10px",
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  backgroundColor: "var(--color-rosee)",
+                  color: "var(--color-foret)",
+                }}
+              >
+                {ROLE_LABELS[utilisateur.role] ?? utilisateur.role}
+              </span>
+            )}
+            {/* date_inscription : toujours renseignée (auto_now_add côté
+                modèle), déjà dans le type User mais inutilisée jusqu'ici.
+                Pas de badge "Compte vérifié" à côté (is_verified) : ce
+                champ n'est mis à True par aucun flux d'inscription/connexion
+                réel (email, téléphone, Google) — seuls createsuperuser et
+                les commandes de seed le renseignent. L'afficher laisserait
+                croire à une vérification qui n'existe pas pour un vrai
+                utilisateur, cf. docs/plans/2026-09-11-mon-profil-polish-design.md. */}
+            <span style={{ fontSize: 12, color: "var(--color-tertiaire)" }}>
+              Membre depuis {formatMembreDepuis.format(new Date(utilisateur.date_inscription))}
             </span>
-          )}
+          </div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           {succesRecent === "avatar" && <SignalSucces />}
