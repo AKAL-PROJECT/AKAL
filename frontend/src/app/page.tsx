@@ -3,7 +3,8 @@ import { getParcelles, getRegions } from "@/data/parcelles";
 import { Reveal } from "@/components/Reveal";
 import CouvertureSection from "@/components/home/CouvertureSection";
 import SelectionTerrainsSlider from "@/components/home/SelectionTerrainsSlider";
-import { Search, Shield, Check, Map as MapIcon, MessageSquare, ArrowRight } from "@/components/icons/Icons";
+import HeroRecherche from "@/components/home/HeroRecherche";
+import { Search, Shield, Check, Map as MapIcon, MessageSquare } from "@/components/icons/Icons";
 import { BanniereDemo } from "@/components/BanniereDemo";
 
 // "Statut foncier affiché" (pas "déclaré... sur chaque annonce") — retour
@@ -70,107 +71,16 @@ export default async function Home() {
 
   return (
     <div>
-      {/* ═══════════════════════ Hero — Découverte ═══════════════════════ */}
-      {/* Version sobre (2026-08-17) : ancienne colonne photo plein bleed
-          retirée (jamais de fichier fourni pour /images/hero-parcelles.jpg
-          en pratique, cf. historique git) — une seule colonne centrée,
-          posée sur les textures de marque déjà utilisées ailleurs sur la
-          page (topo + trame cadastrale), sans dépendre d'une image. */}
-      <section
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          backgroundColor: "var(--color-fond)",
-        }}
-      >
-        <div className="akal-texture-topo" aria-hidden style={{ opacity: 0.35 }} />
-        <div className="akal-texture-cadastre" aria-hidden />
-
-        <div
-          style={{
-            position: "relative",
-            maxWidth: "720px",
-            margin: "0 auto",
-            textAlign: "center",
-            padding: "clamp(72px, 12vw, 132px) clamp(24px, 6vw, 64px) clamp(64px, 9vw, 96px)",
-          }}
-        >
-          <span className="eyebrow akal-push-up" style={{ justifyContent: "center", animationDelay: "0ms" }}>
-            Marketplace foncière — Maroc
-          </span>
-
-          <h1
-            className="display-1 akal-push-up"
-            style={{ color: "var(--color-nuit)", margin: "18px 0 20px", animationDelay: "80ms" }}
-          >
-            La terre, sans zones d&apos;ombre.
-          </h1>
-
-          <p
-            className="lede akal-push-up"
-            style={{ maxWidth: "480px", margin: "0 auto 32px", animationDelay: "160ms" }}
-          >
-            AKAL réunit statut foncier déclaré, données agronomiques et échanges directs — pour
-            aborder la terre agricole marocaine en toute clarté.
-          </p>
-
-          {/* Objet posé — fond plein (rosée) + ombre courte, cohérent avec
-              le reste d'une page désormais sans photo à se fondre dedans. */}
-          <form
-            action="/parcelles"
-            method="GET"
-            className="akal-push-up"
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: "8px",
-              padding: "8px",
-              maxWidth: "540px",
-              margin: "0 auto",
-              backgroundColor: "var(--color-rosee)",
-              borderRadius: "var(--radius-lg)",
-              boxShadow: "var(--shadow-1)",
-              animationDelay: "240ms",
-            }}
-          >
-            <label style={{ display: "block", flex: "1 1 140px" }}>
-              <span className="sr-only">Région</span>
-              <select name="region" className="select-chevron akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} defaultValue="">
-                <option value="">Région</option>
-                {regions.map((r) => (
-                  <option key={r.code} value={r.code}>{r.nom}</option>
-                ))}
-              </select>
-            </label>
-            <div style={{ width: "1px", alignSelf: "stretch", backgroundColor: "var(--color-bordure)" }} className="hidden-mobile" />
-            <label style={{ display: "block", flex: "1 1 140px" }}>
-              <span className="sr-only">Budget maximum en dirhams</span>
-              <input name="prix_max" type="number" placeholder="Budget max (MAD)" className="akal-hero-field" style={{ ...heroFieldStyle, width: "100%" }} />
-            </label>
-            <button
-              type="submit"
-              className="btn-primary"
-              style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "8px" }}
-            >
-              <Search size={16} />
-              Rechercher
-            </button>
-          </form>
-
-          {/* Pointe désormais vers la page dédiée (/comment-ca-marche) —
-              plus d'ancre #comment-ca-marche sur cette page depuis que son
-              teaser en a été retiré (cf. section Fonctionnalités plus bas). */}
-          <Link
-            href="/comment-ca-marche"
-            className="akal-push-up akal-link-fleche"
-            style={{ justifyContent: "center", marginTop: "24px", animationDelay: "300ms" }}
-          >
-            Comment ça marche
-            <ArrowRight size={14} style={{ marginLeft: "6px" }} />
-          </Link>
-        </div>
-      </section>
+      {/* ═══════════════════════ Hero — Recherche ═══════════════════════ */}
+      {/* Refonte du 11/09 (handoff design, écran validé 2a) : la recherche
+          devient l'objet principal du hero plutôt qu'un simple champ dans
+          le décor — trois modes (région / autour de moi / carte), surface
+          et budget, mêmes filtres réels que FiltresSidebar.tsx (rien de
+          nouveau côté API). Composant client isolé (HeroRecherche) : seule
+          la interaction (bascule de mode, géolocalisation) a besoin du
+          navigateur, le reste de la page (catalogue, régions) reste rendu
+          serveur comme avant. */}
+      <HeroRecherche regions={regions} />
 
       {/* ═══════════════════════ Confiance ═══════════════════════ */}
       <Reveal>
@@ -309,16 +219,3 @@ export default async function Home() {
     </div>
   );
 }
-
-// outline volontairement absent d'ici : un style inline gagnerait toujours
-// sur la règle CSS .akal-hero-field:focus-visible (spécificité), ce qui
-// aurait rendu ce dernier correctif invisible (revue a11y, Phase 3).
-const heroFieldStyle: React.CSSProperties = {
-  flex: "1 1 140px",
-  padding: "12px 16px",
-  borderRadius: "var(--radius-sm)",
-  fontSize: "14px",
-  border: "none",
-  backgroundColor: "var(--color-fond-input)",
-  color: "var(--color-texte)",
-};
