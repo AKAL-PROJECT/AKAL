@@ -57,6 +57,10 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
   // tombait toujours sous "Explorer" même en vue carte). /carte étant
   // maintenant une route à part, les deux liens ont chacun leur propre état actif.
   const isCarte = pathname.startsWith("/carte");
+  // Ajouté au 11/09 (refonte design, nav desktop) — jusque-là "Comment ça
+  // marche" ne vivait que dans le tiroir mobile (cf. plus bas), absent de
+  // la barre desktop alors que la page existe déjà (/comment-ca-marche).
+  const isCommentCaMarche = pathname.startsWith("/comment-ca-marche");
   const [scrolled, setScrolled] = useState(false);
   const [underline, setUnderline] = useState({ left: 0, width: 0 });
   const [menuOuvert, setMenuOuvert] = useState(false);
@@ -176,6 +180,14 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
           style={{ fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
         >
           Carte
+        </Link>
+        <Link
+          href="/comment-ca-marche"
+          ref={isCommentCaMarche ? activeLinkRef : undefined}
+          className="akal-nav-link"
+          style={{ fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", padding: "4px 0", display: "block" }}
+        >
+          Comment ça marche
         </Link>
         <span
           style={{
