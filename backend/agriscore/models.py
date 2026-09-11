@@ -11,6 +11,8 @@ from __future__ import annotations
 import logging
 
 from django.db import DatabaseError, models
+from django.db.models import F
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -62,3 +64,45 @@ class ConfigurationAgriScore(models.Model):
                 "ConfigurationAgriScore illisible — pipeline supposé actif", exc_info=True
             )
             return True
+
+
+class StatistiquePasseport(models.Model):
+    """Compteur journalier GLOBAL de consultations du Passeport Agronomique
+    (2026-09-11, tableau de bord de pilotage — akal.pilotage).
+
+    Une ligne par jour, jamais par parcelle : contrairement à
+    ``annonces.StatistiqueAnnonce`` (vues par annonce ET par jour), le
+    pilotage n'a besoin que d'un total d'usage du produit, pas d'une
+    ventilation par parcelle — inutile de complexifier le modèle pour une
+    dimension qu'aucun écran n'exploite.
+
+    Incrémenté à chaque réponse 200 de ``PasseportParcelleAPIView``, cache
+    HIT ou calcul frais confondus : mesure l'usage réel (combien de fois un
+    passeport a été consulté), pas le taux de cache du pipeline.
+    """
+
+    date = models.DateField(primary_key=True)
+    compteur = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'agriscore_statistique_passeport'
+        verbose_name = 'statistique passeport (consultations)'
+        verbose_name_plural = 'statistiques passeport (consultations)'
+
+    def __str__(self) -> str:
+        return f"{self.date} — {self.compteur} consultation(s)"
+
+    @classmethod
+    def enregistrer_consultation(cls) -> None:
+        """Incrémente atomiquement le compteur du jour. Fail-open, même
+        philosophie que le cache/verrou du passeport (agriscore/api_views.py) :
+        une consultation non comptée n'est jamais une raison de faire échouer
+        la réponse au visiteur."""
+        try:
+            aujourdhui = timezone.localdate()
+            cls.objects.get_or_create(date=aujourdhui)
+            cls.objects.filter(date=aujourdhui).update(compteur=F('compteur') + 1)
+        except DatabaseError:
+            logger.warning(
+                "StatistiquePasseport illisible — consultation non comptée", exc_info=True
+            )

@@ -34,6 +34,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from agriscore.models import StatistiquePasseport
 from agriscore.passeport import passeport_parcelle
 from annonces.models import Annonce, Parcelle
 from annonces.serializers import _flouter_position
@@ -115,6 +116,7 @@ class PasseportParcelleAPIView(APIView):
         cle_resultat = f"agriscore:passeport:{parcelle.id}"
         en_cache = _cache_get(cle_resultat)
         if en_cache is not None:
+            StatistiquePasseport.enregistrer_consultation()
             return Response(en_cache)
 
         # Un seul calcul à la fois par parcelle : les requêtes concurrentes
@@ -151,6 +153,7 @@ class PasseportParcelleAPIView(APIView):
             passeport = passeport_parcelle(lat, lon)
             passeport['parcelle_id'] = str(parcelle.id)
             _cache_set(cle_resultat, passeport, TTL_PASSEPORT_S)
+            StatistiquePasseport.enregistrer_consultation()
             return Response(passeport)
         finally:
             _lever_verrou(cle_verrou)

@@ -326,44 +326,63 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
         return annonce
 
 
+def stats_annonces_par_region():
+    """
+    Nombre d'annonces publiques (en_ligne, dataset_actif()) par région
+    officielle, sur l'ENSEMBLE du catalogue — jamais un échantillon paginé.
+
+    Une entrée par région (y compris à 0, jamais un résultat manquant),
+    ordonnées par code région. Même définition d'appartenance
+    qu'AnnonceAPIFilter.filter_region (OR entre le référentiel legacy
+    `commune` et l'officiel `commune_geom`, cf. ce filtre pour le pourquoi
+    des deux chaînes) — appliquée ici région par région plutôt qu'à un seul
+    `?region=` demandé par l'appelant.
+
+    Extrait de AnnonceStatsRegionAPIView (2026-09-11) pour être réutilisé
+    par akal.pilotage (tableau de bord de pilotage — répartition
+    géographique), qui a besoin de l'objet RegionOfficielle complet (nom
+    affichable), pas seulement du slug renvoyé par l'API publique
+    ci-dessous — d'où `region` = l'objet, chaque appelant projette ce dont
+    il a besoin.
+
+    Returns:
+        ``[{"region": RegionOfficielle, "count": int}, ...]``
+    """
+    queryset = Annonce.objects.en_ligne().dataset_actif()
+    return [
+        {
+            'region': region,
+            'count': queryset.filter(
+                Q(parcelle__commune__province__region__code=region.slug)
+                | Q(parcelle__commune_geom__province__region_id=region.pk)
+            ).count(),
+        }
+        for region in RegionOfficielle.objects.all().order_by('code')
+    ]
+
+
 class AnnonceStatsRegionAPIView(APIView):
     """
     GET /api/annonces/stats/regions/
 
-    Nombre d'annonces publiques (en_ligne, dataset_actif()) par région
-    officielle, sur l'ENSEMBLE du catalogue — jamais un échantillon paginé.
+    Réponse : [{"region": "<slug RegionOfficielle>", "count": <int>}, ...] —
+    ordonnées comme RegionOfficielleListAPIView (/api/geo/limites/regions/),
+    pour un appariement direct côté front par index si besoin (le slug
+    suffit de toute façon à apparier explicitement).
 
     Ajouté le 2026-08-18 : la section "Couverture nationale" de la Home
     (CouvertureSection.tsx) calculait jusque-là ses compteurs par région à
     partir du même échantillon de 50 annonces que la vue carte/vedettes — la
     somme des régions ne pouvait donc jamais correspondre au vrai total dès
     que le catalogue dépassait 50 annonces (constaté à 147, puis 203).
-
-    Réponse : [{"region": "<slug RegionOfficielle>", "count": <int>}, ...],
-    une entrée par région (y compris à 0, jamais un résultat manquant) —
-    ordonnées comme RegionOfficielleListAPIView (/api/geo/limites/regions/),
-    pour un appariement direct côté front par index si besoin (le slug
-    suffit de toute façon à apparier explicitement).
-
-    Même définition d'appartenance qu'AnnonceAPIFilter.filter_region (OR
-    entre le référentiel legacy `commune` et l'officiel `commune_geom`, cf.
-    ce filtre pour le pourquoi des deux chaînes) — appliquée ici région par
-    région plutôt qu'à un seul `?region=` demandé par l'appelant.
     """
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
     def get(self, request):
-        queryset = Annonce.objects.en_ligne().dataset_actif()
         resultats = [
-            {
-                'region': region.slug,
-                'count': queryset.filter(
-                    Q(parcelle__commune__province__region__code=region.slug)
-                    | Q(parcelle__commune_geom__province__region_id=region.pk)
-                ).count(),
-            }
-            for region in RegionOfficielle.objects.all().order_by('code')
+            {'region': ligne['region'].slug, 'count': ligne['count']}
+            for ligne in stats_annonces_par_region()
         ]
         return Response(resultats)
 

@@ -96,7 +96,13 @@ ROOT_URLCONF = 'akal.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # backend/templates/ — templates de PROJET (pas d'une app), utilisé
+        # pour l'instant uniquement par le tableau de bord de pilotage
+        # (akal/pilotage.py, templates/pilotage/dashboard.html). DIRS est
+        # cherché avant APP_DIRS : sans effet sur les templates fournis par
+        # les apps (admin, DRF...) tant qu'aucun fichier de même chemin
+        # n'existe ici.
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

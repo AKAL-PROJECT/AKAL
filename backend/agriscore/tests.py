@@ -20,13 +20,15 @@ Tests du pipeline AgriScore.
 import json
 import math
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dataclasses import FrozenInstanceError
 from unittest.mock import Mock, patch
 
 import requests
 from django.core.cache import cache
+from django.db import DatabaseError
 from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from agriscore import AgentResult
@@ -57,7 +59,7 @@ from agriscore.agents.topo_openmeteo import (
     _grille_points as _grille_points_om,
 )
 from agriscore.agents.topo_reel import _altitude_et_pente, _emprise, _parser_aaigrid
-from agriscore.models import ConfigurationAgriScore
+from agriscore.models import ConfigurationAgriScore, StatistiquePasseport
 from agriscore.orchestrateur import generer_passeport
 
 _CACHE_LOCMEM = {
@@ -2095,3 +2097,87 @@ class PasseportParcelleAPITests(APITestCase):
 
         # Verrou levé (finally) — pas de 503 fantôme au prochain passage.
         self.assertIsNone(cache.get(f"agriscore:passeport:calcul:{self.parcelle.id}"))
+
+    # ── Compteur de consultations (tableau de bord, 2026-09-11) ───────────
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_calcul_frais_incremente_le_compteur(self, faux_passeport):
+        faux_passeport.return_value = {
+            "mode": "reel", "score_global": 80.0,
+            "dimensions": {}, "cultures_suggerees": [],
+        }
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+
+        self.client.get(self._url(self.parcelle.id))
+
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 1
+        )
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_reponse_depuis_le_cache_incremente_aussi_le_compteur(self, faux_passeport):
+        # Le compteur mesure l'usage (combien de fois un visiteur a VU un
+        # passeport), pas le taux de cache du pipeline — un hit compte autant
+        # qu'un calcul frais.
+        faux_passeport.return_value = {
+            "mode": "reel", "score_global": 80.0,
+            "dimensions": {}, "cultures_suggerees": [],
+        }
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+
+        self.client.get(self._url(self.parcelle.id))  # calcul frais → +1
+        self.client.get(self._url(self.parcelle.id))  # servi depuis le cache → +1
+        self.client.get(self._url(self.parcelle.id))  # idem → +1
+
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 3
+        )
+
+    def test_parcelle_non_geolocalisee_n_incremente_pas_le_compteur(self):
+        # 422, jamais un vrai passeport rendu — ne compte pas comme une
+        # consultation.
+        from annonces.models import Parcelle
+
+        nue = Parcelle.objects.create(surface_ha=1.0)
+        self.client.get(self._url(nue.id))
+
+        self.assertFalse(StatistiquePasseport.objects.exists())
+
+    def test_calcul_concurrent_429_n_incremente_pas_le_compteur(self):
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": False})
+        cache.add(f"agriscore:passeport:calcul:{self.parcelle.id}", True, 60)
+
+        self.client.get(self._url(self.parcelle.id))
+
+        self.assertFalse(StatistiquePasseport.objects.exists())
+
+
+class StatistiquePasseportTests(TestCase):
+    def test_premiere_consultation_du_jour_cree_la_ligne_a_un(self):
+        StatistiquePasseport.enregistrer_consultation()
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 1
+        )
+
+    def test_consultations_suivantes_incrementent(self):
+        for _ in range(5):
+            StatistiquePasseport.enregistrer_consultation()
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 5
+        )
+
+    def test_une_ligne_par_jour(self):
+        StatistiquePasseport.objects.create(date=timezone.localdate() - timedelta(days=1), compteur=7)
+        StatistiquePasseport.enregistrer_consultation()
+
+        self.assertEqual(StatistiquePasseport.objects.count(), 2)
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 1
+        )
+
+    @patch.object(StatistiquePasseport.objects, "get_or_create", side_effect=DatabaseError)
+    def test_base_injoignable_ne_leve_pas(self, _mock):
+        # Fail-open : jamais d'exception remontée à l'appelant (même
+        # philosophie que le cache/verrou du passeport).
+        StatistiquePasseport.enregistrer_consultation()  # ne lève pas
+        self.assertFalse(StatistiquePasseport.objects.exists())

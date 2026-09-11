@@ -1,0 +1,131 @@
+{% extends "admin/base_site.html" %}
+{# Tableau de bord de pilotage — akal/pilotage.py::tableau_de_bord.
+   Étend le chrome standard de Django Admin (header, styles, session staff)
+   plutôt que de reconstruire une page à part : cohérent avec le choix de
+   réserver ce MVP au staff via le mécanisme d'auth déjà en place. #}
+
+{% block content %}
+<style>
+  .pilotage-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 20px 0 32px;
+  }
+  .pilotage-kpi {
+    background: var(--body-bg, #fff);
+    border: 1px solid var(--hairline-color, #ddd);
+    border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .pilotage-kpi .emoji { font-size: 22px; line-height: 1; }
+  .pilotage-kpi .valeur {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 6px 0 2px;
+    color: var(--body-fg, #333);
+  }
+  .pilotage-kpi .label {
+    font-size: 12.5px;
+    color: var(--body-quiet-color, #666);
+  }
+  .pilotage-graphiques {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+  }
+  .pilotage-graphique h2 {
+    font-size: 14px;
+    margin: 0 0 12px;
+  }
+  .pilotage-barre-ligne {
+    display: grid;
+    grid-template-columns: 140px 1fr 48px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+  }
+  .pilotage-barre-piste {
+    /* display:block obligatoire : ce sont des <span> (inline par défaut),
+       qui ignorent width/height tant qu'ils restent inline — constaté à
+       l'écran (barres invisibles malgré un `width` inline correct dans le
+       DOM). Couleur fixe (pas var(--darkened-bg)) : dans le thème sombre de
+       Django Admin, --darkened-bg et --primary sont trop proches en
+       luminosité pour distinguer la piste du remplissage — gris neutre
+       moyen, lisible sur fond clair ET sombre. */
+    display: block;
+    background: #8a97a0;
+    border-radius: 4px;
+    height: 12px;
+    overflow: hidden;
+  }
+  .pilotage-barre-remplissage {
+    /* Vert AKAL (identité visuelle du produit, cf. --color-foret côté
+       frontend) plutôt que var(--primary) — contraste garanti contre la
+       piste ci-dessus, dans les deux thèmes. */
+    display: block;
+    background: #2d6a4f;
+    height: 100%;
+    border-radius: 4px;
+  }
+  .pilotage-barre-compte {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--body-quiet-color, #666);
+  }
+  .pilotage-note {
+    color: var(--body-quiet-color, #666);
+    font-size: 12px;
+    margin-top: 28px;
+  }
+</style>
+
+<h1>📊 Pilotage AKAL</h1>
+<p class="pilotage-note">
+  Indicateurs calculés en direct sur la base courante — aucune valeur mise en cache.
+</p>
+
+<div class="pilotage-kpis">
+  {% for kpi in kpis %}
+    <div class="pilotage-kpi">
+      <div class="emoji">{{ kpi.emoji }}</div>
+      <div class="valeur">{{ kpi.valeur }}</div>
+      <div class="label">{{ kpi.label }}</div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="pilotage-graphiques">
+  <div class="pilotage-graphique">
+    <h2>📍 Répartition des annonces publiées par région</h2>
+    {% for ligne in regions_chart %}
+      <div class="pilotage-barre-ligne">
+        <span>{{ ligne.label }}</span>
+        <span class="pilotage-barre-piste">
+          <span class="pilotage-barre-remplissage" style="width: {{ ligne.pct }}%"></span>
+        </span>
+        <span class="pilotage-barre-compte">{{ ligne.count }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="pilotage-graphique">
+    <h2>🗂️ Annonces par statut (tout le pipeline)</h2>
+    {% for ligne in statuts_chart %}
+      <div class="pilotage-barre-ligne">
+        <span>{{ ligne.label }}</span>
+        <span class="pilotage-barre-piste">
+          <span class="pilotage-barre-remplissage" style="width: {{ ligne.pct }}%"></span>
+        </span>
+        <span class="pilotage-barre-compte">{{ ligne.count }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<p class="pilotage-note">
+  « Utilisateurs actifs » = au moins une connexion dans les {{ fenetre_activite_jours }} derniers jours.
+  « Taux visite → contact » = conversations initiées ÷ consultations de fiches.
+</p>
+{% endblock %}

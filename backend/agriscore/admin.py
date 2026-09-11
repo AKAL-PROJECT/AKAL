@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ConfigurationAgriScore
+from .models import ConfigurationAgriScore, StatistiquePasseport
 
 
 @admin.register(ConfigurationAgriScore)
@@ -20,3 +20,20 @@ class ConfigurationAgriScoreAdmin(admin.ModelAdmin):
         # Toujours une ligne : on la crée au premier accès à l'admin.
         ConfigurationAgriScore.charger()
         return super().changelist_view(request, extra_context)
+
+
+@admin.register(StatistiquePasseport)
+class StatistiquePasseportAdmin(admin.ModelAdmin):
+    """Lecture seule — alimenté uniquement par PasseportParcelleAPIView."""
+
+    list_display = ('date', 'compteur')
+    ordering = ('-date',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
