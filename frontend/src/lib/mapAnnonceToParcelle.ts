@@ -59,10 +59,6 @@ type ParcelleDetailDTO = Omit<ParcelleListDTO, "localisation"> & {
   commune?: string | null;
 };
 
-// AgriScore — RETIRÉ de l'API publique le 2026-08-30 (cf. types/parcelle.ts,
-// backend annonces/serializers.py). Plus de `score_courant` dans aucun DTO ;
-// `scoreCourant` est mappé en dur à `null`.
-
 export type AnnonceListDTO = {
   id: string;
   slug: string;
@@ -175,7 +171,6 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       adresseApproximative: null, // absent en liste
       contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
-    scoreCourant: null, // AgriScore retiré de l'API publique (cf. haut du fichier)
     source: dto.source,
     photoPrincipale: dto.photo_principale,
     photos: [],
@@ -232,7 +227,6 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       adresseApproximative: dto.parcelle.localisation.adresse_approximative,
       contour: null, // jamais exposé publiquement, cf. types/parcelle.ts
     },
-    scoreCourant: null, // AgriScore retiré de l'API publique (cf. haut du fichier)
     source: dto.source,
     sourceUrl: dto.source_url ?? null,
     // photos toujours triées par ordre croissant côté API (§4.4) ; ordre 0 = principale.
