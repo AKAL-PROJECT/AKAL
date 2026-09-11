@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Parcelle } from "@/types/parcelle";
 import BadgeStatut from "./BadgeStatut";
-import ScoreBar from "./ScoreBar";
+import AgriScoreResume from "./passeport/AgriScoreResume";
 import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
 import BoutonWhatsapp from "./BoutonWhatsapp";
@@ -31,7 +31,6 @@ import {
   Leaf,
   ArrowRight,
 } from "@/components/icons/Icons";
-import { AGRISCORE_ACTIF } from "@/config/features";
 
 const formatDate = new Intl.DateTimeFormat("fr-MA", { day: "numeric", month: "long", year: "numeric" });
 
@@ -54,13 +53,6 @@ const CarteFiche = dynamic(() => import("./CarteLeafletFiche"), {
     </div>
   ),
 });
-
-function agriScoreLegende(score: number | null): string {
-  if (score == null) return "AgriScore en cours de calcul pour cette parcelle.";
-  if (score >= 75) return "Excellentes conditions agropédologiques. Sol fertile, bonne rétention hydrique.";
-  if (score >= 50) return "Conditions correctes. Quelques aménagements peuvent améliorer le potentiel.";
-  return "Potentiel limité. Convient à des cultures extensives ou à la pâture.";
-}
 
 export default function FicheParcelle({
   parcelle: a,
@@ -243,43 +235,15 @@ export default function FicheParcelle({
             </div>
           </div>
 
-          {/* AgriScore — hors périmètre produit actuel (cf. src/config/features.ts).
-              Bloc conservé intact, simplement non rendu, pour une réactivation
-              triviale (un seul booléen) le jour où la fonctionnalité revient. */}
-          {AGRISCORE_ACTIF && (
-            <div className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-texte)" }}>AgriScore</span>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--color-tertiaire)",
-                    backgroundColor: "var(--color-fond-input)",
-                    padding: "2px 8px",
-                    borderRadius: "var(--radius-full)",
-                  }}
-                >
-                  Indice agronomique / 100
-                </span>
-              </div>
-              <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />
-              <p style={{ fontSize: "12px", color: "var(--color-secondaire)", margin: 0 }}>
-                {agriScoreLegende(a.scoreCourant?.scoreGlobal ?? null)}
-              </p>
-            </div>
-          )}
-
-          {/* Passeport Agronomique — distinct de l'AgriScore ci-dessus
-              (dormant, cf. AGRISCORE_ACTIF) et de "Caractéristiques de la
-              parcelle" plus bas (BlocCaracteristiques, données déclaratives).
-              Ici : un simple appel à l'action vers l'écran /passeport, qui
-              interroge le vrai pipeline (5 dimensions, sources ouvertes) à
-              l'ouverture — jamais depuis la fiche, qui reste statique.
-              Traitement "certificat" (dégradé + bordure dédiée) : la
-              fonctionnalité différenciante d'AKAL ne doit pas se fondre dans
-              les cartes plates. Aperçu de valeurs retiré (2026-09-02) : il
-              venait d'un mock, le déclencher pour de vrai à chaque vue de
-              fiche serait trop coûteux. */}
+          {/* Passeport Agronomique — un seul bloc pour le résumé (score +
+              sous-scores, calculé en direct par AgriScoreResume) et l'appel à
+              l'action vers l'écran complet, plutôt que deux blocs empilés.
+              Distinct de "Caractéristiques de la parcelle" plus bas
+              (BlocCaracteristiques, données déclaratives du vendeur) : ici,
+              le vrai pipeline (5 dimensions, sources ouvertes). Traitement
+              "certificat" (dégradé + bordure dédiée) : la fonctionnalité
+              différenciante d'AKAL ne doit pas se fondre dans les cartes
+              plates. */}
           <div
             style={{
               position: "relative",
@@ -302,9 +266,12 @@ export default function FicheParcelle({
               </span>
               <div style={{ flex: 1, minWidth: "200px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-nuit)" }}>Passeport Agronomique</div>
-                <p style={{ fontSize: "13px", color: "var(--color-secondaire)", margin: "2px 0 0" }}>
-                  Analyse agronomique — sol, climat, végétation, relief, accès.
-                </p>
+                <AgriScoreResume
+                  variante="detaille"
+                  parcelleId={a.parcelle.id}
+                  slug={a.slug}
+                  accesEau={a.parcelle.accesEau}
+                />
               </div>
               <Link
                 href={`/parcelles/${a.slug}/passeport`}

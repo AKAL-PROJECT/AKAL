@@ -1,5 +1,3 @@
-import { AGRISCORE_ACTIF } from "@/config/features";
-
 // État de chargement de CardParcelle — même gabarit (photo en 4/3, corps
 // 14px de padding) pour éviter tout saut de mise en page (CLS) à l'arrivée
 // des données réelles. Famille Skeleton* (charte de nommage v1 §3.1).
@@ -32,7 +30,7 @@ export default function CardParcelleSkeleton() {
       <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
         <Bloc width="45%" />
         <Bloc width="80%" height="17px" />
-        {AGRISCORE_ACTIF && <Bloc width="100%" height="6px" />}
+        <Bloc width="60%" height="14px" />
         <div style={{ display: "flex", gap: "6px" }}>
           <Bloc width="50px" height="18px" />
           <Bloc width="70px" height="18px" />

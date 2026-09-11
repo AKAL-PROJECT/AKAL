@@ -10,6 +10,8 @@ from django.http import JsonResponse
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from akal.pilotage import tableau_de_bord
+
 
 def healthz(_request):
     """Sonde de santé pour le load balancer (Render ``healthCheckPath``).
@@ -31,6 +33,11 @@ def healthz(_request):
 urlpatterns = [
     path('healthz/', healthz, name='healthz'),
 
+    # AVANT admin/ : path('admin/', admin.site.urls) est un include qui
+    # engloberait toute URL commençant par "admin/", pilotage/ compris, si
+    # cette route venait après (même raison que l'ordre documenté dans
+    # annonces/api_urls.py pour <uuid:pk>/ vs <slug:slug>/).
+    path('admin/pilotage/', tableau_de_bord, name='pilotage'),
     path('admin/', admin.site.urls),
 
     # ── API REST v1 ──

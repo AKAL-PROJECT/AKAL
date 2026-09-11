@@ -5,9 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Parcelle } from "@/types/parcelle";
 import BadgeStatut from "./BadgeStatut";
-import ScoreBar from "./ScoreBar";
+import AgriScoreResume from "./passeport/AgriScoreResume";
 import { MapPin, Heart, Droplets } from "@/components/icons/Icons";
-import { AGRISCORE_ACTIF } from "@/config/features";
 import { formatMAD, formatPrixM2 } from "@/lib/format";
 
 const formatDate = new Intl.DateTimeFormat("fr-MA", { day: "numeric", month: "long", year: "numeric" });
@@ -183,7 +182,7 @@ export default function CardParcelle({ parcelle, enComparaison, onToggleComparai
           Publié le {formatDate.format(new Date(a.createdAt))}
         </span>
 
-        {AGRISCORE_ACTIF && <ScoreBar score={a.scoreCourant?.scoreGlobal ?? null} />}
+        <AgriScoreResume parcelleId={a.parcelle.id} slug={a.slug} accesEau={a.parcelle.accesEau} />
 
         {/* Tags */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>

@@ -20,17 +20,20 @@ Tests du pipeline AgriScore.
 import json
 import math
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dataclasses import FrozenInstanceError
 from unittest.mock import Mock, patch
 
 import requests
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.db import DatabaseError
 from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from agriscore import AgentResult
-from agriscore.aggregation import agreger_scores
+from agriscore.aggregation import POIDS_NOMINAUX, agreger_scores
 from agriscore.agents import (
     AGENTS_DEFAUT,
     AGENTS_SIMULES,
@@ -57,7 +60,7 @@ from agriscore.agents.topo_openmeteo import (
     _grille_points as _grille_points_om,
 )
 from agriscore.agents.topo_reel import _altitude_et_pente, _emprise, _parser_aaigrid
-from agriscore.models import ConfigurationAgriScore
+from agriscore.models import ConfigurationAgriScore, StatistiquePasseport
 from agriscore.orchestrateur import generer_passeport
 
 _CACHE_LOCMEM = {
@@ -633,6 +636,26 @@ class AgregationTests(SimpleTestCase):
         )
         json.dumps(out)  # transite vers l'endpoint interne → doit être JSON
 
+    def test_poids_nominaux_personnalises(self):
+        # Poids configurables (2026-09-11) — cinq poids égaux (20 chacun,
+        # somme 100 comme l'exige _valider_poids) plutôt que les poids
+        # nominaux par défaut (25/20/20/20/15) : prouve que le paramètre
+        # change réellement le calcul, pas seulement accepté et ignoré.
+        poids_egaux = {"ndvi": 20, "climat": 20, "sol": 20, "topo": 20, "acces": 20}
+        sous_scores = {"ndvi": 100, "climat": 50, "sol": 50, "topo": 50, "acces": 0}
+
+        out = agreger_scores(_resultats_pipeline(), sous_scores, poids_egaux)
+
+        # Confiances = 1 → pas de renormalisation, poids nominaux = effectifs.
+        # score = (100+50+50+50+0)·20 / 100 = 50.0 (55.0 avec les poids par
+        # défaut, cf. test_toutes_confiances_pleines_poids_nominaux ci-dessus).
+        self.assertEqual(out["score_global"], 50.0)
+        self.assertEqual(out["fiabilite_globale"], 100.0)
+        self.assertEqual(
+            {d: out["detail_par_dimension"][d]["poids_nominal"] for d in _DIMS},
+            poids_egaux,
+        )
+
     def test_entrees_invalides(self):
         base_scores = {d: 50 for d in _DIMS}
 
@@ -670,6 +693,38 @@ class AgregationTests(SimpleTestCase):
             intrus[2] = {"dimension": "sol"}
             with self.assertRaises(TypeError):
                 agreger_scores(intrus, base_scores)
+
+        with self.subTest("poids_nominaux ne somme pas à 100"):
+            with self.assertRaises(ValueError):
+                agreger_scores(
+                    _resultats_pipeline(), base_scores,
+                    {"ndvi": 30, "climat": 20, "sol": 20, "topo": 20, "acces": 15},
+                )
+
+        with self.subTest("poids_nominaux dimension manquante"):
+            with self.assertRaises(ValueError):
+                agreger_scores(
+                    _resultats_pipeline(), base_scores,
+                    {"ndvi": 25, "climat": 20, "sol": 20, "topo": 35},
+                )
+
+        with self.subTest("poids_nominaux dimension inconnue"):
+            with self.assertRaises(ValueError):
+                agreger_scores(
+                    _resultats_pipeline(), base_scores,
+                    {"ndvi": 25, "climat": 20, "sol": 20, "topo": 20, "acces": 15, "hydro": 0},
+                )
+
+        with self.subTest("poids_nominaux valeur négative"):
+            with self.assertRaises(ValueError):
+                agreger_scores(
+                    _resultats_pipeline(), base_scores,
+                    {"ndvi": -5, "climat": 20, "sol": 20, "topo": 20, "acces": 45},
+                )
+
+        with self.subTest("poids_nominaux n'est pas un mapping"):
+            with self.assertRaises(TypeError):
+                agreger_scores(_resultats_pipeline(), base_scores, [25, 20, 20, 20, 15])
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1907,6 +1962,41 @@ class ConfigurationAgriScoreTests(TestCase):
         ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
         self.assertTrue(ConfigurationAgriScore.pipeline_actif())
 
+    # ── Pondérations configurables (2026-09-11) ──────────────────────────
+
+    def test_poids_nominaux_par_defaut(self):
+        # Ligne singleton jamais éditée → les défauts des champs, identiques
+        # aux poids nominaux d'origine (aucun changement de comportement au
+        # déploiement de la migration qui les ajoute).
+        self.assertEqual(ConfigurationAgriScore.poids_nominaux(), dict(POIDS_NOMINAUX))
+
+    def test_poids_nominaux_suit_la_config(self):
+        ConfigurationAgriScore.objects.update_or_create(
+            pk=1,
+            defaults={"poids_ndvi": 10, "poids_climat": 10, "poids_sol": 10, "poids_topo": 10, "poids_acces": 60},
+        )
+        self.assertEqual(
+            ConfigurationAgriScore.poids_nominaux(),
+            {"ndvi": 10, "climat": 10, "sol": 10, "topo": 10, "acces": 60},
+        )
+
+    @patch.object(ConfigurationAgriScore, "charger", side_effect=DatabaseError)
+    def test_poids_nominaux_repli_si_db_ko(self, _charger_mock):
+        # Même philosophie que pipeline_actif() : base injoignable ⇒ poids
+        # nominaux d'origine, jamais un 500 sur le passeport.
+        self.assertEqual(ConfigurationAgriScore.poids_nominaux(), dict(POIDS_NOMINAUX))
+
+    def test_clean_rejette_somme_differente_de_100(self):
+        c = ConfigurationAgriScore(poids_ndvi=30, poids_climat=20, poids_sol=20, poids_topo=20, poids_acces=15)
+        with self.assertRaises(ValidationError):
+            c.full_clean()
+
+    def test_clean_accepte_somme_100_repartition_differente(self):
+        # Répartition volontairement différente du défaut (25/20/20/20/15) —
+        # seule la somme est contrainte, pas la répartition elle-même.
+        c = ConfigurationAgriScore(poids_ndvi=40, poids_climat=15, poids_sol=15, poids_topo=15, poids_acces=15)
+        c.full_clean()  # ne lève pas
+
 
 class PasseportSelectionAgentsTests(TestCase):
     @patch("agriscore.passeport.generer_passeport")
@@ -1926,6 +2016,21 @@ class PasseportSelectionAgentsTests(TestCase):
         passeport_parcelle(31.63, -7.99)
 
         self.assertIs(faux_generer.call_args.kwargs["agents"], AGENTS_SIMULES)
+
+    @patch("agriscore.passeport.generer_passeport")
+    def test_transmet_les_poids_de_la_config(self, faux_generer):
+        from agriscore.passeport import passeport_parcelle
+
+        ConfigurationAgriScore.objects.update_or_create(
+            pk=1,
+            defaults={"poids_ndvi": 10, "poids_climat": 10, "poids_sol": 10, "poids_topo": 10, "poids_acces": 60},
+        )
+        passeport_parcelle(31.63, -7.99)
+
+        self.assertEqual(
+            faux_generer.call_args.kwargs["poids_nominaux"],
+            {"ndvi": 10, "climat": 10, "sol": 10, "topo": 10, "acces": 60},
+        )
 
 
 @override_settings(CACHES=_CACHE_LOCMEM)
@@ -2095,3 +2200,87 @@ class PasseportParcelleAPITests(APITestCase):
 
         # Verrou levé (finally) — pas de 503 fantôme au prochain passage.
         self.assertIsNone(cache.get(f"agriscore:passeport:calcul:{self.parcelle.id}"))
+
+    # ── Compteur de consultations (tableau de bord, 2026-09-11) ───────────
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_calcul_frais_incremente_le_compteur(self, faux_passeport):
+        faux_passeport.return_value = {
+            "mode": "reel", "score_global": 80.0,
+            "dimensions": {}, "cultures_suggerees": [],
+        }
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+
+        self.client.get(self._url(self.parcelle.id))
+
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 1
+        )
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_reponse_depuis_le_cache_incremente_aussi_le_compteur(self, faux_passeport):
+        # Le compteur mesure l'usage (combien de fois un visiteur a VU un
+        # passeport), pas le taux de cache du pipeline — un hit compte autant
+        # qu'un calcul frais.
+        faux_passeport.return_value = {
+            "mode": "reel", "score_global": 80.0,
+            "dimensions": {}, "cultures_suggerees": [],
+        }
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+
+        self.client.get(self._url(self.parcelle.id))  # calcul frais → +1
+        self.client.get(self._url(self.parcelle.id))  # servi depuis le cache → +1
+        self.client.get(self._url(self.parcelle.id))  # idem → +1
+
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 3
+        )
+
+    def test_parcelle_non_geolocalisee_n_incremente_pas_le_compteur(self):
+        # 422, jamais un vrai passeport rendu — ne compte pas comme une
+        # consultation.
+        from annonces.models import Parcelle
+
+        nue = Parcelle.objects.create(surface_ha=1.0)
+        self.client.get(self._url(nue.id))
+
+        self.assertFalse(StatistiquePasseport.objects.exists())
+
+    def test_calcul_concurrent_429_n_incremente_pas_le_compteur(self):
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": False})
+        cache.add(f"agriscore:passeport:calcul:{self.parcelle.id}", True, 60)
+
+        self.client.get(self._url(self.parcelle.id))
+
+        self.assertFalse(StatistiquePasseport.objects.exists())
+
+
+class StatistiquePasseportTests(TestCase):
+    def test_premiere_consultation_du_jour_cree_la_ligne_a_un(self):
+        StatistiquePasseport.enregistrer_consultation()
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 1
+        )
+
+    def test_consultations_suivantes_incrementent(self):
+        for _ in range(5):
+            StatistiquePasseport.enregistrer_consultation()
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 5
+        )
+
+    def test_une_ligne_par_jour(self):
+        StatistiquePasseport.objects.create(date=timezone.localdate() - timedelta(days=1), compteur=7)
+        StatistiquePasseport.enregistrer_consultation()
+
+        self.assertEqual(StatistiquePasseport.objects.count(), 2)
+        self.assertEqual(
+            StatistiquePasseport.objects.get(date=timezone.localdate()).compteur, 1
+        )
+
+    @patch.object(StatistiquePasseport.objects, "get_or_create", side_effect=DatabaseError)
+    def test_base_injoignable_ne_leve_pas(self, _mock):
+        # Fail-open : jamais d'exception remontée à l'appelant (même
+        # philosophie que le cache/verrou du passeport).
+        StatistiquePasseport.enregistrer_consultation()  # ne lève pas
+        self.assertFalse(StatistiquePasseport.objects.exists())
