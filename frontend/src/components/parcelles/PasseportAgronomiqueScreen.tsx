@@ -19,6 +19,7 @@ import {
 import {
   aRetenir,
   bandeScore,
+  couleurTon,
   synthese,
   verdict,
 } from "@/lib/passeport-presentation";
@@ -387,15 +388,7 @@ function CarteSynthese({
   reference: string;
 }) {
   const { scoreGlobal, fiabiliteGlobale } = passeport;
-  const ton = bandeScore(scoreGlobal).ton;
-  const couleurVerdict =
-    ton === "positif"
-      ? "var(--color-foret)"
-      : ton === "neutre"
-        ? "var(--color-ble-texte, var(--color-secondaire))"
-        : ton === "reserve"
-          ? "var(--color-terre-texte)"
-          : "var(--color-tertiaire)";
+  const couleurVerdict = couleurTon(bandeScore(scoreGlobal).ton);
 
   return (
     <div

@@ -23,6 +23,16 @@ export function bandeScore(score: number | null): { mot: string; ton: TonScore }
   return { mot: "limité", ton: "reserve" };
 }
 
+// Couleur associée à un ton — un seul endroit pour ce mapping, réutilisé par
+// la carte synthèse du passeport complet (PasseportAgronomiqueScreen) et par
+// le résumé compact (AgriScoreResume, catalogue/fiche/comparateur).
+export function couleurTon(ton: TonScore): string {
+  if (ton === "positif") return "var(--color-foret)";
+  if (ton === "neutre") return "var(--color-ble-texte, var(--color-secondaire))";
+  if (ton === "reserve") return "var(--color-terre-texte)";
+  return "var(--color-tertiaire)";
+}
+
 // Résolution spatiale d'un agent : km au-delà de 1000 m (ex. maille ERA5
 // ≈ 11 km), mètres en deçà. `null` → "".
 export function formatResolution(resolutionM: number | null): string {

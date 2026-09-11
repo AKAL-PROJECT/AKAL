@@ -86,7 +86,6 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
         adresseApproximative: "Berrechid, Maroc",
         contour: null,
       },
-      scoreCourant: null, // AgriScore retiré de l'API publique (hardening 2026-08-30)
       source: "interne",
       sourceUrl: null,
       photoPrincipale: "https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp",
@@ -95,10 +94,6 @@ describe("mapAnnonceDetailToParcelle (détail — fixture §4.4 verbatim)", () =
       whatsappDisponible: false,
       locConfidentielle: false,
     });
-  });
-
-  it("scoreCourant est toujours null (AgriScore retiré de l'API publique)", () => {
-    expect(mapAnnonceDetailToParcelle(ANNONCE_DETAIL_DTO).scoreCourant).toBeNull();
   });
 
   it("expose parcelle.id (UUID Parcelle, ≠ id annonce) — pour l'endpoint passeport", () => {
@@ -195,15 +190,10 @@ describe("mapAnnonceToParcelle (liste — sous-ensemble allégé)", () => {
         adresseApproximative: null, // absent en liste
         contour: null,
       },
-      scoreCourant: null, // AgriScore retiré de l'API publique (hardening 2026-08-30)
       source: "interne",
       photoPrincipale: "https://media.akal.ma/annonces/3f2b6c9e/photo-0.webp",
       photos: [],
     });
-  });
-
-  it("scoreCourant est toujours null en liste (AgriScore retiré de l'API publique)", () => {
-    expect(mapAnnonceToParcelle(ANNONCE_LISTE_DTO).scoreCourant).toBeNull();
   });
 
   it("convertit prix_mad / surface_ha correctement même si le JSON renvoie déjà des number", () => {

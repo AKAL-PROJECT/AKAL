@@ -63,7 +63,6 @@ export const PARCELLES: Parcelle[] = [
       adresseApproximative: "Aït Ourir, Maroc",
       contour: null,
     },
-    scoreCourant: { scoreGlobal: 82, sousScores: null, versionPonderation: null },
     photoPrincipale:
       "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&h=600&fit=crop&auto=format",
     photos: [
@@ -99,7 +98,6 @@ export const PARCELLES: Parcelle[] = [
       adresseApproximative: "Biougra, Maroc",
       contour: null,
     },
-    scoreCourant: { scoreGlobal: 67, sousScores: null, versionPonderation: null },
     photoPrincipale:
       "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=800&h=600&fit=crop&auto=format",
     photos: [
@@ -135,7 +133,6 @@ export const PARCELLES: Parcelle[] = [
       adresseApproximative: "El Hajeb, Maroc",
       contour: null,
     },
-    scoreCourant: { scoreGlobal: 54, sousScores: null, versionPonderation: null },
     photoPrincipale:
       "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&h=600&fit=crop&auto=format",
     photos: [
@@ -171,7 +168,6 @@ export const PARCELLES: Parcelle[] = [
       adresseApproximative: "Benslimane, Maroc",
       contour: null,
     },
-    scoreCourant: { scoreGlobal: 91, sousScores: null, versionPonderation: null },
     photoPrincipale:
       "https://images.unsplash.com/photo-1543158181-e6f9f6712055?w=800&h=600&fit=crop&auto=format",
     photos: [
@@ -207,7 +203,6 @@ export const PARCELLES: Parcelle[] = [
       adresseApproximative: "Sidi Kacem, Maroc",
       contour: null,
     },
-    scoreCourant: { scoreGlobal: 73, sousScores: null, versionPonderation: null },
     photoPrincipale:
       "https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?w=800&h=600&fit=crop&auto=format",
     photos: [
@@ -243,7 +238,6 @@ export const PARCELLES: Parcelle[] = [
       adresseApproximative: "Taourirt, Maroc",
       contour: null,
     },
-    scoreCourant: { scoreGlobal: 41, sousScores: null, versionPonderation: null },
     photoPrincipale:
       "https://images.unsplash.com/photo-1530267981375-f0de937f5f13?w=800&h=600&fit=crop&auto=format",
     photos: [
