@@ -24,6 +24,7 @@ from rest_framework import serializers
 
 from . import transitions
 from .models import Annonce, DonneesGeo, Parcelle, Photo, RechercheSauvegardee
+from .moderation import evaluer_signal_moderation
 
 # Sentinelle distincte de `None` : `_appliquer_parcelle` doit pouvoir
 # distinguer "le client n'a pas touché au champ `contour`" (ne rien changer)
@@ -837,7 +838,26 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
                 ok, raisons = instance.can_publish()
                 if not ok:
                     raise serializers.ValidationError({'statut': raisons})
-                instance.date_publication = timezone.now()
+
+                # Modération automatique — palier 1 (cf. moderation.py) :
+                # jamais un rejet, seulement un aiguillage vers `en_attente`
+                # (file de AnnonceAdmin, groupe Modérateurs) au lieu de
+                # `en_ligne` si le texte ne porte aucun signal d'annonce
+                # agricole légitime. Uniquement sur le tout premier passage
+                # en ligne (brouillon → en_ligne) — une réactivation
+                # (archivee → en_ligne) ou une remise en vente
+                # (vendue → en_ligne) a déjà été modérée une fois, cf.
+                # transitions.py (« réactivation immédiate... sans étape
+                # d'approbation supplémentaire »).
+                if statut_avant == Annonce.StatutAnnonce.BROUILLON:
+                    signal = evaluer_signal_moderation(instance.titre, instance.description)
+                    if signal.suspect:
+                        instance.statut = Annonce.StatutAnnonce.EN_ATTENTE
+                        instance.motif_moderation = "; ".join(signal.raisons)
+                    else:
+                        instance.date_publication = timezone.now()
+                else:
+                    instance.date_publication = timezone.now()
 
             instance.save()
 

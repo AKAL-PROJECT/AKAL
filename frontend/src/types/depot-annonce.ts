@@ -49,7 +49,11 @@ export type PhotoEcriture = {
 // (F03). archivee : édition d'une annonce archivée réintroduite pour la
 // RC (le PATCH contenu backend est déjà sans restriction de statut, cf.
 // AnnonceUpdateAPIView) — vendue reste hors périmètre, statut terminal.
-export type StatutBrouillon = "brouillon" | "en_ligne" | "archivee";
+// en_attente : réponse possible à une tentative de publication détournée
+// par la modération automatique (backend/annonces/moderation.py) — jamais
+// envoyée PAR ce formulaire, seulement reçue en retour de `statut: en_ligne`
+// (cf. EtapePhotosPublication.tsx::gererPublication).
+export type StatutBrouillon = "brouillon" | "en_ligne" | "archivee" | "en_attente";
 
 export type AnnonceEcriture = {
   id: string;

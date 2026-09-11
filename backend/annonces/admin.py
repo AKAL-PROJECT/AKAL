@@ -102,12 +102,23 @@ def rejeter_selection(modeladmin, request, queryset):
 
 @admin.register(Annonce)
 class AnnonceAdmin(admin.ModelAdmin):
-    list_display = ('titre', 'proprietaire', 'prix_mad', 'statut', 'source', 'created_at')
+    list_display = ('titre', 'proprietaire', 'prix_mad', 'statut', 'signal_moderation', 'source', 'created_at')
     list_filter = ('statut', 'source')
     search_fields = ('titre', 'slug')
     prepopulated_fields = {'slug': ('titre',)}
     inlines = [PhotoInline]
     actions = [publier_selection, rejeter_selection]
+    # `motif_moderation` n'est jamais rempli à la main (cf. moderation.py) —
+    # lecture seule pour tout le monde, y compris un superutilisateur.
+    readonly_fields = ('motif_moderation',)
+
+    @admin.display(description='Modération')
+    def signal_moderation(self, obj):
+        # Colonne courte pour repérer d'un coup d'œil, dans la liste, quelles
+        # annonces `en_attente` viennent du signal automatique plutôt que
+        # d'un futur autre déclencheur — le détail complet (raisons) reste
+        # sur la page de l'annonce (motif_moderation, en lecture seule).
+        return "⚠ signalée" if obj.motif_moderation else ""
 
     def get_readonly_fields(self, request, obj=None):
         # `statut` reste modifiable en direct pour un superutilisateur
