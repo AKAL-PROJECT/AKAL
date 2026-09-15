@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-api";
 import { getMesAnnonces } from "@/lib/annonces-api";
-import { logoutAction } from "@/app/actions/auth";
+import LogoutForm from "@/components/LogoutForm";
 import ProfilCarte from "@/components/compte/ProfilCarte";
 
 export const metadata = { title: "Mon compte • AKAL" };
@@ -40,9 +40,9 @@ export default async function ComptePage() {
             une redite de l'onglet "Mes annonces" mais un raccourci d'accès
             depuis Mon profil, cohérent avec le calque 2a du handoff design. */}
 
-        <form action={logoutAction}>
+        <LogoutForm>
           <button type="submit" className="btn-ghost">Se déconnecter</button>
-        </form>
+        </LogoutForm>
       </div>
     </div>
   );
