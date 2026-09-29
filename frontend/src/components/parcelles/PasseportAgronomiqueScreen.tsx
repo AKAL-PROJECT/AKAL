@@ -20,6 +20,7 @@ import {
   aRetenir,
   bandeScore,
   couleurTon,
+  scoreFiable,
   synthese,
   verdict,
 } from "@/lib/passeport-presentation";
@@ -389,7 +390,10 @@ function CarteSynthese({
   parcelle: Parcelle;
   reference: string;
 }) {
-  const { scoreGlobal, fiabiliteGlobale } = passeport;
+  const { fiabiliteGlobale } = passeport;
+  // Score masqué sous le seuil de fiabilité (cf. scoreFiable).
+  const scoreGlobal = scoreFiable(passeport);
+  const peuFiable = passeport.scoreGlobal !== null && scoreGlobal === null;
   const couleurVerdict = couleurTon(bandeScore(scoreGlobal).ton);
 
   return (
@@ -408,6 +412,11 @@ function CarteSynthese({
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
         <ScoreGauge score={scoreGlobal} />
         <span style={{ fontSize: "12px", color: "var(--color-tertiaire)" }}>Fiabilité {Math.round(fiabiliteGlobale)} %</span>
+        {peuFiable && (
+          <span style={{ fontSize: "12px", color: "var(--color-tertiaire)", maxWidth: 140, textAlign: "center" }}>
+            Score masqué : trop peu de données disponibles
+          </span>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", minWidth: 0 }}>

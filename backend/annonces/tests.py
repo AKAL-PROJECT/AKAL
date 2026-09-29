@@ -169,6 +169,19 @@ class ValidationGeographiqueTests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
+class CatalogueDtoTests(AnnoncesTestBase):
+    def test_liste_expose_la_topographie(self):
+        # Audit U1 : le comparateur affichait « — » pour toute parcelle
+        # ajoutée depuis le catalogue.
+        self.authentifier()
+        annonce_id = self.creer_brouillon().data['id']
+        Annonce.objects.filter(id=annonce_id).update(statut=Annonce.StatutAnnonce.EN_LIGNE)
+        self.localiser(annonce_id)
+        response = self.client.get(ANNONCES_URL)
+        parcelle = next(a for a in response.data['results'] if a['id'] == annonce_id)['parcelle']
+        self.assertEqual(parcelle['topographie'], 'plat')
+
+
 class SuppressionAnnonceTests(AnnoncesTestBase):
     """Audit B1 — DELETE /api/annonces/<uuid>/ (non publiées uniquement)."""
 

@@ -34,7 +34,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from agriscore.models import StatistiquePasseport
+from agriscore.models import ConfigurationAgriScore, StatistiquePasseport
 from agriscore.passeport import passeport_parcelle
 from annonces.models import Annonce, Parcelle
 from annonces.serializers import _flouter_position
@@ -116,7 +116,7 @@ class PasseportParcelleAPIView(APIView):
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        cle_resultat = f"agriscore:passeport:{parcelle.id}"
+        cle_resultat = f"agriscore:passeport:{parcelle.id}:v{ConfigurationAgriScore.version()}"
         en_cache = _cache_get(cle_resultat)
         if en_cache is not None:
             StatistiquePasseport.enregistrer_consultation()

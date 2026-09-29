@@ -101,6 +101,17 @@ class ConfigurationAgriScore(models.Model):
             return True
 
     @classmethod
+    def version(cls) -> str:
+        """Empreinte de la configuration courante, intégrée à la clé de cache
+        du passeport (agriscore/api_views.py) : modifier les poids ou basculer
+        en mode simulé invalide immédiatement les passeports calculés avec
+        l'ancienne configuration, au lieu de les servir encore 12 h (audit)."""
+        try:
+            return str(int(cls.charger().modifie_le.timestamp()))
+        except DatabaseError:
+            return 'defaut'
+
+    @classmethod
     def poids_nominaux(cls) -> dict[str, int]:
         """Poids des 5 dimensions, avec repli sûr : table absente ou base KO
         ⇒ les poids nominaux d'origine (agriscore.aggregation.POIDS_NOMINAUX),

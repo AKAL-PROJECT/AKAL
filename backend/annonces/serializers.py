@@ -129,7 +129,9 @@ class ParcelleListSerializer(serializers.ModelSerializer):
     """
     Sous-objet parcelle pour la vue liste (§4.4).
 
-    Champs : id, surface_ha, statut_foncier, acces_eau, region, localisation.
+    Champs : id, surface_ha, statut_foncier, acces_eau, topographie, region,
+    localisation. `topographie` ajouté pour le comparateur, qui compare des
+    parcelles ajoutées depuis le catalogue (audit U1).
     """
 
     region = serializers.SerializerMethodField()
@@ -137,7 +139,7 @@ class ParcelleListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Parcelle
-        fields = ['id', 'surface_ha', 'statut_foncier', 'acces_eau', 'region', 'localisation']
+        fields = ['id', 'surface_ha', 'statut_foncier', 'acces_eau', 'topographie', 'region', 'localisation']
 
     def get_region(self, obj):
         """

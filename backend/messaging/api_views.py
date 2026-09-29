@@ -223,6 +223,11 @@ class FavoriListAPIView(generics.ListAPIView):
             .select_related(
                 'annonce', 'annonce__parcelle', 'annonce__parcelle__commune',
                 'annonce__parcelle__commune__province', 'annonce__parcelle__commune__province__region',
+                # Chaîne officielle, lue en priorité par AnnonceListSerializer
+                # — absente, elle coûtait 3 requêtes par favori (audit : 33
+                # requêtes pour 10 favoris).
+                'annonce__parcelle__commune_geom', 'annonce__parcelle__commune_geom__province',
+                'annonce__parcelle__commune_geom__province__region',
                 'annonce__proprietaire',
             )
             .prefetch_related('annonce__photos')

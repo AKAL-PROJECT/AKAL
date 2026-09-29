@@ -43,7 +43,28 @@ if (!isDev && process.env.NEXT_PUBLIC_USE_MOCKS === "true") {
   );
 }
 
+// En-têtes de sécurité (audit S7). CSP volontairement limitée aux directives
+// sans risque de casser l'app (tuiles Leaflet, Google, Firebase, Sentry et
+// styles inline restent autorisés) : anti-clickjacking, pas de <base> ni de
+// plugin injectés, formulaires postés uniquement vers le site lui-même.
+const ENTETES_SECURITE = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Frame-Options", value: "DENY" },
+  // Géolocalisation autorisée pour « Me localiser » au dépôt d'annonce.
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+  {
+    key: "Content-Security-Policy",
+    value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'",
+  },
+  ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]),
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/(.*)", headers: ENTETES_SECURITE }];
+  },
+
   // Sortie autonome (.next/standalone) — image Docker minimale : le
   // serveur Node + uniquement les dépendances réellement utilisées, sans
   // tout node_modules. Sans effet sur `next dev` ni sur Vercel.
