@@ -17,9 +17,12 @@ Services externes : Firebase (OTP SMS), Google OAuth, sources ouvertes AgriScore
 ## Branches
 
 - `main` → intégration / production, protégée (chaque merge passe par une PR + la CI).
-- `finalisation/ux-ui-carte-filtres` → branche de finalisation en cours (contient le Passeport AgriScore).
-- `feat/<domaine>` → une fonctionnalité, mergée dans `main` via PR puis supprimée.
-- `fix/<sujet>` → une correction.
+  Tags de livraison : `v1.0.0-soutenance`, `v1.0.1-soutenance`.
+- `feat/<domaine>` → une fonctionnalité, mergée dans `main` via PR **puis supprimée**.
+- `fix/<sujet>` → une correction, même cycle.
+
+Toutes les branches de fonctionnalité existantes ont été intégrées ; une
+branche distante déjà mergée peut être supprimée sans perte.
 
 ## Démarrage rapide — tout conteneurisé
 
@@ -36,7 +39,9 @@ docker compose up --build
 
 La pile complète démarre : PostgreSQL 16 + PostGIS, Redis, MinIO, backend,
 frontend. Au 1er lancement, le backend charge le référentiel géo officiel +
-~15 annonces de démonstration. Créer un compte admin :
+~15 annonces de démonstration. Les annonces scrapées (Avito/Mubawab) ne sont
+**pas** affichées par défaut ; pour les voir : `AKAL_DATASET=all` et
+`SEED_SCRAPED_ON_START=1` dans le `.env` racine. Créer un compte admin :
 
 ```bash
 docker compose exec backend python manage.py createsuperuser
@@ -63,7 +68,7 @@ cd backend && docker compose up -d      # db (PostGIS :5433) + redis + minio + m
 
 # 2. backend
 python -m venv akal_env && source akal_env/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt      # versions épinglées + outils de dev
 cp .env.example .env                     # SECRET_KEY=change-me suffit ; DATABASE_URL déjà sur :5433
 python manage.py ensure_postgis
 python manage.py migrate
@@ -113,6 +118,10 @@ akal-frontend (Next.js)  →  akal-backend (Django/DRF)  →  akal-db (PostgreSQ
    *Environment* (secrets + URLs connues seulement après le 1er déploiement :
    `NEXT_PUBLIC_API_URL`, `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, les `AWS_*`
    + `NEXT_PUBLIC_MEDIA_HOSTNAME`…).
+   **`CSRF_TRUSTED_ORIGINS` doit contenir exactement l'origine de
+   `NEXT_PUBLIC_SITE_URL`** : le serveur Next envoie cet `Origin` sur chaque
+   écriture, sans lui Django répond 403. `AKAL_PROXY_SECRET` est généré côté
+   backend et recopié automatiquement côté frontend (`fromService`).
 4. Auth téléphone : déposer `firebase-service-account.json` dans
    *akal-backend → Environment → Secret Files* (`/app/firebase-service-account.json`).
 

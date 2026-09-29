@@ -43,7 +43,7 @@ services:
 
   # ── Redis (cache, throttling, cache du Passeport AgriScore) ───────────
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -53,6 +53,9 @@ services:
 
   # ── MinIO (stockage S3 des médias : photos d'annonces, avatars) ───────
   minio:
+    # À FIGER : la distribution communautaire de MinIO n'est plus publiée
+    # régulièrement — remplacer `latest` par le digest de l'image qui marche
+    # (`docker image inspect minio/minio:latest --format '{{index .RepoDigests 0}}'`).
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
