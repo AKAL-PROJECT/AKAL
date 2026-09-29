@@ -46,6 +46,20 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("fetchWithAuth — en-têtes CSRF (audit S1)", () => {
+  it("POST : envoie Origin + X-CSRFToken, sinon Django refuse en HTTPS", async () => {
+    cookiesMock.mockResolvedValue(creerJar({ access_token: "valide", csrftoken: "tok" }) as never);
+    const fetchMock = vi.fn().mockResolvedValue(reponse(200));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchWithAuth("https://api.test/favoris/toggle/", { method: "POST" });
+
+    const entetes = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(entetes.Origin).toMatch(/^https?:\/\//);
+    expect(entetes["X-CSRFToken"]).toBe("tok");
+  });
+});
+
 describe("fetchWithAuth — requête normale", () => {
   it("200 => renvoie la réponse telle quelle, un seul appel fetch, pas de refresh tenté", async () => {
     cookiesMock.mockResolvedValue(creerJar({ access_token: "valide" }) as never);

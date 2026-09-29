@@ -15,6 +15,7 @@
 
 import { cookies } from "next/headers";
 import { refreshAccessToken } from "./auth-refresh";
+import { entetesBackendRequete } from "./entetes-backend-serveur";
 
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();
@@ -37,6 +38,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
       headers: {
         Cookie: await cookieHeader(),
         ...(methode !== "GET" && methode !== "HEAD" ? await csrfHeader() : {}),
+        ...(await entetesBackendRequete()),
         ...options.headers,
       },
     });

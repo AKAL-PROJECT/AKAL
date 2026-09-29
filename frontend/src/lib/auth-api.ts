@@ -16,6 +16,7 @@ import { attrsVersOptions, parseSetCookie } from "./cookie-parsing";
 import { fetchWithAuth } from "./fetchWithAuth";
 
 import { API_URL } from "./api-base";
+import { entetesBackendRequete } from "./entetes-backend-serveur";
 
 // Pas de rôle figé à l'inscription (une même personne peut chercher et
 // vendre une terre) : "" par défaut, ADMIN réservé au staff. cf. design doc,
@@ -69,7 +70,7 @@ async function cookieHeader(): Promise<string> {
 export async function signup(input: SignupInput): Promise<User> {
   const res = await fetch(`${API_URL}/auth/signup/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await entetesBackendRequete()) },
     body: JSON.stringify(input),
     cache: "no-store",
   });
@@ -84,7 +85,7 @@ export async function signup(input: SignupInput): Promise<User> {
 export async function login(input: LoginInput): Promise<User> {
   const res = await fetch(`${API_URL}/auth/login/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await entetesBackendRequete()) },
     body: JSON.stringify(input),
     cache: "no-store",
   });
@@ -125,7 +126,7 @@ export type PasswordResetConfirmInput = { uid: string; token: string; password: 
 export async function requestPasswordReset(input: PasswordResetRequestInput): Promise<void> {
   const res = await fetch(`${API_URL}/auth/password-reset/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await entetesBackendRequete()) },
     body: JSON.stringify(input),
     cache: "no-store",
   });
@@ -138,7 +139,7 @@ export async function requestPasswordReset(input: PasswordResetRequestInput): Pr
 export async function confirmPasswordReset(input: PasswordResetConfirmInput): Promise<void> {
   const res = await fetch(`${API_URL}/auth/password-reset/confirm/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await entetesBackendRequete()) },
     body: JSON.stringify(input),
     cache: "no-store",
   });
@@ -157,6 +158,7 @@ export async function logout(): Promise<void> {
     headers: {
       Cookie: await cookieHeader(),
       ...(csrftoken ? { "X-CSRFToken": csrftoken } : {}),
+      ...(await entetesBackendRequete()),
     },
     cache: "no-store",
   });
@@ -225,7 +227,7 @@ export type { FieldErrors };
 export async function phoneLoginRequest(telephone: string): Promise<void> {
   const res = await fetch(`${API_URL}/auth/phone/request/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await entetesBackendRequete()) },
     body: JSON.stringify({ telephone }),
     cache: "no-store",
   });
@@ -238,7 +240,7 @@ export async function phoneLoginRequest(telephone: string): Promise<void> {
 export async function phoneLoginVerify(token: string, prenom?: string, nom?: string): Promise<User> {
   const res = await fetch(`${API_URL}/auth/phone/verify/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await entetesBackendRequete()) },
     body: JSON.stringify({ token, prenom, nom }),
     cache: "no-store",
   });
@@ -253,7 +255,7 @@ export async function phoneLoginVerify(token: string, prenom?: string, nom?: str
 export async function googleLogin(token: string): Promise<User> {
   const res = await fetch(`${API_URL}/auth/google/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await entetesBackendRequete()) },
     body: JSON.stringify({ token }),
     cache: "no-store",
   });

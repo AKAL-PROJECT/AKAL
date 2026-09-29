@@ -10,6 +10,7 @@
 // cf. audit d'intégration §4.6 (contrat d'erreurs) et §3 (forme des réponses).
 
 import { API_URL } from "./api-base";
+import { entetesBackend } from "./entetes-backend";
 
 export type Paginated<T> = {
   count: number;
@@ -103,6 +104,10 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       signal,
       headers: {
         "Content-Type": "application/json",
+        // Côté serveur uniquement (rendu SSR) : Origin + secret partagé, cf.
+        // lib/entetes-backend.ts. Jamais dans le navigateur (le secret n'y
+        // existe pas, Origin y est posé par le navigateur lui-même).
+        ...(typeof window === "undefined" ? entetesBackend(null) : {}),
         ...headers,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,

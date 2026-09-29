@@ -26,6 +26,7 @@ import type { AnnonceEcriture, ParcelleEcriture } from "@/types/depot-annonce";
 import type { AnnonceProprietaire, StatutAnnonce } from "@/types/parcelle";
 
 import { API_URL } from "./api-base";
+import { entetesBackendRequete } from "./entetes-backend-serveur";
 
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();
@@ -104,7 +105,7 @@ export async function uploaderPhotos(id: string, fichiers: File[]): Promise<Anno
 // fetchWithAuth ici (cf. commentaire d'en-tête).
 export async function getBrouillon(id: string): Promise<AnnonceEcriture> {
   const res = await fetch(`${API_URL}/annonces/${id}/`, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);
@@ -118,7 +119,7 @@ export async function getBrouillon(id: string): Promise<AnnonceEcriture> {
 // (cf. commentaire d'en-tête).
 export async function getMesAnnonces(): Promise<AnnonceProprietaire[]> {
   const res = await fetch(`${API_URL}/annonces/mes-annonces/`, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -146,7 +147,7 @@ export type MesStatistiquesDTO = {
 // PAS de fetchWithAuth, même raison que getMesAnnonces() ci-dessus.
 export async function getMesStatistiques(): Promise<MesStatistiquesDTO> {
   const res = await fetch(`${API_URL}/annonces/mes-annonces/statistiques/`, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) {

@@ -21,6 +21,7 @@ import { mapAnnonceToParcelle, type AnnonceListDTO } from "./mapAnnonceToParcell
 import type { Parcelle } from "@/types/parcelle";
 
 import { API_URL } from "./api-base";
+import { entetesBackendRequete } from "./entetes-backend-serveur";
 
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();
@@ -50,7 +51,7 @@ export async function getFavorisIds(): Promise<string[]> {
 // commentaire d'en-tête).
 export async function getFavoris(): Promise<Parcelle[]> {
   const res = await fetch(`${API_URL}/favoris/`, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) return [];

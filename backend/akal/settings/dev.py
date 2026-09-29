@@ -45,6 +45,20 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'ba
 if 'test' not in sys.argv:
     AKAL_DATASET = env('AKAL_DATASET', default='simulated')
 
+# Démo locale : tous les comptes créés sur une même machine partagent
+# légitimement la même IP — quotas d'inscription/connexion assouplis hors
+# tests (la suite de tests vérifie les valeurs de production de base.py).
+if 'test' not in sys.argv:
+    REST_FRAMEWORK = {
+        **REST_FRAMEWORK,
+        'DEFAULT_THROTTLE_RATES': {
+            **REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'],
+            'signup': '50/hour',
+            'login': '30/min',
+            'password_reset': '20/hour',
+        },
+    }
+
 # En développement, autoriser toutes les origines CORS
 CORS_ALLOW_ALL_ORIGINS = True
 

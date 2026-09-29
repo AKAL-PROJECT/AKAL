@@ -75,6 +75,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # En premier : fixe REMOTE_ADDR (IP client réelle) avant tout le reste —
+    # throttling DRF, comptage de vues, axes (audit S2, cf. akal/middleware.py).
+    'akal.middleware.ClientIPMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -257,8 +260,11 @@ REST_FRAMEWORK = {
     #      message) — cf. chaque vue pour le throttle_scope appliqué.
     # Valeurs de départ, à ajuster avec de la vraie donnée de trafic une fois
     # en prod — pas des constantes gravées dans le marbre.
+    # REMOTE_ADDR est déjà l'IP client réelle (akal.middleware.
+    # ClientIPMiddleware) : DRF ne doit plus jamais lire X-Forwarded-For.
+    'NUM_PROXIES': 0,
     'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
+        'akal.throttling.AnonRateThrottleBFF',
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
@@ -273,6 +279,8 @@ REST_FRAMEWORK = {
         'anon': '1000/hour',
         'user': '5000/hour',
         'login': '5/min',
+        # Par compte visé, toutes IP confondues (accounts/throttling.py).
+        'login_email': '10/hour',
         'password_reset': '3/hour',
         'signup': '5/hour',
         # Connexion Google (GoogleLoginView) — chaque appel = une vérification
@@ -305,6 +313,17 @@ REST_FRAMEWORK = {
         'passeport': '15/hour',
     },
 }
+
+
+# ──────────────────────────────────────────────
+# IP CLIENT — cf. akal/middleware.py (audit S2)
+# ──────────────────────────────────────────────
+# Secret partagé avec le serveur Next.js (même valeur des deux côtés) : seul
+# un appel porteur de ce secret peut transmettre l'IP du visiteur. Vide =
+# fonctionnalité désactivée (IP = REMOTE_ADDR / proxy de confiance).
+AKAL_PROXY_SECRET = env('AKAL_PROXY_SECRET', default='')
+# Nombre de proxys de confiance devant Django (0 en local, 1 sur Render).
+AKAL_TRUSTED_PROXY_COUNT = env.int('AKAL_TRUSTED_PROXY_COUNT', default=0)
 
 
 # ──────────────────────────────────────────────
