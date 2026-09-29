@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { AccesEau } from "@/types/parcelle";
 import { useAgriScoreResume } from "@/hooks/useAgriScoreResume";
-import { DIMENSIONS, type Passeport } from "@/lib/passeport-api";
+import { DIMENSIONS, type Passeport, type RaisonIndisponible } from "@/lib/passeport-api";
 import { bandeScore, couleurTon, LIBELLE_DIMENSION, verdict } from "@/lib/passeport-presentation";
 
 type Props = {
@@ -72,7 +72,7 @@ export default function AgriScoreResume({ parcelleId, slug, accesEau, variante =
       }}
     >
       {etat.statut === "chargement" && <LigneChargement />}
-      {etat.statut === "indisponible" && <LigneIndisponible />}
+      {etat.statut === "indisponible" && <LigneIndisponible raison={etat.raison} />}
       {etat.statut === "ok" && (
         <LigneScore score={etat.passeport.scoreGlobal} accesEau={accesEau} />
       )}
@@ -101,12 +101,12 @@ function LigneChargement() {
   );
 }
 
-function LigneIndisponible() {
-  return (
-    <span style={{ fontSize: "12px", color: "var(--color-tertiaire)" }}>
-      🌱 Analyse agronomique indisponible
-    </span>
-  );
+function LigneIndisponible({ raison }: { raison: RaisonIndisponible }) {
+  const texte =
+    raison === "limite" || raison === "en_cours"
+      ? "🌱 Analyse agronomique : réessayez dans quelques minutes"
+      : "🌱 Analyse agronomique indisponible";
+  return <span style={{ fontSize: "12px", color: "var(--color-tertiaire)" }}>{texte}</span>;
 }
 
 function LigneScore({ score, accesEau }: { score: number | null; accesEau: AccesEau | null }) {

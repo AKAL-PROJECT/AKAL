@@ -170,6 +170,13 @@ export async function supprimerPhoto(annonceId: string, photoId: string): Promis
   if (!res.ok) await lireOuLeverErreur(res);
 }
 
+// Supprime une annonce jamais publiée (brouillon / en attente) — DELETE
+// /api/annonces/<uuid>/ (audit B1). 409 si l'annonce a déjà été publiée.
+export async function supprimerAnnonce(id: string): Promise<void> {
+  const res = await fetchWithAuth(`${API_URL}/annonces/${id}/`, { method: "DELETE" });
+  if (!res.ok) await lireOuLeverErreur(res);
+}
+
 // Lien wa.me pré-construit vers le vendeur (numéro + message dans l'URL), ou
 // null si le vendeur n'a pas de numéro exploitable. Endpoint authentifié
 // (hardening 2026-08-30) : le numéro n'est plus dans le DTO public.

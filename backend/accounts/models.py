@@ -54,6 +54,12 @@ class User(AbstractUser):
     nom = models.CharField(max_length=150)
     prenom = models.CharField(max_length=150)
     telephone = models.CharField(max_length=20, blank=True, null=True)
+    # Vrai seulement quand la possession du numéro a été prouvée (connexion
+    # SMS Firebase). Un numéro saisi à l'inscription ou dans le profil n'est
+    # qu'une déclaration : la connexion par téléphone ne s'y rattache jamais
+    # (audit S4 — sinon, s'inscrire avec le numéro d'une victime piégeait sa
+    # future connexion SMS dans un compte dont l'attaquant a le mot de passe).
+    telephone_verifie = models.BooleanField(default=False)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     is_verified = models.BooleanField(default=False)
     date_inscription = models.DateTimeField(auto_now_add=True)
@@ -69,6 +75,16 @@ class User(AbstractUser):
         db_table = 'user'
         verbose_name = 'Utilisateur'
         verbose_name_plural = 'Utilisateurs'
+        constraints = [
+            # Un numéro prouvé n'appartient qu'à un seul compte. Les numéros
+            # simplement déclarés peuvent coïncider (on ne peut pas empêcher
+            # une faute de frappe), ils ne donnent accès à rien.
+            models.UniqueConstraint(
+                fields=['telephone'],
+                condition=models.Q(telephone_verifie=True),
+                name='user_telephone_verifie_unique',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.prenom} {self.nom}"

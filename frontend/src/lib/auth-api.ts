@@ -29,6 +29,7 @@ export type User = {
   nom: string;
   prenom: string;
   telephone: string | null;
+  telephone_verifie?: boolean; // numéro prouvé par SMS (audit S4)
   avatar: string | null;
   role: Role;
   is_verified: boolean;

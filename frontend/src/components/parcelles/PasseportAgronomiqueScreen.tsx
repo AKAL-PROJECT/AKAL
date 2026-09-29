@@ -350,6 +350,8 @@ function EtatIndisponible({ raison, onReessayer }: { raison: RaisonIndisponible;
     introuvable: "Passeport introuvable pour cette parcelle.",
     en_cours:
       "L'analyse de cette parcelle est déjà en cours — relancez-la dans quelques instants.",
+    limite:
+      "Vous avez demandé beaucoup d'analyses en peu de temps — réessayez dans quelques minutes.",
     erreur: "L'analyse est momentanément indisponible.",
   };
   const peutReessayer = raison === "erreur" || raison === "en_cours";

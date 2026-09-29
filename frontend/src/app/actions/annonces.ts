@@ -10,10 +10,13 @@
 
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api";
-import { patchBrouillon } from "@/lib/annonces-api";
+import { patchBrouillon, supprimerAnnonce } from "@/lib/annonces-api";
 import type { StatutAnnonce } from "@/types/parcelle";
 
-export type ActionStatutResultat = { ok: true } | { ok: false; error: string };
+// `statut` : statut réellement obtenu — la modération peut détourner une
+// réactivation vers « en_attente » (texte modifié jugé suspect), null quand
+// l'annonce a été supprimée.
+export type ActionStatutResultat = { ok: true; statut: StatutAnnonce | null } | { ok: false; error: string };
 
 // Appelées directement depuis un composant client (ListeAnnonces.tsx, via la
 // modale de confirmation contrôlée — plus de <form action=...> + confirm()
@@ -24,14 +27,26 @@ export type ActionStatutResultat = { ok: true } | { ok: false; error: string };
 // erreur le cas échéant, plutôt que de se fier à une page qui ne se
 // re-render pas toute seule après un appel direct de Server Action.
 async function changerStatut(id: string, statut: StatutAnnonce): Promise<ActionStatutResultat> {
+  let statutObtenu: StatutAnnonce;
   try {
-    await patchBrouillon(id, { statut });
+    statutObtenu = (await patchBrouillon(id, { statut })).statut;
   } catch (err) {
     const message = err instanceof ApiError ? err.message : "Une erreur est survenue. Réessayez.";
     return { ok: false, error: message };
   }
   revalidatePath("/compte/annonces");
-  return { ok: true };
+  return { ok: true, statut: statutObtenu };
+}
+
+export async function supprimerAnnonceAction(id: string): Promise<ActionStatutResultat> {
+  try {
+    await supprimerAnnonce(id);
+  } catch (err) {
+    const message = err instanceof ApiError ? err.message : "Une erreur est survenue. Réessayez.";
+    return { ok: false, error: message };
+  }
+  revalidatePath("/compte/annonces");
+  return { ok: true, statut: null };
 }
 
 export async function archiverAnnonceAction(id: string): Promise<ActionStatutResultat> {

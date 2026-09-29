@@ -52,6 +52,21 @@ SURFACE_HA_MAX = Decimal('10000')  # 100 km² — au-delà, erreur de saisie cer
 PRIX_M2_MIN = Decimal('0.5')       # en deçà : prix incohérent avec la surface (trop bas)
 PRIX_M2_MAX = Decimal('5000')      # au-delà : ce n'est plus du foncier agricole
 
+# Emprise du Maroc (provinces du Sud incluses), en degrés WGS84 — une
+# parcelle hors de ce rectangle est une erreur de saisie certaine (audit S5).
+MAROC_LAT_MIN, MAROC_LAT_MAX = 20.5, 36.2
+MAROC_LNG_MIN, MAROC_LNG_MAX = -17.5, -0.9
+# Tolérance point ↔ commune (~2 km) : un clic près d'une limite communale,
+# ou des limites officielles simplifiées, ne doivent pas bloquer un dépôt.
+TOLERANCE_COMMUNE_DEG = 0.02
+
+
+def _hors_maroc(latitude, longitude):
+    return not (
+        MAROC_LAT_MIN <= latitude <= MAROC_LAT_MAX
+        and MAROC_LNG_MIN <= longitude <= MAROC_LNG_MAX
+    )
+
 
 # ──────────────────────────────────────────────
 # Sous-serializers (nested objects)
@@ -617,6 +632,39 @@ class ParcelleEcritureSerializer(serializers.ModelSerializer):
             )
         return valeur
 
+    def validate(self, attrs):
+        """Cohérence géographique (audit S5) : coordonnées au Maroc, et point
+        situé dans la commune choisie. Appliqué au dépôt comme à l'édition —
+        les valeurs absentes du payload sont relues sur la parcelle existante."""
+        attrs = super().validate(attrs)
+
+        latitude, longitude = attrs.get('latitude'), attrs.get('longitude')
+        if (latitude is None) != (longitude is None):
+            raise serializers.ValidationError("Latitude et longitude doivent être renseignées ensemble.")
+        if latitude is not None and _hors_maroc(latitude, longitude):
+            raise serializers.ValidationError(
+                "La position indiquée est hors du Maroc. Replacez le repère sur votre parcelle."
+            )
+        for sommet in attrs.get('contour') or []:
+            if _hors_maroc(sommet['latitude'], sommet['longitude']):
+                raise serializers.ValidationError(
+                    {'contour': ["Le contour dessiné sort du territoire marocain."]}
+                )
+
+        existante = getattr(getattr(self.parent, 'instance', None), 'parcelle', None)
+        if 'commune_geom' in attrs or latitude is not None:
+            commune = attrs['commune_geom'] if 'commune_geom' in attrs else getattr(existante, 'commune_geom', None)
+            if latitude is None and existante is not None:
+                latitude, longitude = existante.latitude, existante.longitude
+            if commune is not None and commune.geom is not None and latitude is not None:
+                point = Point(longitude, latitude, srid=4326)
+                if commune.geom.distance(point) > TOLERANCE_COMMUNE_DEG:
+                    raise serializers.ValidationError(
+                        f"La position indiquée n'est pas dans la commune « {commune.nom_affichage} ». "
+                        "Vérifiez la commune ou le repère sur la carte."
+                    )
+        return attrs
+
     def to_representation(self, instance):
         # `contour` n'est pas un attribut de Parcelle : le ModelSerializer
         # standard le saute silencieusement (SkipField, champ required=False
@@ -670,7 +718,16 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
             return value  # ignoré à la création (forcé BROUILLON par la vue)
         if value == self.instance.statut:
             return value
-        if not transitions.transition_autorisee(self.instance.statut, value):
+        if (
+            self.instance.statut == Annonce.StatutAnnonce.EN_ATTENTE
+            and value == Annonce.StatutAnnonce.EN_LIGNE
+        ):
+            # Approbation réservée à la modération (audit S3).
+            raise serializers.ValidationError(
+                "Votre annonce est en cours de vérification par un modérateur : "
+                "elle sera publiée dès son approbation."
+            )
+        if not transitions.transition_autorisee_proprietaire(self.instance.statut, value):
             raise serializers.ValidationError(
                 f"Transition « {self.instance.statut} → {value} » non autorisée."
             )
@@ -817,6 +874,10 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
         parcelle_data = validated_data.pop('parcelle', None)
         nouveau_statut = validated_data.get('statut')
         statut_avant = instance.statut  # capturé avant toute mutation ci-dessous
+        texte_modifie = any(
+            champ in validated_data and validated_data[champ] != getattr(instance, champ)
+            for champ in ('titre', 'description')
+        )
 
         with transaction.atomic():
             if parcelle_data:
@@ -826,6 +887,16 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
 
             for champ, valeur in validated_data.items():
                 setattr(instance, champ, valeur)
+
+            # Modération des MODIFICATIONS (audit S6) : une annonce déjà
+            # passée par la modération (tout statut sauf brouillon) dont le
+            # texte change est réévaluée. Le verdict est mémorisé dans
+            # motif_moderation (vide = texte jugé sain) — sinon, modifier le
+            # texte d'une annonce archivée puis la réactiver contournait la
+            # modération. Une approbation admin vide ce champ (admin.py).
+            if texte_modifie and statut_avant != Annonce.StatutAnnonce.BROUILLON:
+                signal = evaluer_signal_moderation(instance.titre, instance.description)
+                instance.motif_moderation = "; ".join(signal.raisons) if signal.suspect else ''
 
             publie_maintenant = (
                 nouveau_statut == Annonce.StatutAnnonce.EN_LIGNE
@@ -842,13 +913,9 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
                 # Modération automatique — palier 1 (cf. moderation.py) :
                 # jamais un rejet, seulement un aiguillage vers `en_attente`
                 # (file de AnnonceAdmin, groupe Modérateurs) au lieu de
-                # `en_ligne` si le texte ne porte aucun signal d'annonce
-                # agricole légitime. Uniquement sur le tout premier passage
-                # en ligne (brouillon → en_ligne) — une réactivation
-                # (archivee → en_ligne) ou une remise en vente
-                # (vendue → en_ligne) a déjà été modérée une fois, cf.
-                # transitions.py (« réactivation immédiate... sans étape
-                # d'approbation supplémentaire »).
+                # `en_ligne`. Premier passage en ligne : le texte est évalué.
+                # Réactivation (archivee/vendue → en_ligne) : détournée
+                # seulement si un texte modifié depuis a été jugé suspect.
                 if statut_avant == Annonce.StatutAnnonce.BROUILLON:
                     signal = evaluer_signal_moderation(instance.titre, instance.description)
                     if signal.suspect:
@@ -856,8 +923,19 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
                         instance.motif_moderation = "; ".join(signal.raisons)
                     else:
                         instance.date_publication = timezone.now()
+                elif instance.motif_moderation:
+                    instance.statut = Annonce.StatutAnnonce.EN_ATTENTE
                 else:
                     instance.date_publication = timezone.now()
+            elif (
+                statut_avant == Annonce.StatutAnnonce.EN_LIGNE
+                and instance.statut == Annonce.StatutAnnonce.EN_LIGNE
+                and texte_modifie
+                and instance.motif_moderation
+            ):
+                # Annonce en ligne dont le nouveau texte est suspect : retirée
+                # du catalogue jusqu'à revue humaine (audit S6).
+                instance.statut = Annonce.StatutAnnonce.EN_ATTENTE
 
             instance.save()
 

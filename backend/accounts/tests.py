@@ -543,6 +543,45 @@ class PhoneLoginTests(AuthTestCase):
         self.assertFalse(User.objects.filter(telephone='+212612345678').exists())
 
     @patch('accounts.auth_api_views._get_firebase_auth')
+    def test_numero_simplement_declare_ne_donne_jamais_acces_au_compte(self, mock_get_auth):
+        # Audit S4 : un attaquant déclare le numéro de la victime sur SON
+        # compte ; la connexion SMS de la victime ne doit pas y atterrir.
+        attaquant = User.objects.create_user(
+            email='attaquant@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='A', prenom='A', telephone='+212612345678',
+        )
+        self._mock_firebase(mock_get_auth, telephone='+212612345678')
+
+        response = self.client.post(self.PHONE_URL, {'token': 'un-jeton'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data['id'], str(attaquant.id))
+        self.assertTrue(response.data['telephone_verifie'])
+
+    @patch('accounts.auth_api_views._get_firebase_auth')
+    def test_numero_verifie_reconnecte_le_meme_compte(self, mock_get_auth):
+        self._mock_firebase(mock_get_auth)
+        premier = self.client.post(self.PHONE_URL, {'token': 'un-jeton'})
+        second = self.client.post(self.PHONE_URL, {'token': 'un-jeton'})
+        self.assertEqual(premier.data['id'], second.data['id'])
+
+    def test_changer_de_numero_fait_perdre_la_verification(self):
+        user = User.objects.create_user(
+            email='sms@akal.ma', password='un-mot-de-passe-solide-2026', nom='S', prenom='S',
+            telephone='+212612345678', telephone_verifie=True,
+        )
+        self.client.force_authenticate(user)
+        response = self.client.patch(ME_URL, {'telephone': '+212699999999'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertFalse(user.telephone_verifie)
+
+    def test_format_de_telephone_invalide_rejete_a_l_inscription(self):
+        response = self.client.post(SIGNUP_URL, {**self.credentials, 'telephone': 'pas-un-numero'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('telephone', response.data)
+
+    @patch('accounts.auth_api_views._get_firebase_auth')
     def test_jeton_sans_numero_est_rejete(self, mock_get_auth):
         mock_module = mock_get_auth.return_value
         mock_module.verify_id_token.return_value = {}

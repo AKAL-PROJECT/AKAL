@@ -94,7 +94,10 @@ class PasseportParcelleAPIView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     throttle_scope = 'passeport'
-    throttle_classes = [ScopedRateThrottle]
+    # Pas de throttle global sur la vue (audit B2) : servir un passeport déjà
+    # en cache ne coûte rien, et le catalogue en affiche un par carte. Le
+    # scope 'passeport' ne s'applique qu'aux calculs à froid, cf. get().
+    throttle_classes = []
 
     @extend_schema(
         operation_id='parcelle_passeport',
@@ -122,10 +125,25 @@ class PasseportParcelleAPIView(APIView):
         # Un seul calcul à la fois par parcelle : les requêtes concurrentes
         # (autre onglet, autre visiteur, script) repartent avec un 503 que le
         # front sait retenter, au lieu de relancer 5 appels externes chacune.
+        # Calcul à froid = appels vers les API externes : c'est seulement ici
+        # que le quota par IP s'applique (audit B2).
+        limiteur = ScopedRateThrottle()
+        if not limiteur.allow_request(request, self):
+            attente = limiteur.wait()
+            reponse = Response(
+                {'detail': "Limite d'analyses atteinte pour le moment, réessayez plus tard.",
+                 'code': 'limite_atteinte'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+            if attente:
+                reponse['Retry-After'] = str(int(attente) + 1)
+            return reponse
+
         cle_verrou = f"agriscore:passeport:calcul:{parcelle.id}"
         if not _poser_verrou(cle_verrou):
             reponse = Response(
-                {'detail': "Analyse en cours pour cette parcelle, réessayez dans quelques instants."},
+                {'detail': "Analyse en cours pour cette parcelle, réessayez dans quelques instants.",
+                 'code': 'analyse_en_cours'},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
             # 429 (pas 503) : un verrou tenu est un throttle attendu, pas un

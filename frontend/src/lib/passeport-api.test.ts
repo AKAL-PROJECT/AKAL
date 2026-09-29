@@ -141,6 +141,11 @@ describe("getPasseport", () => {
     await expect(getPasseport("PARC-1")).rejects.toMatchObject({ raison: "en_cours" });
   });
 
+  it("429 code limite_atteinte → PasseportIndisponibleError('limite') (audit B2)", async () => {
+    mockFetch().mockResolvedValue(reponse({ detail: "Limite atteinte.", code: "limite_atteinte" }, 429));
+    await expect(getPasseport("PARC-1")).rejects.toMatchObject({ raison: "limite" });
+  });
+
   it("500 → PasseportIndisponibleError('erreur')", async () => {
     mockFetch().mockResolvedValue(reponse({ detail: "boom" }, 500));
     await expect(getPasseport("PARC-1")).rejects.toMatchObject({ raison: "erreur" });

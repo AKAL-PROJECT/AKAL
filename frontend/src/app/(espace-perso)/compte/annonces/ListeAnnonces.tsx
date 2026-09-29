@@ -27,6 +27,7 @@ import {
   archiverAnnonceAction,
   marquerVendueAnnonceAction,
   reactiverAnnonceAction,
+  supprimerAnnonceAction,
   type ActionStatutResultat,
 } from "@/app/actions/annonces";
 import type { AnnonceProprietaire, StatutAnnonce } from "@/types/parcelle";
@@ -43,7 +44,8 @@ type Confirmation = {
   message: string;
   labelConfirmer: string;
   classeConfirmer: string;
-  nouveauStatut: StatutAnnonce;
+  // null = suppression (la ligne disparaît de la liste).
+  nouveauStatut: StatutAnnonce | null;
   runner: (id: string) => Promise<ActionStatutResultat>;
 };
 
@@ -72,8 +74,16 @@ export function ListeAnnonces({ annonces }: { annonces: AnnonceProprietaire[] })
     setVerrouille(false);
     setConfirmation(null);
     if (resultat.ok) {
-      const nouveauStatut = confirmation.nouveauStatut;
-      setItems((prev) => prev.map((a) => (a.id === confirmation.annonceId ? { ...a, statut: nouveauStatut } : a)));
+      const id = confirmation.annonceId;
+      const statut = resultat.statut;
+      if (statut === null) {
+        setItems((prev) => prev.filter((a) => a.id !== id));
+      } else {
+        setItems((prev) => prev.map((a) => (a.id === id ? { ...a, statut } : a)));
+        if (statut === "en_attente") {
+          setErreur("Le texte modifié doit être vérifié par un modérateur : l'annonce sera remise en ligne après approbation.");
+        }
+      }
     } else {
       setErreur(resultat.error);
     }
@@ -204,6 +214,29 @@ export function ListeAnnonces({ annonces }: { annonces: AnnonceProprietaire[] })
               >
                 Modifier
               </Link>
+
+              {(a.statut === "brouillon" || a.statut === "en_attente") && (
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  style={{ ...ACTION_BTN_STYLE, color: "var(--color-erreur)" }}
+                  disabled={actionsBloquees}
+                  onClick={() =>
+                    demanderConfirmation({
+                      annonceId: a.id,
+                      titreAnnonce: a.titre,
+                      titreDialogue: "Supprimer cette annonce ?",
+                      message: `Supprimer définitivement « ${a.titre} » et ses photos ? Cette action est irréversible.`,
+                      labelConfirmer: "Supprimer",
+                      classeConfirmer: "btn-ghost",
+                      nouveauStatut: null,
+                      runner: supprimerAnnonceAction,
+                    })
+                  }
+                >
+                  Supprimer
+                </button>
+              )}
 
               {(a.statut === "en_ligne" || a.statut === "archivee" || a.statut === "vendue") && (
                 <div className="akal-annonce-actions" style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
