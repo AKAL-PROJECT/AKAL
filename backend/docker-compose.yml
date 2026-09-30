@@ -38,8 +38,10 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # minio/minio a été retiré de Docker Hub (sept. 2026) ; bitnamilegacy
+  # republie le même binaire MinIO et reste accessible sans compte.
   minio:
-    image: minio/minio:latest
+    image: bitnamilegacy/minio:latest
     container_name: akal_minio
     ports:
       - "9000:9000"   # API S3
@@ -48,12 +50,15 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-akal}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-akal12345}
     volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
+      - minio_data:/bitnami/minio/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      # L'image bitnami redémarre brièvement MinIO en interne pendant son
+      # setup (config mc) avant le démarrage final : un simple curl peut
+      # tomber pile dans ce trou et déclarer le service "healthy" trop tôt.
+      # On exige deux réponses OK espacées pour couvrir ce redémarrage.
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live && sleep 8 && curl -sf http://localhost:9000/minio/health/live"]
       interval: 10s
-      timeout: 5s
+      timeout: 15s
       retries: 3
     restart: unless-stopped
 
@@ -61,7 +66,7 @@ services:
   # (contrat §4.7) à chaque démarrage de la stack. Pas de restart policy —
   # il termine avec exit 0 une fois fait, "unless-stopped" le ferait boucler.
   minio-init:
-    image: minio/mc:latest
+    image: bitnamilegacy/minio-client:latest
     container_name: akal_minio_init
     depends_on:
       minio:
