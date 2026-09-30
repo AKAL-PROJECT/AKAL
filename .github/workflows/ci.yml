@@ -62,20 +62,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # minio/minio a été retiré de Docker Hub (sept. 2026) ; bitnamilegacy
+      # republie le même binaire MinIO et reste accessible sans compte.
       - name: Démarrer MinIO (même config que backend/docker-compose.yml)
         run: |
           docker run -d --name minio -p 9000:9000 -p 9001:9001 \
             -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID \
             -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
-            minio/minio server /data --console-address ":9001"
+            bitnamilegacy/minio:latest
 
       - name: Attendre MinIO puis créer le bucket (équivalent du service minio-init local)
         run: |
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:9000/minio/health/live && break
-            sleep 2
+          # L'image bitnami redémarre brièvement MinIO en interne pendant son
+          # setup avant le démarrage final : on exige 3 réponses OK d'affilée
+          # pour ne pas se fier à un succès tombé dans ce trou.
+          success=0
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:9000/minio/health/live >/dev/null; then
+              success=$((success + 1))
+            else
+              success=0
+            fi
+            [ "$success" -ge 3 ] && break
+            sleep 1
           done
-          docker run --rm --network host --entrypoint sh minio/mc -c "
+          docker run --rm --network host --entrypoint sh bitnamilegacy/minio-client:latest -c "
             mc alias set local http://localhost:9000 $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY &&
             mc mb --ignore-existing local/$AWS_STORAGE_BUCKET_NAME &&
             mc anonymous set download local/$AWS_STORAGE_BUCKET_NAME

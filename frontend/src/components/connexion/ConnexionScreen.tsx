@@ -92,6 +92,11 @@ export default function ConnexionScreen({
   };
 
   const handleGoogleError = () => {
+    // Contrairement à handleEnvoiSms ci-dessous, ce cas ne loguait rien :
+    // un échec du bouton Google (auto-select silencieux qui échoue après un
+    // logout, cookies tiers bloqués...) était donc invisible en dev comme
+    // en prod (Sentry).
+    console.error("Google OAuth error: le bouton GoogleLogin a signalé un échec (onError).");
     setGoogleError("Connexion Google échouée. Réessayez.");
   };
 

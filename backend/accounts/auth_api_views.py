@@ -156,6 +156,16 @@ class GoogleLoginView(APIView):
     throttle_classes = [AnonRateThrottle, ScopedRateThrottle]
     throttle_scope = 'google'
 
+    def throttled(self, request, wait):
+        # DRF rejette la requête avant d'atteindre post() ci-dessous et ne
+        # logue rien par défaut : un utilisateur qui enchaîne les
+        # connexion/déconnexion Google (test manuel, double-clic...) peut
+        # épuiser le quota 'google' (20/h par IP, cf. akal/settings/base.py)
+        # et voir un "Connexion Google échouée. Réessayez." générique côté
+        # front, indiscernable d'un vrai bug de compte sans cette trace.
+        logger.warning("Connexion Google limitée par le débit (throttled), wait=%ss", wait)
+        super().throttled(request, wait)
+
     def post(self, request):
         token = request.data.get('token')
         if not token:
@@ -191,6 +201,11 @@ class GoogleLoginView(APIView):
             # contournement du mot de passe. Comportement inchangé pour le
             # cas normal (jeton invalide, GOOGLE_CLIENT_ID absent).
             if not idinfo.get('email_verified'):
+                # warning, pas error : aléa client (compte Google Workspace
+                # mal configuré), mais rejet silencieux jusqu'ici — sans
+                # cette trace, indiscernable en logs d'un token invalide ou
+                # d'un throttle (cf. throttled() ci-dessus).
+                logger.warning("Connexion Google refusée : email_verified=False sur le jeton.")
                 return Response(
                     {'error': "Cette adresse email Google n'est pas vérifiée."},
                     status=status.HTTP_400_BAD_REQUEST,

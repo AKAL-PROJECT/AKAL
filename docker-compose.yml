@@ -52,9 +52,10 @@ services:
     restart: unless-stopped
 
   # ── MinIO (stockage S3 des médias : photos d'annonces, avatars) ───────
+  # minio/minio a été retiré de Docker Hub (sept. 2026) ; bitnamilegacy
+  # republie le même binaire MinIO et reste accessible sans compte.
   minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
+    image: bitnamilegacy/minio:latest
     environment:
       MINIO_ROOT_USER: akal
       MINIO_ROOT_PASSWORD: akal12345
@@ -62,17 +63,21 @@ services:
       - "9000:9000"           # API S3 — les URLs de photos pointent ici
       - "9001:9001"           # console web
     volumes:
-      - minio_data:/data
+      - minio_data:/bitnami/minio/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      # L'image bitnami redémarre brièvement MinIO en interne pendant son
+      # setup (config mc) avant le démarrage final : un simple curl peut
+      # tomber pile dans ce trou et déclarer le service "healthy" trop tôt.
+      # On exige deux réponses OK espacées pour couvrir ce redémarrage.
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live && sleep 8 && curl -sf http://localhost:9000/minio/health/live"]
       interval: 5s
-      timeout: 5s
+      timeout: 15s
       retries: 10
     restart: unless-stopped
 
   # Crée le bucket `akal-media` et le passe en lecture publique (contrat §4.7).
   minio-init:
-    image: minio/mc:latest
+    image: bitnamilegacy/minio-client:latest
     depends_on:
       minio:
         condition: service_healthy
