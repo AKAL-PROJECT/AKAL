@@ -4,26 +4,7 @@
 // ici, donc pas besoin du forwarding de cookies (cf. lib/auth-api.ts).
 
 import { apiFetch } from "./api";
-import type {
-  CommuneGeomRef,
-  CommuneRef,
-  ProvinceGeomRef,
-  ProvinceRef,
-  RegionOfficielleRef,
-  RegionRef,
-} from "@/types/depot-annonce";
-
-export function fetchRegions(): Promise<RegionRef[]> {
-  return apiFetch<RegionRef[]>("/geo/regions/");
-}
-
-export function fetchProvinces(regionCode: string): Promise<ProvinceRef[]> {
-  return apiFetch<ProvinceRef[]>("/geo/provinces/", { params: { region: regionCode } });
-}
-
-export function fetchCommunes(provinceCode: string): Promise<CommuneRef[]> {
-  return apiFetch<CommuneRef[]>("/geo/communes/", { params: { province: provinceCode } });
-}
+import type { CommuneGeomRef, ProvinceGeomRef, RegionOfficielleRef } from "@/types/depot-annonce";
 
 // ---------------------------------------------------------------------------
 // Référentiel géométrique officiel (2026-08-06) — /api/geo/limites/...

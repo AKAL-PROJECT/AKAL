@@ -5,6 +5,7 @@ import {
   bandeScore,
   formatResolution,
   libelleAccesEau,
+  scoreFiable,
   PRESENTATION_DIMENSION,
   synthese,
   verdict,
@@ -169,5 +170,14 @@ describe("PRESENTATION_DIMENSION", () => {
       const lignes = PRESENTATION_DIMENSION[cle]({});
       expect(lignes.every((l) => typeof l.valeur === "string")).toBe(true);
     }
+  });
+});
+
+describe("scoreFiable (audit AgriScore)", () => {
+  it("masque le score sous le seuil de fiabilité", () => {
+    expect(scoreFiable({ scoreGlobal: 72, fiabiliteGlobale: 25 })).toBeNull();
+  });
+  it("garde le score au-dessus du seuil", () => {
+    expect(scoreFiable({ scoreGlobal: 72, fiabiliteGlobale: 80 })).toBe(72);
   });
 });

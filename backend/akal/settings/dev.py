@@ -10,23 +10,23 @@ DEBUG = True
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'backend'])
 
 # AKAL_DATASET (cf. base.py, annonces/managers.py::dataset_actif()) :
-# 'simulated' par dÃ©faut partout (prod incluse) â€” ici on bascule le dÃ©faut
+# 'simulated' par défaut partout (prod incluse) — ici on bascule le défaut
 # LOCAL sur 'scraped' pour que le catalogue public affiche les annonces
-# importÃ©es (import_scraped_data) sans que chacun ait Ã  exporter la
-# variable d'env soi-mÃªme (source du "je ne vois pas les donnÃ©es scrapÃ©es"
-# constatÃ© en Ã©quipe â€” le serveur d'un poste avait la variable exportÃ©e
-# manuellement dans son shell, jamais committÃ©e). Reste surchargeable via
+# importées (import_scraped_data) sans que chacun ait à exporter la
+# variable d'env soi-même (source du "je ne vois pas les données scrapées"
+# constaté en équipe — le serveur d'un poste avait la variable exportée
+# manuellement dans son shell, jamais committée). Reste surchargeable via
 # .env/variable d'env si besoin ponctuel de revenir sur 'simulated' en local.
 #
-# `if 'test' not in sys.argv` : ce mÃªme settings.dev sert aussi Ã 
+# `if 'test' not in sys.argv` : ce même settings.dev sert aussi à
 # `manage.py test` (en local ET en CI, cf. .github/workflows/ci.yml). La
-# suite de tests (annonces/tests.py, PublicationTests notamment) crÃ©e ses
-# propres annonces source='interne' et vÃ©rifie leur visibilitÃ© publique en
-# s'appuyant sur le dÃ©faut 'simulated' â€” les faire basculer aussi en
-# 'scraped' romprait cette hypothÃ¨se (annonces 'interne' alors filtrÃ©es
+# suite de tests (annonces/tests.py, PublicationTests notamment) crée ses
+# propres annonces source='interne' et vérifie leur visibilité publique en
+# s'appuyant sur le défaut 'simulated' — les faire basculer aussi en
+# 'scraped' romprait cette hypothèse (annonces 'interne' alors filtrées
 # hors du catalogue public) sans aucun rapport avec le confort de dev local
-# visÃ© ici. ConstatÃ© en CI : ce changement, appliquÃ© sans cette garde,
-# faisait Ã©chouer test_publication_reussie_definit_date_publication_et_apparait_publiquement.
+# visé ici. Constaté en CI : ce changement, appliqué sans cette garde,
+# faisait échouer test_publication_reussie_definit_date_publication_et_apparait_publiquement.
 # 2026-08-17 (audit final) : défaut local passé de 'scraped' à 'all' —
 # 'scraped' seul cachait les annonces 'interne' (réellement publiées via
 # /publier) derrière un 404 public alors qu'elles étaient correctement
@@ -44,6 +44,20 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'ba
 # (2026-09-10 : defige, l'import scrape exige --force sous settings.prod).
 if 'test' not in sys.argv:
     AKAL_DATASET = env('AKAL_DATASET', default='simulated')
+
+# Démo locale : tous les comptes créés sur une même machine partagent
+# légitimement la même IP — quotas d'inscription/connexion assouplis hors
+# tests (la suite de tests vérifie les valeurs de production de base.py).
+if 'test' not in sys.argv:
+    REST_FRAMEWORK = {
+        **REST_FRAMEWORK,
+        'DEFAULT_THROTTLE_RATES': {
+            **REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'],
+            'signup': '50/hour',
+            'login': '30/min',
+            'password_reset': '20/hour',
+        },
+    }
 
 # En développement, autoriser toutes les origines CORS
 CORS_ALLOW_ALL_ORIGINS = True

@@ -10,6 +10,7 @@
 // cf. audit d'intégration §4.6 (contrat d'erreurs) et §3 (forme des réponses).
 
 import { API_URL } from "./api-base";
+import { entetesBackend } from "./entetes-backend";
 
 export type Paginated<T> = {
   count: number;
@@ -24,12 +25,16 @@ export type FieldErrors = Record<string, string[]>;
 export class ApiError extends Error {
   readonly status: number;
   readonly fieldErrors: FieldErrors | null;
+  // Code machine optionnel renvoyé par certains endpoints (`{"code": ...}`),
+  // ex. passeport : "limite_atteinte" vs "analyse_en_cours" sur un 429.
+  readonly code: string | null;
 
-  constructor(status: number, message: string, fieldErrors: FieldErrors | null = null) {
+  constructor(status: number, message: string, fieldErrors: FieldErrors | null = null, code: string | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.code = code;
   }
 }
 
@@ -37,7 +42,9 @@ export class ApiError extends Error {
 // - {"detail": "..."} → message direct (404, 403, throttle, etc.)
 // - {"champ": ["msg"], ...} → premier message de champ, + fieldErrors complet
 //   pour que l'appelant puisse afficher chaque erreur au bon endroit d'un formulaire
-export async function lireErreur(res: Response): Promise<{ message: string; fieldErrors: FieldErrors | null }> {
+export async function lireErreur(
+  res: Response,
+): Promise<{ message: string; fieldErrors: FieldErrors | null; code?: string | null }> {
   let corps: unknown;
   try {
     corps = await res.json();
@@ -46,8 +53,13 @@ export async function lireErreur(res: Response): Promise<{ message: string; fiel
   }
 
   if (corps && typeof corps === "object") {
+    const code = typeof (corps as { code?: unknown }).code === "string" ? (corps as { code: string }).code : null;
     if ("detail" in corps && typeof (corps as { detail: unknown }).detail === "string") {
-      return { message: (corps as { detail: string }).detail, fieldErrors: null };
+      return { message: (corps as { detail: string }).detail, fieldErrors: null, code };
+    }
+    // Certains endpoints d'auth (téléphone, Google) répondent {"error": "..."}.
+    if ("error" in corps && typeof (corps as { error: unknown }).error === "string") {
+      return { message: (corps as { error: string }).error, fieldErrors: null, code };
     }
 
     const fieldErrors = corps as FieldErrors;
@@ -103,14 +115,18 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       signal,
       headers: {
         "Content-Type": "application/json",
+        // Côté serveur uniquement (rendu SSR) : Origin + secret partagé, cf.
+        // lib/entetes-backend.ts. Jamais dans le navigateur (le secret n'y
+        // existe pas, Origin y est posé par le navigateur lui-même).
+        ...(typeof window === "undefined" ? entetesBackend(null) : {}),
         ...headers,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
     if (!res.ok) {
-      const { message, fieldErrors } = await lireErreur(res);
-      throw new ApiError(res.status, message, fieldErrors);
+      const { message, fieldErrors, code } = await lireErreur(res);
+      throw new ApiError(res.status, message, fieldErrors, code ?? null);
     }
 
     if (res.status === 204) return undefined as T;

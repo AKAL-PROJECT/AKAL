@@ -266,6 +266,95 @@ class LoginThrottleTests(AuthTestCase):
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
 
+class LoginEmailThrottleTests(AuthTestCase):
+    """Audit S2 : un même compte ne peut pas être attaqué depuis N IP."""
+
+    def test_meme_email_bloque_meme_en_changeant_d_ip(self):
+        for i in range(10):
+            self.client.post(LOGIN_URL, {'email': 'cible@akal.ma', 'password': 'faux'}, REMOTE_ADDR=f'10.1.{i}.1')
+        response = self.client.post(LOGIN_URL, {'email': 'Cible@akal.ma', 'password': 'faux'}, REMOTE_ADDR='10.9.9.9')
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+class ClientIPTests(AuthTestCase):
+    """Audit S2 — akal.middleware.ClientIPMiddleware."""
+
+    def _tentatives(self, n, **extra):
+        return [
+            self.client.post(LOGIN_URL, {'email': f'x{i}@akal.ma', 'password': 'faux'}, **extra).status_code
+            for i in range(n)
+        ]
+
+    def test_x_forwarded_for_forge_ne_contourne_plus_le_throttle(self):
+        codes = [
+            self.client.post(
+                LOGIN_URL, {'email': f'x{i}@akal.ma', 'password': 'faux'},
+                HTTP_X_FORWARDED_FOR=f'10.9.{i}.1',
+            ).status_code
+            for i in range(6)
+        ]
+        self.assertEqual(codes[-1], status.HTTP_429_TOO_MANY_REQUESTS)
+
+    @override_settings(AKAL_TRUSTED_PROXY_COUNT=1)
+    def test_derriere_un_proxy_seule_l_ip_ajoutee_par_le_proxy_compte(self):
+        # Le client forge l'entrée de gauche ; le proxy ajoute la vraie IP.
+        codes = [
+            self.client.post(
+                LOGIN_URL, {'email': f'x{i}@akal.ma', 'password': 'faux'},
+                HTTP_X_FORWARDED_FOR=f'6.6.{i}.6, 5.5.5.5',
+            ).status_code
+            for i in range(6)
+        ]
+        self.assertEqual(codes[-1], status.HTTP_429_TOO_MANY_REQUESTS)
+
+    @override_settings(AKAL_PROXY_SECRET='secret-bff')
+    def test_bff_avec_secret_transmet_l_ip_du_visiteur(self):
+        # Même IP réseau (serveur Next) mais deux visiteurs distincts : deux
+        # quotas distincts — c'était un quota unique pour tout le site.
+        for _ in range(5):
+            self.client.post(LOGIN_URL, {'email': 'a@akal.ma', 'password': 'faux'},
+                             HTTP_X_AKAL_PROXY_SECRET='secret-bff', HTTP_X_AKAL_CLIENT_IP='1.1.1.1')
+        bloque = self.client.post(LOGIN_URL, {'email': 'a@akal.ma', 'password': 'faux'},
+                                  HTTP_X_AKAL_PROXY_SECRET='secret-bff', HTTP_X_AKAL_CLIENT_IP='1.1.1.1')
+        autre = self.client.post(LOGIN_URL, {'email': 'b@akal.ma', 'password': 'faux'},
+                                 HTTP_X_AKAL_PROXY_SECRET='secret-bff', HTTP_X_AKAL_CLIENT_IP='2.2.2.2')
+        self.assertEqual(bloque.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertNotEqual(autre.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    @override_settings(AKAL_PROXY_SECRET='secret-bff')
+    def test_ip_transmise_ignoree_sans_le_bon_secret(self):
+        codes = [
+            self.client.post(
+                LOGIN_URL, {'email': f'x{i}@akal.ma', 'password': 'faux'},
+                HTTP_X_AKAL_PROXY_SECRET='mauvais', HTTP_X_AKAL_CLIENT_IP=f'3.3.{i}.3',
+            ).status_code
+            for i in range(6)
+        ]
+        self.assertEqual(codes[-1], status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+class CsrfHttpsTests(AuthTestCase):
+    """Audit S1 — en HTTPS, Django exige Origin (ou Referer) sur un POST
+    authentifié. Les appels serveur Next → Django doivent donc poser Origin
+    (frontend/src/lib/entetes-backend.ts)."""
+
+    def _connecter(self):
+        User.objects.create_user(**self.credentials)
+        self.client.post(LOGIN_URL, {'email': self.credentials['email'], 'password': self.credentials['password']})
+
+    @override_settings(CSRF_TRUSTED_ORIGINS=['https://akal.test'])
+    def test_post_https_sans_origin_refuse(self):
+        self._connecter()
+        response = self.client.post(LOGOUT_URL, secure=True, **self.csrf_headers())
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    @override_settings(CSRF_TRUSTED_ORIGINS=['https://akal.test'])
+    def test_post_https_avec_origin_de_confiance_accepte(self):
+        self._connecter()
+        response = self.client.post(LOGOUT_URL, secure=True, HTTP_ORIGIN='https://akal.test', **self.csrf_headers())
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+
 class SignupThrottleTests(AuthTestCase):
     """
     GET /api/auth/signup/ — scope 'signup' (5/hour), en plus du plancher
@@ -452,6 +541,45 @@ class PhoneLoginTests(AuthTestCase):
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         # Le vrai propriétaire du numéro n'a pas été rattaché au compte intrus.
         self.assertFalse(User.objects.filter(telephone='+212612345678').exists())
+
+    @patch('accounts.auth_api_views._get_firebase_auth')
+    def test_numero_simplement_declare_ne_donne_jamais_acces_au_compte(self, mock_get_auth):
+        # Audit S4 : un attaquant déclare le numéro de la victime sur SON
+        # compte ; la connexion SMS de la victime ne doit pas y atterrir.
+        attaquant = User.objects.create_user(
+            email='attaquant@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='A', prenom='A', telephone='+212612345678',
+        )
+        self._mock_firebase(mock_get_auth, telephone='+212612345678')
+
+        response = self.client.post(self.PHONE_URL, {'token': 'un-jeton'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(response.data['id'], str(attaquant.id))
+        self.assertTrue(response.data['telephone_verifie'])
+
+    @patch('accounts.auth_api_views._get_firebase_auth')
+    def test_numero_verifie_reconnecte_le_meme_compte(self, mock_get_auth):
+        self._mock_firebase(mock_get_auth)
+        premier = self.client.post(self.PHONE_URL, {'token': 'un-jeton'})
+        second = self.client.post(self.PHONE_URL, {'token': 'un-jeton'})
+        self.assertEqual(premier.data['id'], second.data['id'])
+
+    def test_changer_de_numero_fait_perdre_la_verification(self):
+        user = User.objects.create_user(
+            email='sms@akal.ma', password='un-mot-de-passe-solide-2026', nom='S', prenom='S',
+            telephone='+212612345678', telephone_verifie=True,
+        )
+        self.client.force_authenticate(user)
+        response = self.client.patch(ME_URL, {'telephone': '+212699999999'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertFalse(user.telephone_verifie)
+
+    def test_format_de_telephone_invalide_rejete_a_l_inscription(self):
+        response = self.client.post(SIGNUP_URL, {**self.credentials, 'telephone': 'pas-un-numero'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('telephone', response.data)
 
     @patch('accounts.auth_api_views._get_firebase_auth')
     def test_jeton_sans_numero_est_rejete(self, mock_get_auth):

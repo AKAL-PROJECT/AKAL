@@ -21,6 +21,7 @@ import { cookies } from "next/headers";
 import { attrsVersOptions, parseSetCookie } from "./cookie-parsing";
 
 import { API_URL } from "./api-base";
+import { entetesBackendRequete } from "./entetes-backend-serveur";
 
 // Cookies de session gérés par le backend (accounts/views.py::_set_auth_cookies) —
 // tout autre Set-Cookie éventuel (aucun aujourd'hui) est ignoré ici.
@@ -52,6 +53,7 @@ export async function refreshAccessToken(): Promise<boolean> {
     headers: {
       Cookie: await cookieHeader(),
       ...(csrftoken ? { "X-CSRFToken": csrftoken } : {}),
+      ...(await entetesBackendRequete()),
     },
     cache: "no-store",
   });

@@ -76,3 +76,27 @@ TRANSITIONS_AUTORISEES: dict[str, frozenset[str]] = {
 def transition_autorisee(statut_actuel: str, nouveau_statut: str) -> bool:
     """Vrai si le passage statut_actuel → nouveau_statut est autorisé par le graphe ci-dessus."""
     return nouveau_statut in TRANSITIONS_AUTORISEES.get(statut_actuel, frozenset())
+
+
+# Arêtes réservées à la modération (audit S3). Le graphe ci-dessus reste le
+# graphe complet, utilisé par l'admin (publier_selection) et les commandes ;
+# le propriétaire, lui, passe par transition_autorisee_proprietaire(). Sans
+# cette restriction, une annonce détournée vers en_attente par la modération
+# automatique se publiait d'un simple PATCH {"statut": "en_ligne"}.
+#   - en_attente → en_ligne : c'est l'approbation elle-même.
+#   - brouillon → en_attente : la mise en attente est décidée par la
+#     modération (cf. AnnonceEcritureSerializer.update), jamais demandée.
+# en_attente → brouillon reste ouvert au propriétaire : retirer son annonce
+# de la file pour la corriger (la republication repasse par la modération).
+TRANSITIONS_RESERVEES_MODERATION: frozenset[tuple[str, str]] = frozenset({
+    ("en_attente", "en_ligne"),
+    ("brouillon", "en_attente"),
+})
+
+
+def transition_autorisee_proprietaire(statut_actuel: str, nouveau_statut: str) -> bool:
+    """Transition demandable par le propriétaire via l'API (PATCH)."""
+    return (
+        transition_autorisee(statut_actuel, nouveau_statut)
+        and (statut_actuel, nouveau_statut) not in TRANSITIONS_RESERVEES_MODERATION
+    )

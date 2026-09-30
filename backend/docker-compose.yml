@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     container_name: akal_redis
     ports:
       - "6379:6379"
@@ -39,6 +39,9 @@ services:
     restart: unless-stopped
 
   minio:
+    # À FIGER : la distribution communautaire de MinIO n'est plus publiée
+    # régulièrement — remplacer `latest` par le digest de l'image qui marche
+    # (`docker image inspect minio/minio:latest --format '{{index .RepoDigests 0}}'`).
     image: minio/minio:latest
     container_name: akal_minio
     ports:

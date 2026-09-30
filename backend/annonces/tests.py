@@ -133,6 +133,87 @@ class AnnoncesTestBase(APITestCase):
         )
 
 
+class ValidationGeographiqueTests(AnnoncesTestBase):
+    """Audit S5 — coordonnées impossibles ou incohérentes refusées."""
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def _localiser(self, **parcelle):
+        return self.client.patch(
+            f'{ANNONCES_URL}{self.annonce_id}/', {'parcelle': parcelle},
+            format='json', **self.csrf_headers(),
+        )
+
+    def test_coordonnees_absurdes_refusees(self):
+        response = self._localiser(latitude=999, longitude=-999)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_coordonnees_hors_maroc_refusees(self):
+        response = self._localiser(latitude=48.85, longitude=2.35)  # Paris
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_point_hors_de_la_commune_choisie_refuse(self):
+        response = self._localiser(commune_geom=self.commune_geom.id, latitude=31.6, longitude=-8.0)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_point_dans_la_commune_accepte(self):
+        response = self._localiser(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_deplacer_le_point_hors_de_la_commune_deja_enregistree_refuse(self):
+        self._localiser(commune_geom=self.commune_geom.id, latitude=33.5, longitude=-5.5)
+        response = self._localiser(latitude=31.6, longitude=-8.0)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class CatalogueDtoTests(AnnoncesTestBase):
+    def test_liste_expose_la_topographie(self):
+        # Audit U1 : le comparateur affichait « — » pour toute parcelle
+        # ajoutée depuis le catalogue.
+        self.authentifier()
+        annonce_id = self.creer_brouillon().data['id']
+        Annonce.objects.filter(id=annonce_id).update(statut=Annonce.StatutAnnonce.EN_LIGNE)
+        self.localiser(annonce_id)
+        response = self.client.get(ANNONCES_URL)
+        parcelle = next(a for a in response.data['results'] if a['id'] == annonce_id)['parcelle']
+        self.assertEqual(parcelle['topographie'], 'plat')
+
+
+class SuppressionAnnonceTests(AnnoncesTestBase):
+    """Audit B1 — DELETE /api/annonces/<uuid>/ (non publiées uniquement)."""
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+        self.annonce_id = self.creer_brouillon().data['id']
+
+    def supprimer(self):
+        return self.client.delete(f'{ANNONCES_URL}{self.annonce_id}/', **self.csrf_headers())
+
+    def test_brouillon_supprime_avec_sa_parcelle(self):
+        parcelle_id = Annonce.objects.get(id=self.annonce_id).parcelle_id
+        response = self.supprimer()
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Annonce.objects.filter(id=self.annonce_id).exists())
+        self.assertFalse(Parcelle.objects.filter(id=parcelle_id).exists())
+
+    def test_annonce_publiee_non_supprimable(self):
+        Annonce.objects.filter(id=self.annonce_id).update(statut=Annonce.StatutAnnonce.EN_LIGNE)
+        response = self.supprimer()
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertTrue(Annonce.objects.filter(id=self.annonce_id).exists())
+
+    def test_brouillon_d_un_autre_utilisateur_introuvable(self):
+        self.client.logout()
+        self.authentifier(email='autre-suppression@akal.ma')
+        response = self.supprimer()
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(Annonce.objects.filter(id=self.annonce_id).exists())
+
+
 class CreationBrouillonTests(AnnoncesTestBase):
     def test_creation_refusee_si_non_authentifie(self):
         response = self.creer_brouillon()
@@ -652,13 +733,15 @@ class PublicationTests(AnnoncesTestBase):
         self.uploader_une_photo()
         self.publier()
 
+        # Titre plausible : depuis l'audit S6, un texte modifié est réévalué
+        # par la modération (cf. ModerationPublicationTests).
         response = self.client.patch(
-            f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Titre modifié après publication'},
+            f'{ANNONCES_URL}{self.annonce_id}/', {'titre': 'Parcelle agricole irriguée, titre modifié'},
             format='json', **self.csrf_headers(),
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['titre'], 'Titre modifié après publication')
+        self.assertEqual(response.data['titre'], 'Parcelle agricole irriguée, titre modifié')
         annonce = Annonce.objects.get(id=self.annonce_id)
         self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
 
@@ -832,37 +915,61 @@ class ModerationPublicationTests(AnnoncesTestBase):
         self.assertIsNotNone(annonce.date_publication)
         self.assertEqual(annonce.motif_moderation, '')
 
-    def test_reactivation_apres_archivage_ignore_la_moderation(self):
-        # cf. transitions.py : archivee → en_ligne est une "réactivation
-        # immédiate... sans étape d'approbation supplémentaire" — même une
-        # annonce dont le texte serait jugé suspect aujourd'hui ne doit PAS
-        # être redétournée vers en_attente à la réactivation, seul le tout
-        # premier passage en ligne (brouillon → en_ligne) est concerné.
+    def _publier_plausible(self):
         annonce_id, response = self.publier_avec(
             titre='Belle parcelle agricole',
             description="Terrain de 3 hectares avec accès à l'eau, idéal pour l'arboriculture.",
         )
         self.assertEqual(response.data['statut'], 'en_ligne')
+        return annonce_id
 
-        self.client.patch(
-            f'{ANNONCES_URL}{annonce_id}/', {'statut': 'archivee'},
-            format='json', **self.csrf_headers(),
-        )
-        # Texte remplacé par un contenu qui serait détourné vers en_attente
-        # s'il s'agissait d'un premier dépôt (cf. test ci-dessus).
-        self.client.patch(
-            f'{ANNONCES_URL}{annonce_id}/',
-            {'titre': 'Superbe opportunité', 'description': 'Contactez-nous vite : https://exemple.com'},
-            format='json', **self.csrf_headers(),
+    def _patch(self, annonce_id, donnees):
+        return self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', donnees, format='json', **self.csrf_headers(),
         )
 
-        reactivation = self.client.patch(
-            f'{ANNONCES_URL}{annonce_id}/', {'statut': 'en_ligne'},
-            format='json', **self.csrf_headers(),
-        )
-
-        self.assertEqual(reactivation.status_code, status.HTTP_200_OK)
+    def test_reactivation_sans_changement_de_texte_ignore_la_moderation(self):
+        # archivee → en_ligne reste une réactivation immédiate tant que le
+        # texte déjà modéré n'a pas changé (cf. transitions.py).
+        annonce_id = self._publier_plausible()
+        self._patch(annonce_id, {'statut': 'archivee'})
+        self._patch(annonce_id, {'prix_mad': 460000})
+        reactivation = self._patch(annonce_id, {'statut': 'en_ligne'})
         self.assertEqual(reactivation.data['statut'], 'en_ligne')
+
+    def test_texte_suspect_modifie_pendant_l_archivage_repasse_en_moderation(self):
+        # Audit S6 : ce scénario publiait du contenu non modéré.
+        annonce_id = self._publier_plausible()
+        self._patch(annonce_id, {'statut': 'archivee'})
+        self._patch(annonce_id, {'titre': 'Superbe opportunité', 'description': 'Contactez-nous vite : https://exemple.com'})
+        reactivation = self._patch(annonce_id, {'statut': 'en_ligne'})
+        self.assertEqual(reactivation.status_code, status.HTTP_200_OK)
+        self.assertEqual(reactivation.data['statut'], 'en_attente')
+
+    def test_texte_suspect_modifie_en_ligne_retire_l_annonce(self):
+        annonce_id = self._publier_plausible()
+        response = self._patch(annonce_id, {'description': 'Contactez-nous vite : https://exemple.com'})
+        self.assertEqual(response.data['statut'], 'en_attente')
+        self.assertNotEqual(Annonce.objects.get(id=annonce_id).motif_moderation, '')
+
+    def test_proprietaire_ne_peut_pas_s_auto_approuver(self):
+        # Audit S3 : en_attente → en_ligne est réservé à la modération.
+        annonce_id, response = self.publier_avec(
+            titre='Superbe opportunité',
+            description='Contactez-nous vite : https://exemple.com pour ne pas rater cette offre.',
+        )
+        self.assertEqual(response.data['statut'], 'en_attente')
+        forcage = self._patch(annonce_id, {'statut': 'en_ligne'})
+        self.assertEqual(forcage.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Annonce.objects.get(id=annonce_id).statut, Annonce.StatutAnnonce.EN_ATTENTE)
+
+    def test_proprietaire_peut_retirer_sa_demande_pour_corriger(self):
+        annonce_id, _ = self.publier_avec(
+            titre='Superbe opportunité',
+            description='Contactez-nous vite : https://exemple.com pour ne pas rater cette offre.',
+        )
+        retrait = self._patch(annonce_id, {'statut': 'brouillon'})
+        self.assertEqual(retrait.data['statut'], 'brouillon')
 
 
 class SuppressionPhotoTests(AnnoncesTestBase):
@@ -1485,6 +1592,12 @@ class TransitionsAutoriseesTests(SimpleTestCase):
             with self.subTest(depuis=depuis, vers=vers):
                 self.assertTrue(transitions.transition_autorisee(depuis, vers))
 
+    def test_arretes_de_moderation_interdites_au_proprietaire(self):
+        self.assertFalse(transitions.transition_autorisee_proprietaire('en_attente', 'en_ligne'))
+        self.assertFalse(transitions.transition_autorisee_proprietaire('brouillon', 'en_attente'))
+        self.assertTrue(transitions.transition_autorisee_proprietaire('en_attente', 'brouillon'))
+        self.assertTrue(transitions.transition_autorisee_proprietaire('brouillon', 'en_ligne'))
+
     def test_vendue_ne_peut_sortir_que_vers_en_ligne(self):
         # Remise en vente (2026-08-07) : vendue → en_ligne est la SEULE
         # arête sortante — brouillon/en_attente/archivee/vendue restent
@@ -1659,6 +1772,21 @@ class ImportAvitoTests(ImportScrapedDataTestBase):
         annonce = Annonce.objects.get(source_id='112')
         self.assertEqual(annonce.prix_mad, Decimal('420000.00'))
         self.assertEqual(annonce.parcelle.surface_ha, Decimal('1.50'))  # 15000 m² = 1.5 ha
+
+
+class ImportBornesMetierTests(ImportScrapedDataTestBase):
+    """Audit M1 — mêmes bornes de plausibilité que l'API de dépôt."""
+
+    def test_prix_aberrant_rejete(self):
+        self.importer([
+            _entree(id_annonce='m1', prix_dh=20, surface_m2=5000),            # 0,004 MAD/m²
+            _entree(id_annonce='m2', prix_dh=2_173_000_000, surface_m2=50000),  # 43 460 MAD/m²
+        ])
+        self.assertFalse(Annonce.objects.filter(source_id__in=['m1', 'm2']).exists())
+
+    def test_prix_plausible_importe(self):
+        self.importer([_entree(id_annonce='m3', prix_dh=350000, surface_m2=5000)])
+        self.assertTrue(Annonce.objects.filter(source_id='m3').exists())
 
 
 class ImportMubawabTests(ImportScrapedDataTestBase):

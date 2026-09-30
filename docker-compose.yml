@@ -43,7 +43,7 @@ services:
 
   # ── Redis (cache, throttling, cache du Passeport AgriScore) ───────────
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -53,6 +53,9 @@ services:
 
   # ── MinIO (stockage S3 des médias : photos d'annonces, avatars) ───────
   minio:
+    # À FIGER : la distribution communautaire de MinIO n'est plus publiée
+    # régulièrement — remplacer `latest` par le digest de l'image qui marche
+    # (`docker image inspect minio/minio:latest --format '{{index .RepoDigests 0}}'`).
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
@@ -118,14 +121,15 @@ services:
       # ALLOWED_HOSTS et CSRF_TRUSTED_ORIGINS : les défauts de akal.settings.dev
       # incluent déjà `backend` (nom de ce service) — rien à surcharger ici.
       SEED_ON_START: "1"
-      # Jeu de données visible localement : 'all' (démo + scrapées avito/
-      # mubawab) par défaut — cette pile ne sert QUE la démo locale, jamais
-      # la prod (prod.py garde son défaut 'simulated', cf. render.yaml).
-      # Surchargeable via AKAL_DATASET dans le .env racine.
-      AKAL_DATASET: ${AKAL_DATASET:-all}
-      # Importe l'échantillon d'annonces scrapées au 1er démarrage (~92
-      # publiables avec photo, cf. docker-entrypoint.sh) — idempotent.
-      SEED_SCRAPED_ON_START: ${SEED_SCRAPED_ON_START:-1}
+      # Jeu de données visible : 'simulated' (démo interne uniquement) par
+      # défaut, comme dev.py/prod.py — la démo ne montre jamais de contenu
+      # scrapé (photos et textes tiers). Pour le voir ponctuellement :
+      # AKAL_DATASET=all et SEED_SCRAPED_ON_START=1 dans le .env racine.
+      AKAL_DATASET: ${AKAL_DATASET:-simulated}
+      SEED_SCRAPED_ON_START: ${SEED_SCRAPED_ON_START:-0}
+      # Secret partagé avec le service frontend : seul un appel porteur de ce
+      # secret peut transmettre l'IP du visiteur (akal/middleware.py).
+      AKAL_PROXY_SECRET: ${AKAL_PROXY_SECRET:-dev-compose-proxy-secret}
       # Optionnels (cf. .env.example à la racine) — vides = fonctionnalité
       # dégradée proprement, jamais un crash.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -175,6 +179,8 @@ services:
       # Rendu SERVEUR (Server Components, Server Actions, middleware) : joint
       # le backend par le réseau interne du compose.
       API_URL_INTERNAL: http://backend:8000/api
+      # Même valeur que le service backend (cf. lib/entetes-backend.ts).
+      AKAL_PROXY_SECRET: ${AKAL_PROXY_SECRET:-dev-compose-proxy-secret}
     ports:
       - "3000:3000"
     healthcheck:

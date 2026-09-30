@@ -314,8 +314,8 @@ class AnnonceListCreateAPIView(generics.ListCreateAPIView):
             raise serializers.ValidationError({
                 'detail': (
                     f"Vous avez atteint la limite de {MAX_ANNONCES_ACTIVES} annonces actives ou en "
-                    "brouillon. Archivez, publiez ou supprimez une annonce existante avant d'en "
-                    "déposer une nouvelle."
+                    "brouillon. Depuis « Mes annonces », supprimez un brouillon ou archivez "
+                    "une annonce en ligne avant d'en déposer une nouvelle."
                 ),
             })
 
@@ -731,8 +731,9 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated, EstProprietaire]
     # PUT (remplacement complet) n'est pas dans le contrat F03 — seul PATCH
     # (édition partielle) est spécifié. On le retire explicitement plutôt
-    # que de laisser RetrieveUpdateAPIView l'exposer par défaut.
-    http_method_names = ['get', 'patch', 'head', 'options']
+    # que de laisser RetrieveUpdateAPIView l'exposer par défaut. DELETE :
+    # annonces jamais publiées uniquement (cf. delete() ci-dessous).
+    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
     # UserRateThrottle : plancher générique (toute édition, avec ou sans
     # photo). PhotoUploadRateThrottle : scope 'photo_upload' strict, mais
     # seulement si la requête contient réellement des photos (cf. sa propre
@@ -808,6 +809,48 @@ class AnnonceUpdateAPIView(generics.RetrieveUpdateAPIView):
                     for i, fichier in enumerate(fichiers)
                 ])
             return self.partial_update(request, *args, **kwargs)
+
+
+    def delete(self, request, *args, **kwargs):
+        """Supprime une annonce JAMAIS publiée (brouillon, en attente) — audit
+        B1 : sans ce endpoint, un vendeur arrivé au quota de brouillons était
+        bloqué définitivement (un brouillon ne peut pas être archivé). Une
+        annonce déjà publiée garde son historique (vues, favoris,
+        conversations) : on l'archive, on ne la supprime pas."""
+        instance = self.get_object()
+        if instance.statut not in STATUTS_SUPPRIMABLES:
+            return Response(
+                {'detail': "Seule une annonce non publiée (brouillon ou en attente) peut être "
+                           "supprimée. Archivez plutôt une annonce déjà publiée."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        fichiers = [photo.image.name for photo in instance.photos.all() if photo.image]
+        stockage = Photo._meta.get_field('image').storage
+        with transaction.atomic():
+            parcelle = instance.parcelle
+            # La Parcelle n'a pas d'existence propre hors de son annonce de
+            # dépôt : on la supprime avec (cascade : annonce, photos, contour).
+            if parcelle.annonces.count() == 1:
+                parcelle.delete()
+            else:
+                instance.delete()
+
+            def _supprimer_fichiers():
+                for nom in fichiers:
+                    try:
+                        stockage.delete(nom)
+                    except Exception:  # noqa: BLE001 — un objet orphelin ne doit pas faire échouer la suppression
+                        pass
+
+            transaction.on_commit(_supprimer_fichiers)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+STATUTS_SUPPRIMABLES = (
+    Annonce.StatutAnnonce.BROUILLON,
+    Annonce.StatutAnnonce.EN_ATTENTE,
+)
 
 
 class PhotoDeleteAPIView(generics.DestroyAPIView):

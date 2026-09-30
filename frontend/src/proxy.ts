@@ -68,6 +68,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { attrsVersOptions, parseSetCookie } from "@/lib/cookie-parsing";
 import { API_URL } from "@/lib/api-base";
+import { entetesBackend } from "@/lib/entetes-backend";
 
 
 
@@ -124,6 +125,7 @@ async function tenterRefreshEdge(
       headers: {
         Cookie: request.headers.get("cookie") ?? "",
         ...(csrftoken ? { "X-CSRFToken": csrftoken } : {}),
+        ...entetesBackend(request.headers),
       },
     });
   } catch {
