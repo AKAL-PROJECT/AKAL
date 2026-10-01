@@ -205,6 +205,7 @@ jobs:
         run: |
           python manage.py ensure_postgis
           python manage.py migrate --noinput
+          python manage.py init_groupes
           python manage.py runserver 0.0.0.0:8000 &
           for i in $(seq 1 30); do
             curl -sf http://localhost:8000/api/annonces/ > /dev/null && break

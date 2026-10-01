@@ -72,6 +72,7 @@ from .serializers import (
     AnnonceEcritureSerializer,
     MesAnnoncesSerializer,
     MesStatistiquesSerializer,
+    ModerationAnnonceSerializer,
     RechercheSauvegardeeSerializer,
     WhatsAppLienSerializer,
     _message_whatsapp,
@@ -519,6 +520,92 @@ class MesAnnoncesListAPIView(generics.ListAPIView):
             .with_relations()
             .annotate(nb_vues=Coalesce(Sum('statistiques__vues'), 0))
         )
+
+
+class PeutModererAnnonces(permissions.BasePermission):
+    """
+    Réservé au groupe "Moderateur" (permission custom `valider_annonce`,
+    cf. backend/annonces/models.py::Annonce.Meta.permissions et
+    accounts/management/commands/init_groupes.py) — jamais `change_annonce`,
+    qui autoriserait la modification de n'importe quel autre champ.
+
+    Permission de VUE (pas d'objet) : le queryset des deux endpoints
+    ci-dessous est déjà scopé à `en_attente`, donc has_object_permission
+    n'ajouterait aucune garantie supplémentaire — même raisonnement que
+    AnnonceAdmin.has_valider_annonce_permission (admin.py).
+    """
+
+    def has_permission(self, request, view):
+        return request.user.has_perm('annonces.valider_annonce')
+
+
+class ModerationQueueListAPIView(generics.ListAPIView):
+    """
+    GET /api/annonces/moderation/
+
+    File d'attente de modération (dashboard front /moderation) — toutes les
+    annonces `en_attente`, la seule source alimentée aujourd'hui (signal
+    automatique, cf. annonces/moderation.py) : `transitions.py` réserve bien
+    `brouillon -> en_attente` dans le graphe, mais rien côté API ne déclenche
+    cette transition pour l'instant, donc filtrer sur `en_attente` couvre
+    déjà tout ce qui peut exister dans cet état.
+
+    Pas de pagination, même raison que MesAnnoncesListAPIView : volume
+    attendu faible pour le MVP.
+    """
+
+    serializer_class = ModerationAnnonceSerializer
+    permission_classes = [IsAuthenticated, PeutModererAnnonces]
+    pagination_class = None
+    queryset = (
+        Annonce.objects
+        .filter(statut=Annonce.StatutAnnonce.EN_ATTENTE)
+        .with_relations()
+        .order_by('created_at')
+    )
+
+
+class ModerationDecisionAPIView(APIView):
+    """
+    PATCH /api/annonces/moderation/<uuid:pk>/
+
+    Body : {"statut": "en_ligne"} (valider) ou {"statut": "brouillon"}
+    (rejeter) — même vocabulaire que PATCH /api/annonces/<uuid:pk>/
+    (AnnonceEcritureSerializer.validate_statut), pas un verbe dans l'URL
+    (charte §4.1). Délègue à Annonce.valider()/rejeter() (models.py), les
+    mêmes méthodes qu'utilise admin.py::publier_selection/rejeter_selection
+    — jamais une deuxième implémentation de cette règle.
+
+    Queryset scopé à `en_attente` : une tentative sur une annonce à un
+    autre statut renvoie 404, pas 400 — elle n'est simplement pas dans la
+    file de modération (cohérent avec ModerationQueueListAPIView ci-dessus,
+    qui ne la listerait pas non plus).
+    """
+
+    permission_classes = [IsAuthenticated, PeutModererAnnonces]
+    serializer_class = ModerationAnnonceSerializer
+
+    def patch(self, request, pk):
+        annonce = get_object_or_404(Annonce.objects.with_relations(), pk=pk, statut=Annonce.StatutAnnonce.EN_ATTENTE)
+        statut_cible = request.data.get('statut')
+
+        if statut_cible == Annonce.StatutAnnonce.EN_LIGNE:
+            ok, raisons = annonce.valider()
+        elif statut_cible == Annonce.StatutAnnonce.BROUILLON:
+            ok = annonce.rejeter()
+            raisons = []
+        else:
+            raise serializers.ValidationError({
+                'statut': "Doit être 'en_ligne' (valider) ou 'brouillon' (rejeter).",
+            })
+
+        if not ok:
+            raise serializers.ValidationError({'statut': raisons or ["Transition refusée."]})
+
+        return Response(ModerationAnnonceSerializer(annonce, context=self.get_serializer_context()).data)
+
+    def get_serializer_context(self):
+        return {'request': self.request, 'view': self}
 
 
 class MesStatistiquesAPIView(APIView):

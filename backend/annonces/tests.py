@@ -26,7 +26,7 @@ from accounts.models import User
 from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
 from messaging.models import Conversation, Favori, Message, Notification
 from . import transitions
-from .admin import publier_selection, rejeter_selection
+from .admin import publier_selection, rejeter_selection, suspendre_selection
 from .alertes import notifier_recherches_correspondantes
 from .moderation import evaluer_signal_moderation
 from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
@@ -2092,11 +2092,12 @@ class AdminModerationTests(AnnoncesTestBase):
             email='admin@akal.ma', password='un-mot-de-passe-solide-2026',
             nom='Admin', prenom='AKAL',
         )
+        call_command('init_groupes')
         self.moderateur = User.objects.create_user(
             email='moderateur@akal.ma', password='un-mot-de-passe-solide-2026',
             nom='Modo', prenom='AKAL', is_staff=True,
         )
-        self.moderateur.groups.add(Group.objects.get(name='Modérateurs'))
+        self.moderateur.groups.add(Group.objects.get(name='Moderateur'))
         self.modeladmin = admin.site._registry[Annonce]
 
     def _requete(self, user):
@@ -2187,11 +2188,147 @@ class AdminModerationTests(AnnoncesTestBase):
         self.assertIn('statut', self.modeladmin.get_readonly_fields(request_modo))
         self.assertNotIn('statut', self.modeladmin.get_readonly_fields(request_admin))
 
-    def test_groupe_moderateurs_na_pas_acces_aux_utilisateurs(self):
-        # Périmètre volontairement restreint (migration 0009) — un
-        # modérateur review du contenu, jamais les comptes.
+    def test_permissions_fines_du_groupe_moderateur(self):
+        # Périmètre du groupe "Moderateur" (init_groupes) : les trois
+        # permissions custom (valider/suspendre une annonce, suspendre un
+        # compte) et les vues nécessaires pour y accéder dans l'admin —
+        # jamais change_annonce/change_user, qui autoriseraient la
+        # modification de n'importe quel autre champ.
+        self.assertTrue(self.moderateur.has_perm('annonces.valider_annonce'))
+        self.assertTrue(self.moderateur.has_perm('annonces.suspendre_annonce'))
+        self.assertTrue(self.moderateur.has_perm('accounts.suspendre_utilisateur'))
+        self.assertFalse(self.moderateur.has_perm('annonces.change_annonce'))
         self.assertFalse(self.moderateur.has_perm('accounts.change_user'))
-        self.assertTrue(self.moderateur.has_perm('annonces.change_annonce'))
+
+    def test_suspendre_selection_suspend_une_annonce_en_ligne(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_LIGNE)
+        request = self._requete(self.moderateur)
+
+        suspendre_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.ARCHIVEE)
+
+    def test_suspendre_selection_ignore_une_annonce_deja_archivee(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.ARCHIVEE)
+        request = self._requete(self.moderateur)
+
+        # archivee -> archivee n'est pas une arête du graphe (transitions.py)
+        suspendre_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
+
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.ARCHIVEE)  # inchangé, pas une erreur
+
+
+MODERATION_URL = f'{ANNONCES_URL}moderation/'
+LOGIN_URL = '/api/auth/login/'
+
+
+class ModerationAPITests(AnnoncesTestBase):
+    """Endpoints GET/PATCH /api/annonces/moderation/ (dashboard front
+    /moderation, 2026-10-01) — à la différence d'AdminModerationTests
+    ci-dessus (actions admin appelées directement), ici de vraies requêtes
+    HTTP via self.client, authentification réelle (signup/login + cookies),
+    même convention que le reste de ce fichier (cf. docstring du module) :
+    la permission PeutModererAnnonces est elle-même testée, pas seulement
+    la règle métier derrière (déjà couverte par AdminModerationTests et
+    Annonce.valider()/rejeter(), partagées avec ces deux vues)."""
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier('vendeur@akal.ma')
+        self.annonce_en_attente = self._creer_en_attente()
+
+        call_command('init_groupes')
+        self.moderateur = User.objects.create_user(
+            email='moderateur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Modo', prenom='AKAL',
+        )
+        self.moderateur.groups.add(Group.objects.get(name='Moderateur'))
+
+    def _creer_en_attente(self):
+        """Annonce satisfaisant can_publish() (géoloc + photo + prix),
+        forcée en_attente — même motif que AdminModerationTests._annonce_eligible
+        (aucun déclencheur API ne mène à en_attente, cf. transitions.py)."""
+        annonce_id = self.creer_brouillon().data['id']
+        self.localiser(annonce_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        annonce = Annonce.objects.get(id=annonce_id)
+        annonce.statut = Annonce.StatutAnnonce.EN_ATTENTE
+        annonce.save(update_fields=['statut'])
+        return annonce
+
+    def _connecter_moderateur(self):
+        response = self.client.post(LOGIN_URL, {
+            'email': self.moderateur.email, 'password': 'un-mot-de-passe-solide-2026',
+        })
+        assert response.status_code == status.HTTP_200_OK, response.data
+
+    def test_anonyme_refuse(self):
+        self.client.logout()
+        response = self.client.get(MODERATION_URL)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_vendeur_sans_permission_refuse(self):
+        # self.client est déjà authentifié comme vendeur (setUp, via
+        # self.authentifier) — authentifié mais pas modérateur.
+        response = self.client.get(MODERATION_URL)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_moderateur_voit_la_file_en_attente(self):
+        self._connecter_moderateur()
+        response = self.client.get(MODERATION_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [a['id'] for a in response.data]
+        self.assertEqual(ids, [str(self.annonce_en_attente.id)])
+        self.assertIn('motif_moderation', response.data[0])
+
+    def test_moderateur_valide_une_annonce(self):
+        self._connecter_moderateur()
+        response = self.client.patch(
+            f'{MODERATION_URL}{self.annonce_en_attente.id}/', {'statut': 'en_ligne'},
+            **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.annonce_en_attente.refresh_from_db()
+        self.assertEqual(self.annonce_en_attente.statut, Annonce.StatutAnnonce.EN_LIGNE)
+        self.assertIsNotNone(self.annonce_en_attente.date_publication)
+
+    def test_moderateur_rejette_une_annonce(self):
+        self._connecter_moderateur()
+        response = self.client.patch(
+            f'{MODERATION_URL}{self.annonce_en_attente.id}/', {'statut': 'brouillon'},
+            **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.annonce_en_attente.refresh_from_db()
+        self.assertEqual(self.annonce_en_attente.statut, Annonce.StatutAnnonce.BROUILLON)
+
+    def test_statut_invalide_rejete_en_400(self):
+        self._connecter_moderateur()
+        response = self.client.patch(
+            f'{MODERATION_URL}{self.annonce_en_attente.id}/', {'statut': 'vendue'},
+            **self.csrf_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_annonce_pas_en_attente_introuvable(self):
+        self.annonce_en_attente.statut = Annonce.StatutAnnonce.EN_LIGNE
+        self.annonce_en_attente.date_publication = timezone.now()
+        self.annonce_en_attente.save(update_fields=['statut', 'date_publication'])
+        self._connecter_moderateur()
+
+        response = self.client.patch(
+            f'{MODERATION_URL}{self.annonce_en_attente.id}/', {'statut': 'brouillon'},
+            **self.csrf_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 class AlertesRechercheSauvegardeeTests(AnnoncesTestBase):

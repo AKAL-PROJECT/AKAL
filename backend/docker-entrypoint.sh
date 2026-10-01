@@ -14,6 +14,9 @@ python manage.py ensure_postgis
 echo "→ migrate"
 python manage.py migrate --noinput
 
+echo "→ init_groupes"
+python manage.py init_groupes
+
 # SEED_ON_START=1 (docker-compose full-stack uniquement) : charge le
 # référentiel géo officiel + un petit catalogue de démonstration, une seule
 # fois (seed_demo est sauté si des annonces de démo existent déjà).
