@@ -6,9 +6,13 @@ aussi le garde-fou CSRF (double-submit cookie/header), comme accounts/tests.py.
 """
 
 import io
+import os
+import unittest
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import MagicMock, Mock, patch
 
+import requests
 from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.contrib.gis.geos import MultiPolygon, Point, Polygon
@@ -29,6 +33,7 @@ from . import transitions
 from .admin import publier_selection, rejeter_selection
 from .alertes import notifier_recherches_correspondantes
 from .moderation import evaluer_signal_moderation
+from .moderation_ia import SignalModerationIA, evaluer_signal_ia
 from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
 from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
@@ -765,6 +770,106 @@ class SignalModerationTests(SimpleTestCase):
         self.assertEqual(parametres, ['titre', 'description'])
 
 
+class SignalModerationIATests(SimpleTestCase):
+    """Unitaires sur evaluer_signal_ia() seul (branche feat/moderation-ia,
+    cf. moderation_ia.py) — `session` mocké, jamais un vrai appel réseau/
+    Ollama, même motif que AgentTopoReelTests (agriscore/tests.py)."""
+
+    def _reponse(self, corps_json):
+        reponse = Mock()
+        reponse.json.return_value = {"response": json.dumps(corps_json)}
+        return reponse
+
+    def test_annonce_suspecte_selon_le_modele(self):
+        session = Mock()
+        session.post.return_value = self._reponse({"suspect": True, "raisons": ["Hors sujet"]})
+
+        signal = evaluer_signal_ia('Titre', 'Description', [], session=session)
+
+        self.assertTrue(signal.suspect)
+        self.assertEqual(signal.raisons, ["Hors sujet"])
+
+    def test_annonce_plausible_selon_le_modele(self):
+        session = Mock()
+        session.post.return_value = self._reponse({"suspect": False, "raisons": []})
+
+        signal = evaluer_signal_ia('Titre', 'Description', [], session=session)
+
+        self.assertFalse(signal.suspect)
+        self.assertEqual(signal.raisons, [])
+
+    def test_appel_porte_le_bon_modele_et_prompt(self):
+        session = Mock()
+        session.post.return_value = self._reponse({"suspect": False, "raisons": []})
+
+        with override_settings(OLLAMA_URL='http://ollama-test:11434', OLLAMA_MODERATION_MODEL='qwen2.5vl:3b'):
+            evaluer_signal_ia('Mon titre', 'Ma description', [], session=session)
+
+        args, kwargs = session.post.call_args
+        self.assertEqual(args[0], 'http://ollama-test:11434/api/generate')
+        self.assertEqual(kwargs['json']['model'], 'qwen2.5vl:3b')
+        self.assertIn('Mon titre', kwargs['json']['prompt'])
+        self.assertIn('Ma description', kwargs['json']['prompt'])
+        self.assertEqual(kwargs['json']['format'], 'json')
+
+    def test_reponse_malformee_renvoie_non_suspect(self):
+        session = Mock()
+        reponse = Mock()
+        reponse.json.return_value = {"response": "ceci n'est pas du JSON"}
+        session.post.return_value = reponse
+
+        with self.assertLogs('annonces.moderation_ia', 'WARNING'):
+            signal = evaluer_signal_ia('Titre', 'Description', [], session=session)
+
+        self.assertFalse(signal.suspect)
+        self.assertEqual(signal.raisons, [])
+
+    def test_ollama_indisponible_renvoie_non_suspect(self):
+        session = Mock()
+        session.post.side_effect = requests.exceptions.ConnectionError('connection refused')
+
+        with self.assertLogs('annonces.moderation_ia', 'WARNING'):
+            signal = evaluer_signal_ia('Titre', 'Description', [], session=session)
+
+        self.assertFalse(signal.suspect)
+
+    def test_timeout_renvoie_non_suspect(self):
+        session = Mock()
+        session.post.side_effect = requests.exceptions.Timeout('timed out')
+
+        with self.assertLogs('annonces.moderation_ia', 'WARNING'):
+            signal = evaluer_signal_ia('Titre', 'Description', [], session=session)
+
+        self.assertFalse(signal.suspect)
+
+    def test_photos_limitees_a_max_photos_analysees(self):
+        session = Mock()
+        session.post.return_value = self._reponse({"suspect": False, "raisons": []})
+
+        def _photo(contenu):
+            photo = Mock()
+            fichier = MagicMock()
+            fichier.__enter__.return_value.read.return_value = contenu
+            photo.image.open.return_value = fichier
+            return photo
+
+        photos = [_photo(f'photo-{i}'.encode()) for i in range(5)]  # > MAX_PHOTOS_ANALYSEES (3)
+        evaluer_signal_ia('Titre', 'Description', photos, session=session)
+
+        images = session.post.call_args.kwargs['json']['images']
+        self.assertEqual(len(images), 3)
+
+    def test_jamais_un_rejet_automatique(self):
+        # Non-régression de la philosophie du module (cf. docstring) :
+        # suspect=True ne fait QUE remonter des raisons, jamais une
+        # décision — même garde que test_ndvi_et_photo_delibrement_hors_
+        # perimetre ci-dessus pour le palier 1.
+        import inspect
+        parametres = list(inspect.signature(evaluer_signal_ia).parameters)
+        self.assertNotIn('decision', parametres)
+        self.assertNotIn('rejeter', parametres)
+
+
 class ModerationPublicationTests(AnnoncesTestBase):
     """Intégration : une publication détournée par la modération atterrit
     en_attente, jamais rejetée, et reste invisible du catalogue public —
@@ -863,6 +968,104 @@ class ModerationPublicationTests(AnnoncesTestBase):
 
         self.assertEqual(reactivation.status_code, status.HTTP_200_OK)
         self.assertEqual(reactivation.data['statut'], 'en_ligne')
+
+
+class ModerationIAIntegrationTests(AnnoncesTestBase):
+    """Intégration palier 2 (branche feat/moderation-ia) : MODERATION_IA_
+    ACTIVE=False par défaut (settings/base.py) — ces tests l'activent
+    explicitement via override_settings et mockent evaluer_signal_ia au
+    point d'import dans serializers.py (jamais un vrai appel Ollama)."""
+
+    def setUp(self):
+        super().setUp()
+        self.authentifier()
+
+    def publier_avec(self, titre, description):
+        creation = self.creer_brouillon(titre=titre, description=description)
+        annonce_id = creation.data['id']
+        self.localiser(annonce_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        response = self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'statut': 'en_ligne'},
+            format='json', **self.csrf_headers(),
+        )
+        return annonce_id, response
+
+    def test_desactive_par_defaut_signal_ia_jamais_appele(self):
+        with patch('annonces.serializers.evaluer_signal_ia') as mock_ia:
+            annonce_id, response = self.publier_avec(
+                titre='Belle parcelle agricole',
+                description="Terrain de 3 hectares avec accès à l'eau, idéal pour l'arboriculture.",
+            )
+
+        mock_ia.assert_not_called()
+        self.assertEqual(response.data['statut'], 'en_ligne')
+
+    @override_settings(MODERATION_IA_ACTIVE=True)
+    def test_active_signal_ia_suspect_bascule_en_attente(self):
+        with patch('annonces.serializers.evaluer_signal_ia') as mock_ia:
+            mock_ia.return_value = SignalModerationIA(suspect=True, raisons=['Photo incohérente avec le texte'])
+            annonce_id, response = self.publier_avec(
+                titre='Belle parcelle agricole',
+                description="Terrain de 3 hectares avec accès à l'eau, idéal pour l'arboriculture.",
+            )
+
+        mock_ia.assert_called_once()
+        self.assertEqual(response.data['statut'], 'en_attente')
+        annonce = Annonce.objects.get(id=annonce_id)
+        self.assertIn('Palier 2 (IA)', annonce.motif_moderation)
+        self.assertIn('Photo incohérente avec le texte', annonce.motif_moderation)
+
+    @override_settings(MODERATION_IA_ACTIVE=True)
+    def test_active_signal_ia_plausible_publie_normalement(self):
+        with patch('annonces.serializers.evaluer_signal_ia') as mock_ia:
+            mock_ia.return_value = SignalModerationIA(suspect=False, raisons=[])
+            annonce_id, response = self.publier_avec(
+                titre='Belle parcelle agricole',
+                description="Terrain de 3 hectares avec accès à l'eau, idéal pour l'arboriculture.",
+            )
+
+        self.assertEqual(response.data['statut'], 'en_ligne')
+        annonce = Annonce.objects.get(id=annonce_id)
+        self.assertEqual(annonce.motif_moderation, '')
+
+    @override_settings(MODERATION_IA_ACTIVE=True)
+    def test_les_deux_paliers_suspects_cumulent_les_raisons(self):
+        with patch('annonces.serializers.evaluer_signal_ia') as mock_ia:
+            mock_ia.return_value = SignalModerationIA(suspect=True, raisons=['Photo incohérente'])
+            # Texte qui déclenche déjà le palier 1 (aucun vocabulaire agricole).
+            annonce_id, response = self.publier_avec(
+                titre='Superbe opportunité',
+                description='Contactez-nous vite pour profiter de cette offre exceptionnelle.',
+            )
+
+        self.assertEqual(response.data['statut'], 'en_attente')
+        annonce = Annonce.objects.get(id=annonce_id)
+        self.assertIn('Palier 1', annonce.motif_moderation)
+        self.assertIn('Palier 2 (IA)', annonce.motif_moderation)
+
+
+@unittest.skipUnless(
+    os.environ.get('OLLAMA_TEST_REEL'),
+    "vérification manuelle ponctuelle avec le vrai modèle — "
+    "OLLAMA_TEST_REEL=1 + Ollama lancé (docker-compose.ia.yml) + modèle "
+    "téléchargé (cf. docs/plans/2026-10-01-moderation-ia-design.md)",
+)
+class SignalModerationIARealTests(SimpleTestCase):
+    """Jamais lancée en CI ni dans la suite automatisée normale — un vrai
+    appel au modèle local, pour confirmer manuellement que l'intégration
+    fonctionne réellement (prompt compris, JSON bien formé en retour)."""
+
+    def test_annonce_clairement_agricole_nest_pas_suspecte(self):
+        signal = evaluer_signal_ia(
+            'Belle parcelle agricole',
+            "Terrain de 3 hectares avec accès à l'eau, idéal pour l'arboriculture (oliviers, amandiers).",
+            [],
+        )
+        self.assertFalse(signal.suspect)
 
 
 class SuppressionPhotoTests(AnnoncesTestBase):

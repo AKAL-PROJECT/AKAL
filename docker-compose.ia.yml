@@ -1,0 +1,36 @@
+# Service Ollama pour la modération IA — palier 2 (branche feat/moderation-ia,
+# cf. docs/plans/2026-10-01-moderation-ia-design.md).
+#
+# JAMAIS fusionné au docker-compose.yml racine ni à backend/docker-compose.yml :
+# un modèle multimodal local, même petit, est trop lourd pour tourner en
+# permanence à côté du reste du stack sur une machine de dev à 8 Go de RAM.
+#
+# Usage : docker compose -f docker-compose.yml -f docker-compose.ia.yml up
+# Premier démarrage, à la main (pas automatisé — trop lent pour un
+# démarrage normal) :
+#   docker compose -f docker-compose.yml -f docker-compose.ia.yml exec ollama \
+#     ollama pull qwen2.5vl:3b
+#
+# Puis MODERATION_IA_ACTIVE=1 dans le .env racine pour activer le signal
+# (backend/akal/settings/base.py — désactivé par défaut).
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  backend:
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      MODERATION_IA_ACTIVE: ${MODERATION_IA_ACTIVE:-0}
+      OLLAMA_MODERATION_MODEL: ${OLLAMA_MODERATION_MODEL:-qwen2.5vl:3b}
+    depends_on:
+      ollama:
+        condition: service_started
+
+volumes:
+  ollama_data:
