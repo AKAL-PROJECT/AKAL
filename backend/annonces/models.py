@@ -6,9 +6,11 @@ from django.conf import settings
 from django.contrib.gis.db import models as gis_models
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 
 from .managers import AnnonceManager
+from .transitions import transition_autorisee
 
 
 # ──────────────────────────────────────────────
@@ -274,6 +276,19 @@ class Annonce(models.Model):
                 name='annonce_prix_mad_positif',
             ),
         ]
+        # Permissions custom (2026-09-21) du groupe "Moderateur" (cf.
+        # init_groupes) — granularité plus fine que change_annonce : valider
+        # une annonce (en_attente -> en_ligne, admin.py::publier_selection/
+        # rejeter_selection) et la suspendre (en_ligne -> archivee, à
+        # l'initiative d'un modérateur plutôt que du propriétaire,
+        # admin.py::suspendre_selection) sont des droits distincts, sans
+        # donner change_annonce au sens large (qui autoriserait aussi
+        # n'importe quel autre champ). Remplace le groupe "Modérateurs" —
+        # périmé depuis la migration 0016_retirer_groupe_moderateurs.
+        permissions = [
+            ('valider_annonce', 'Peut valider ou refuser une annonce'),
+            ('suspendre_annonce', 'Peut suspendre une annonce'),
+        ]
 
     objects = AnnonceManager()
 
@@ -301,6 +316,35 @@ class Annonce(models.Model):
         if not self.prix_mad or self.prix_mad <= 0:
             raisons.append("Le prix doit être strictement positif avant publication.")
         return (len(raisons) == 0, raisons)
+
+    def valider(self):
+        """Décision d'un modérateur (admin.py::publier_selection, ou
+        api_views.py::ModerationDecisionAPIView — dashboard /moderation du
+        front) : brouillon/en_attente -> en_ligne. Mêmes garde-fous que la
+        publication par le propriétaire (can_publish() + transitions.
+        transition_autorisee(), jamais une affectation directe du statut) —
+        factorisée ici pour que l'admin et l'API REST n'aient jamais deux
+        implémentations de la même règle. Retourne (bool, list[str]) :
+        raisons de refus si False, [] sinon — même convention que
+        can_publish(), N'ÉCRIT RIEN si False."""
+        peut_publier, raisons = self.can_publish()
+        if not peut_publier or not transition_autorisee(self.statut, self.StatutAnnonce.EN_LIGNE):
+            return False, raisons
+        self.statut = self.StatutAnnonce.EN_LIGNE
+        self.date_publication = timezone.now()
+        self.save(update_fields=['statut', 'date_publication'])
+        return True, []
+
+    def rejeter(self):
+        """Décision d'un modérateur : en_attente -> brouillon (jamais un
+        rejet automatique — la décision reste humaine, cf. docstring de
+        annonces/moderation.py). Retourne False sans rien écrire si la
+        transition n'est pas autorisée depuis le statut courant."""
+        if not transition_autorisee(self.statut, self.StatutAnnonce.BROUILLON):
+            return False
+        self.statut = self.StatutAnnonce.BROUILLON
+        self.save(update_fields=['statut'])
+        return True
 
     def __str__(self):
         return self.titre

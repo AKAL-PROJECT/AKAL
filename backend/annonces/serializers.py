@@ -442,6 +442,21 @@ class AnnonceListSerializer(serializers.ModelSerializer):
         return None
 
 
+class ModerationAnnonceSerializer(AnnonceListSerializer):
+    """
+    `AnnonceListSerializer` + `motif_moderation` — réservé au dashboard
+    modérateur (GET /api/annonces/moderation/, cf. api_views.py), jamais au
+    catalogue public ni au dashboard propriétaire. `motif_moderation` existe
+    en base depuis le signal automatique (annonces/moderation.py) mais
+    n'était jusqu'ici lisible que dans le Django admin (champ readonly,
+    AnnonceAdmin) — c'est précisément ce que le modérateur doit voir pour
+    décider, donc le seul champ ajouté ici.
+    """
+
+    class Meta(AnnonceListSerializer.Meta):
+        fields = AnnonceListSerializer.Meta.fields + ['motif_moderation']
+
+
 class AnnonceDetailSerializer(serializers.ModelSerializer):
     """
     Serializer détail complet pour la fiche annonce.
