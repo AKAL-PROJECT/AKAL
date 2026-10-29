@@ -7,6 +7,7 @@ Routes API REST (DRF) de l'app annonces.
     /api/annonces/mes-annonces/statistiques/          → GET favoris/conversations reçus, messages non lus (dashboard)
     /api/annonces/moderation/                         → GET file d'attente (en_attente), réservé à annonces.valider_annonce (dashboard /moderation)
     /api/annonces/moderation/journal/                 → GET 100 dernières décisions de modération
+    /api/annonces/moderation/compteur/                → GET {"a_revoir": n}, badge de la barre de navigation
     /api/annonces/moderation/vendeurs/<uuid:pk>/      → GET résumé vendeur, PATCH {"actif": bool} suspend/réactive le compte
     /api/annonces/moderation/<uuid:pk>/               → GET fiche de revue, PATCH décision (valider/rejeter/suspendre/classer)
     /api/annonces/<uuid:pk>/signalements/             → POST signaler une annonce publique (authentifié)
@@ -38,6 +39,7 @@ from .api_views import (
     MesAnnoncesListAPIView,
     MesStatistiquesAPIView,
     ModerationDecisionAPIView,
+    ModerationCompteurAPIView,
     ModerationJournalAPIView,
     ModerationQueueListAPIView,
     ModerationVendeurAPIView,
@@ -63,6 +65,7 @@ urlpatterns = [
     # AnnonceDetailAPIView avec slug="moderation" au lieu du bon endpoint).
     path('moderation/', ModerationQueueListAPIView.as_view(), name='moderation-queue'),
     path('moderation/journal/', ModerationJournalAPIView.as_view(), name='moderation-journal'),
+    path('moderation/compteur/', ModerationCompteurAPIView.as_view(), name='moderation-compteur'),
     path('moderation/vendeurs/<uuid:pk>/', ModerationVendeurAPIView.as_view(), name='moderation-vendeur'),
     path('moderation/<uuid:pk>/', ModerationDecisionAPIView.as_view(), name='moderation-decision'),
     # Recherches sauvegardées (alertes, 2026-08-19) — déclarées avant

@@ -29,7 +29,7 @@ from rest_framework.test import APIClient, APITestCase
 from accounts.models import User
 from geo.models import Commune, CommuneGeom, Province, ProvinceGeom, Region, RegionOfficielle
 from messaging.models import Conversation, Favori, Message, Notification
-from . import transitions
+from . import moderation_actions, transitions
 from .admin import publier_selection, rejeter_selection, suspendre_selection
 from .alertes import notifier_recherches_correspondantes
 from .moderation import evaluer_signal_moderation
@@ -1790,6 +1790,7 @@ class TransitionsAutoriseesTests(SimpleTestCase):
             ('en_attente', 'brouillon'),
             ('en_ligne', 'archivee'),
             ('en_ligne', 'vendue'),
+            ('en_ligne', 'en_attente'),
             ('archivee', 'en_ligne'),
             ('vendue', 'en_ligne'),
         ]
@@ -1800,6 +1801,7 @@ class TransitionsAutoriseesTests(SimpleTestCase):
     def test_arretes_de_moderation_interdites_au_proprietaire(self):
         self.assertFalse(transitions.transition_autorisee_proprietaire('en_attente', 'en_ligne'))
         self.assertFalse(transitions.transition_autorisee_proprietaire('brouillon', 'en_attente'))
+        self.assertFalse(transitions.transition_autorisee_proprietaire('en_ligne', 'en_attente'))
         self.assertTrue(transitions.transition_autorisee_proprietaire('en_attente', 'brouillon'))
         self.assertTrue(transitions.transition_autorisee_proprietaire('brouillon', 'en_ligne'))
 
@@ -2433,14 +2435,20 @@ class AdminModerationTests(AnnoncesTestBase):
         self.moderateur.groups.add(Group.objects.get(name='Moderateur'))
         self.modeladmin = admin.site._registry[Annonce]
 
-    def _requete(self, user):
+    def _requete(self, user, motif=None):
+        # `motif` : second POST de la page intermédiaire (admin_moderation.py)
+        # qui applique la décision ; sans lui, rejeter/suspendre ne font
+        # qu'afficher le formulaire de motif.
         # message_user() (appelé par les deux actions) a besoin d'un backend
         # de messages sur la requête — FallbackStorage est le plus simple
         # sans passer par le vrai middleware de session, mais il essaie
         # d'abord le stockage en session (avant le repli sur cookie), donc
         # `request.session` doit exister ; un dict simple suffit à son usage
         # (get/__setitem__), pas besoin d'un vrai SessionStore.
-        request = self.factory.get('/admin/annonces/annonce/')
+        if motif:
+            request = self.factory.post('/admin/annonces/annonce/', {'appliquer': '1', 'motif': motif})
+        else:
+            request = self.factory.get('/admin/annonces/annonce/')
         request.user = user
         request.session = {}
         request._messages = FallbackStorage(request)
@@ -2474,6 +2482,10 @@ class AdminModerationTests(AnnoncesTestBase):
         self.assertEqual(en_attente.statut, Annonce.StatutAnnonce.EN_LIGNE)
         self.assertEqual(brouillon.statut, Annonce.StatutAnnonce.EN_LIGNE)
         self.assertIsNotNone(en_attente.date_publication)
+        # Journalisé comme une décision du dashboard (moderation_actions.py).
+        self.assertEqual(
+            DecisionModeration.objects.filter(action=DecisionModeration.Action.VALIDATION, moderateur=self.superuser).count(), 2,
+        )
 
     def test_publier_selection_ignore_les_annonces_sans_photo(self):
         annonce_id = self.creer_brouillon().data['id']
@@ -2498,16 +2510,29 @@ class AdminModerationTests(AnnoncesTestBase):
 
     def test_rejeter_selection_repasse_en_attente_vers_brouillon(self):
         annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_ATTENTE)
-        request = self._requete(self.superuser)
+        request = self._requete(self.superuser, motif='doublon')
 
         rejeter_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
 
         annonce.refresh_from_db()
         self.assertEqual(annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+        self.assertIn('doublon', annonce.motif_rejet)
+        decision = DecisionModeration.objects.get(annonce=annonce)
+        self.assertEqual((decision.action, decision.motif), (DecisionModeration.Action.REJET, 'doublon'))
+
+    def test_rejeter_selection_demande_d_abord_un_motif(self):
+        annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_ATTENTE)
+
+        response = rejeter_selection(self.modeladmin, self._requete(self.superuser), Annonce.objects.filter(id=annonce.id))
+
+        self.assertEqual(response.template_name, 'admin/moderation_motif.html')
+        annonce.refresh_from_db()
+        self.assertEqual(annonce.statut, Annonce.StatutAnnonce.EN_ATTENTE)  # rien appliqué sans motif
+        self.assertFalse(DecisionModeration.objects.exists())
 
     def test_rejeter_selection_ignore_une_annonce_en_ligne(self):
         annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_LIGNE)
-        request = self._requete(self.superuser)
+        request = self._requete(self.superuser, motif='doublon')
 
         rejeter_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
 
@@ -2535,16 +2560,19 @@ class AdminModerationTests(AnnoncesTestBase):
 
     def test_suspendre_selection_suspend_une_annonce_en_ligne(self):
         annonce = self._annonce_eligible(Annonce.StatutAnnonce.EN_LIGNE)
-        request = self._requete(self.moderateur)
+        request = self._requete(self.moderateur, motif='arnaque_suspectee')
 
         suspendre_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
 
         annonce.refresh_from_db()
         self.assertEqual(annonce.statut, Annonce.StatutAnnonce.ARCHIVEE)
+        self.assertTrue(DecisionModeration.objects.filter(
+            annonce=annonce, action=DecisionModeration.Action.SUSPENSION, moderateur=self.moderateur,
+        ).exists())
 
     def test_suspendre_selection_ignore_une_annonce_deja_archivee(self):
         annonce = self._annonce_eligible(Annonce.StatutAnnonce.ARCHIVEE)
-        request = self._requete(self.moderateur)
+        request = self._requete(self.moderateur, motif='arnaque_suspectee')
 
         # archivee -> archivee n'est pas une arête du graphe (transitions.py)
         suspendre_selection(self.modeladmin, request, Annonce.objects.filter(id=annonce.id))
@@ -2664,10 +2692,9 @@ class ModerationAPITests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
-class ModerationV2Tests(AnnoncesTestBase):
-    """Dashboard /moderation v2 : fiche de revue, motif de rejet obligatoire,
-    notification du vendeur, journal, signalements, suspension d'annonce et
-    de compte (annonces/moderation_actions.py)."""
+class ModerationTestBase(AnnoncesTestBase):
+    """Vendeur + annonce publiable, modérateur, acheteur, et helpers communs
+    aux tests du dashboard /moderation."""
 
     MOT_DE_PASSE = 'un-mot-de-passe-solide-2026'
 
@@ -2714,6 +2741,12 @@ class ModerationV2Tests(AnnoncesTestBase):
         self.annonce.date_publication = timezone.now()
         self.annonce.save()
         Signalement.objects.create(annonce=self.annonce, auteur=self.acheteur, raison=Signalement.Raison.ARNAQUE)
+
+
+class ModerationV2Tests(ModerationTestBase):
+    """Dashboard /moderation v2 : fiche de revue, motif de rejet obligatoire,
+    notification du vendeur, journal, signalements, suspension d'annonce et
+    de compte (annonces/moderation_actions.py)."""
 
     # ── fiche de revue ───────────────────────────────────────────────────
     def test_fiche_de_revue_complete_reservee_aux_moderateurs(self):
@@ -2887,6 +2920,136 @@ class ModerationV2Tests(AnnoncesTestBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data[0]['action'], 'rejet')
         self.assertEqual(response.data[0]['titre_annonce'], self.annonce.titre)
+
+
+class ModerationV3Tests(ModerationTestBase):
+    """Masquage automatique d'une annonce trop signalée, alerte email des
+    modérateurs à l'entrée dans la file, compteur du badge de navigation,
+    palier 2 relancé quand le texte change (2026-10-29)."""
+
+    def _signaler_par(self, n):
+        for i in range(n):
+            auteur = User.objects.create_user(
+                email=f'signaleur{i}@akal.ma', password=self.MOT_DE_PASSE, nom='S', prenom=str(i),
+            )
+            Signalement.objects.create(annonce=self.annonce, auteur=auteur, raison=Signalement.Raison.ARNAQUE)
+
+    def _mettre_en_ligne(self):
+        self.annonce.statut = Annonce.StatutAnnonce.EN_LIGNE
+        self.annonce.date_publication = timezone.now()
+        self.annonce.motif_moderation = ''
+        self.annonce.save()
+
+    # ── masquage automatique ─────────────────────────────────────────────
+    def test_masquee_au_troisieme_signalement_via_l_api(self):
+        self._mettre_en_ligne()
+        self._signaler_par(2)
+        self._connecter(self.acheteur)
+
+        response = self.client.post(
+            f'{ANNONCES_URL}{self.annonce.id}/signalements/', {'raison': 'arnaque'},
+            format='json', **self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.annonce.refresh_from_db()
+        self.assertEqual(self.annonce.statut, Annonce.StatutAnnonce.EN_ATTENTE)
+        self.assertIn('3 signalements', self.annonce.motif_moderation)
+
+    def test_pas_masquee_sous_le_seuil(self):
+        self._mettre_en_ligne()
+        self._signaler_par(2)
+
+        self.assertFalse(moderation_actions.masquer_si_trop_signalee(self.annonce))
+        self.annonce.refresh_from_db()
+        self.assertEqual(self.annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
+
+    @override_settings(MODERATION_SEUIL_MASQUAGE_SIGNALEMENTS=0)
+    def test_seuil_zero_desactive_le_masquage(self):
+        self._mettre_en_ligne()
+        self._signaler_par(5)
+
+        self.assertFalse(moderation_actions.masquer_si_trop_signalee(self.annonce))
+
+    def test_validation_d_une_annonce_masquee_la_remet_en_ligne_et_classe_les_signalements(self):
+        self._mettre_en_ligne()
+        self._signaler_par(3)
+        moderation_actions.masquer_si_trop_signalee(self.annonce)
+        self.annonce.refresh_from_db()
+
+        moderation_actions.valider(self.annonce, self.moderateur)
+
+        self.annonce.refresh_from_db()
+        self.assertEqual(self.annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
+        self.assertFalse(self.annonce.signalements.filter(statut=Signalement.Statut.OUVERT).exists())
+
+    # ── alertes email ────────────────────────────────────────────────────
+    def test_alerte_les_moderateurs_quand_une_annonce_passe_en_attente(self):
+        self._mettre_en_ligne()
+        mail.outbox.clear()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.annonce.statut = Annonce.StatutAnnonce.EN_ATTENTE
+            self.annonce.motif_moderation = 'Palier 1 : test'
+            self.annonce.save()
+
+        alertes = [m for m in mail.outbox if 'modération' in m.subject]
+        self.assertEqual(len(alertes), 1)
+        self.assertIn('moderateur@akal.ma', alertes[0].to)
+        self.assertNotIn('acheteur@akal.ma', alertes[0].to)
+        self.assertIn(f'/moderation/{self.annonce.id}', alertes[0].body)
+        self.assertIn('Palier 1 : test', alertes[0].body)
+
+    def test_alerte_au_premier_signalement_seulement(self):
+        self._mettre_en_ligne()
+        mail.outbox.clear()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._signaler_par(2)
+
+        alertes = [m for m in mail.outbox if 'modération' in m.subject]
+        self.assertEqual(len(alertes), 1)
+        self.assertIn('Signalée', alertes[0].body)
+
+    @override_settings(MODERATION_ALERTES_EMAIL=False)
+    def test_alertes_desactivables(self):
+        self._mettre_en_ligne()
+        mail.outbox.clear()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._signaler_par(1)
+
+        self.assertFalse([m for m in mail.outbox if 'modération' in m.subject])
+
+    # ── compteur du badge ────────────────────────────────────────────────
+    def test_compteur_reserve_aux_moderateurs(self):
+        refus = self.client.get(f'{MODERATION_URL}compteur/')  # vendeur connecté
+        self.assertEqual(refus.status_code, status.HTTP_403_FORBIDDEN)
+
+        self._connecter(self.moderateur)
+        response = self.client.get(f'{MODERATION_URL}compteur/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {'a_revoir': 1})  # self.annonce, en attente
+
+    # ── palier 2 relancé à la modification ───────────────────────────────
+    @override_settings(MODERATION_IA_ACTIVE=True)
+    def test_texte_modifie_d_une_annonce_en_ligne_relance_le_palier_2(self):
+        self._mettre_en_ligne()
+
+        with patch('annonces.serializers.evaluer_signal_ia') as mock_ia:
+            mock_ia.return_value = SignalModerationIA(suspect=True, raisons=['Texte hors sujet'])
+            response = self.client.patch(
+                f'{ANNONCES_URL}{self.annonce.id}/',
+                {'description': "Terrain agricole de 3 hectares, puits et oliviers, accès goudronné."},
+                format='json', **self.csrf_headers(),
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        mock_ia.assert_called_once()
+        self.annonce.refresh_from_db()
+        self.assertEqual(self.annonce.statut, Annonce.StatutAnnonce.EN_ATTENTE)
+        self.assertIn('Palier 2 (IA) : Texte hors sujet', self.annonce.motif_moderation)
 
 
 class AlertesRechercheSauvegardeeTests(AnnoncesTestBase):

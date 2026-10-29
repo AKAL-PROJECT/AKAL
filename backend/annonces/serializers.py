@@ -701,6 +701,24 @@ class ParcelleEcritureSerializer(serializers.ModelSerializer):
         return data
 
 
+def _raisons_signal_automatique(annonce):
+    """Raisons du signal de modération automatique (liste vide = sain) :
+    palier 1 (règles, moderation.py) + palier 2 (IA locale,
+    moderation_ia.py). Le palier 2 est désactivé par défaut
+    (MODERATION_IA_ACTIVE, cf. settings/base.py) — le modèle local (Ollama)
+    n'est pas censé tourner sur une machine/configuration qui ne l'a pas
+    explicitement activé."""
+    raisons = []
+    signal = evaluer_signal_moderation(annonce.titre, annonce.description)
+    if signal.suspect:
+        raisons += [f"Palier 1 : {r}" for r in signal.raisons]
+    if settings.MODERATION_IA_ACTIVE:
+        signal_ia = evaluer_signal_ia(annonce.titre, annonce.description, annonce.photos.all())
+        if signal_ia.suspect:
+            raisons += [f"Palier 2 (IA) : {r}" for r in signal_ia.raisons]
+    return raisons
+
+
 class AnnonceEcritureSerializer(serializers.ModelSerializer):
     """
     Création + édition partielle d'une annonce (dépôt F03).
@@ -920,9 +938,10 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
             # motif_moderation (vide = texte jugé sain) — sinon, modifier le
             # texte d'une annonce archivée puis la réactiver contournait la
             # modération. Une approbation admin vide ce champ (admin.py).
+            # Les deux paliers, comme au premier dépôt : sans le palier 2, un
+            # texte sain à la publication puis modifié contournait l'IA.
             if texte_modifie and statut_avant != Annonce.StatutAnnonce.BROUILLON:
-                signal = evaluer_signal_moderation(instance.titre, instance.description)
-                instance.motif_moderation = "; ".join(signal.raisons) if signal.suspect else ''
+                instance.motif_moderation = "; ".join(_raisons_signal_automatique(instance))
 
             publie_maintenant = (
                 nouveau_statut == Annonce.StatutAnnonce.EN_LIGNE
@@ -956,20 +975,7 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
                             f"Republication après décision de modération : {instance.motif_rejet}"
                         )
                 elif statut_avant == Annonce.StatutAnnonce.BROUILLON:
-                    raisons = []
-                    signal = evaluer_signal_moderation(instance.titre, instance.description)
-                    if signal.suspect:
-                        raisons += [f"Palier 1 : {r}" for r in signal.raisons]
-
-                    # Désactivé par défaut (MODERATION_IA_ACTIVE, cf.
-                    # settings/base.py) — le modèle local (Ollama) n'est
-                    # pas censé tourner sur une machine/configuration qui
-                    # ne l'a pas explicitement activé.
-                    if settings.MODERATION_IA_ACTIVE:
-                        signal_ia = evaluer_signal_ia(instance.titre, instance.description, instance.photos.all())
-                        if signal_ia.suspect:
-                            raisons += [f"Palier 2 (IA) : {r}" for r in signal_ia.raisons]
-
+                    raisons = _raisons_signal_automatique(instance)
                     if raisons:
                         instance.statut = Annonce.StatutAnnonce.EN_ATTENTE
                         instance.motif_moderation = "; ".join(raisons)

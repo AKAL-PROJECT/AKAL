@@ -10,14 +10,20 @@ ses signalements et suspendre / réactiver un compte : chaque décision
   4. prévient le vendeur (notification in-app + email, après commit).
 
 Toutes les fonctions lèvent DecisionImpossible (message lisible) plutôt
-que de renvoyer un booléen : la vue la traduit en 400.
+que de renvoyer un booléen : la vue (dashboard) la traduit en 400, l'admin
+Django (actions groupées, admin.py) en message d'avertissement — les deux
+passent par ici, le journal est donc complet quel que soit l'outil.
+
+Hors décisions humaines : masquer_si_trop_signalee() (retrait automatique
+d'une annonce trop signalée) et alerter_moderateurs() (email à l'équipe
+quand une annonce entre dans la file, cf. signals.py).
 """
 
 import logging
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 
 from accounts.models import DOMAINE_EMAIL_TELEPHONE
@@ -113,8 +119,14 @@ def _notifier_vendeur(annonce, type_notif, titre, message):
 
 
 @transaction.atomic
-def valider(annonce, moderateur, commentaire=''):
-    if annonce.statut != Annonce.StatutAnnonce.EN_ATTENTE:
+def valider(annonce, moderateur, commentaire='', depuis_brouillon=False):
+    """`depuis_brouillon` : réservé à l'action admin publier_selection
+    (publication directe d'un brouillon, ex. annonce importée) — le
+    dashboard ne valide que des annonces en attente."""
+    statuts_depart = {Annonce.StatutAnnonce.EN_ATTENTE}
+    if depuis_brouillon:
+        statuts_depart.add(Annonce.StatutAnnonce.BROUILLON)
+    if annonce.statut not in statuts_depart:
         raise DecisionImpossible("Seule une annonce en attente peut être validée.")
     ok, raisons = annonce.valider()
     if not ok:
@@ -218,3 +230,76 @@ def reactiver_compte(utilisateur, moderateur, commentaire=''):
     _journaliser(DecisionModeration.Action.REACTIVATION_COMPTE, moderateur, utilisateur=utilisateur,
                  commentaire=commentaire)
     return utilisateur
+
+
+# ── Hors décisions humaines ───────────────────────────────────────────────
+
+def seuil_masquage_signalements():
+    return settings.MODERATION_SEUIL_MASQUAGE_SIGNALEMENTS
+
+
+@transaction.atomic
+def masquer_si_trop_signalee(annonce):
+    """Retire du catalogue (en_ligne -> en_attente) une annonce signalée par
+    au moins MODERATION_SEUIL_MASQUAGE_SIGNALEMENTS personnes distinctes,
+    en attendant la revue — limite l'exposition d'une arnaque. Jamais un
+    rejet : le modérateur la remet en ligne (valider, signalements classés)
+    ou la rejette depuis la file, comme toute annonce en attente. Pas de
+    ligne au journal (réservé aux décisions humaines) : la raison est
+    dans motif_moderation. Renvoie True si l'annonce vient d'être masquée."""
+    seuil = seuil_masquage_signalements()
+    if not seuil:
+        return False
+    annonce = Annonce.objects.select_for_update().get(pk=annonce.pk)
+    if annonce.statut != Annonce.StatutAnnonce.EN_LIGNE:
+        return False
+    # Un seul signalement ouvert par auteur (contrainte unique) : compter les
+    # signalements ouverts revient à compter les personnes distinctes.
+    nb = annonce.signalements.filter(statut=Signalement.Statut.OUVERT).count()
+    if nb < seuil or not transition_autorisee(annonce.statut, Annonce.StatutAnnonce.EN_ATTENTE):
+        return False
+    annonce.statut = Annonce.StatutAnnonce.EN_ATTENTE
+    annonce.motif_moderation = (
+        f"Masquée automatiquement : {nb} signalements ouverts, en attente de revue."
+    )
+    annonce.save(update_fields=['statut', 'motif_moderation'])
+    return True
+
+
+def _emails_moderateurs():
+    from accounts.models import User
+
+    emails = (
+        User.objects.filter(is_active=True)
+        .filter(models.Q(groups__name='Moderateur') | models.Q(is_superuser=True))
+        .values_list('email', flat=True).distinct()
+    )
+    return [e for e in emails if _email_exploitable(e)]
+
+
+def alerter_moderateurs(annonce_id, raison):
+    """Email à l'équipe de modération (groupe Moderateur + superutilisateurs)
+    quand une annonce entre dans la file. Appelée après commit (signals.py) ;
+    désactivable (MODERATION_ALERTES_EMAIL=False). Un email raté ne bloque
+    jamais rien. Point d'accroche unique pour un futur canal (webhook n8n)."""
+    if not settings.MODERATION_ALERTES_EMAIL:
+        return
+    annonce = Annonce.objects.filter(pk=annonce_id).only('id', 'titre').first()
+    destinataires = _emails_moderateurs()
+    if annonce is None or not destinataires:
+        return
+    lien = f"{settings.FRONTEND_URL}/moderation/{annonce.pk}"
+    try:
+        send_mail(
+            subject=f"AKAL modération — « {annonce.titre} » à revoir",
+            message=(
+                f"Une annonce vient d'entrer dans la file de modération.\n\n"
+                f"Annonce : {annonce.titre}\nRaison : {raison}\n\n"
+                f"Revoir l'annonce : {lien}\n"
+            ),
+            from_email=None,
+            recipient_list=destinataires,
+            fail_silently=True,
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning("Alerte modérateurs non envoyée", exc_info=True)

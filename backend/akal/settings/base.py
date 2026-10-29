@@ -512,6 +512,13 @@ MODERATION_IA_ACTIVE = env.bool('MODERATION_IA_ACTIVE', default=False)
 OLLAMA_URL = env('OLLAMA_URL', default='http://localhost:11434')
 OLLAMA_MODERATION_MODEL = env('OLLAMA_MODERATION_MODEL', default='qwen2.5vl:3b')
 
+# File de modération (cf. annonces/moderation_actions.py) — nombre de
+# personnes distinctes dont les signalements ouverts retirent une annonce du
+# catalogue en attendant la revue (0 = jamais), et email à l'équipe quand
+# une annonce entre dans la file.
+MODERATION_SEUIL_MASQUAGE_SIGNALEMENTS = env.int('MODERATION_SEUIL_MASQUAGE_SIGNALEMENTS', default=3)
+MODERATION_ALERTES_EMAIL = env.bool('MODERATION_ALERTES_EMAIL', default=True)
+
 
 # ──────────────────────────────────────────────
 # DATASET — simulated / scraped (2026-08-11)

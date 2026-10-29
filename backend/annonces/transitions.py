@@ -27,6 +27,9 @@ Graphe des transitions autorisées :
                                 brouillon → en_ligne). Réservé, idem.
     en_attente → brouillon   : rejet, retour en brouillon. Réservé, idem.
     en_ligne   → archivee    : archivage par le propriétaire.
+    en_ligne   → en_attente  : retrait du catalogue en attendant une revue
+                                humaine (texte modifié suspect, annonce
+                                trop signalée). Réservé à la modération.
     en_ligne   → vendue      : vente conclue directement depuis en_ligne —
                                 pas de passage obligé par archivee.
     archivee   → en_ligne    : RÉACTIVATION IMMÉDIATE. Une annonce archivée
@@ -67,7 +70,7 @@ retrait sans vente).
 TRANSITIONS_AUTORISEES: dict[str, frozenset[str]] = {
     "brouillon": frozenset({"en_ligne", "en_attente"}),
     "en_attente": frozenset({"en_ligne", "brouillon"}),
-    "en_ligne": frozenset({"archivee", "vendue"}),
+    "en_ligne": frozenset({"archivee", "vendue", "en_attente"}),
     "archivee": frozenset({"en_ligne"}),
     "vendue": frozenset({"en_ligne"}),
 }
@@ -86,11 +89,15 @@ def transition_autorisee(statut_actuel: str, nouveau_statut: str) -> bool:
 #   - en_attente → en_ligne : c'est l'approbation elle-même.
 #   - brouillon → en_attente : la mise en attente est décidée par la
 #     modération (cf. AnnonceEcritureSerializer.update), jamais demandée.
+#   - en_ligne → en_attente : retrait du catalogue en attendant une revue —
+#     texte modifié jugé suspect (AnnonceEcritureSerializer.update) ou
+#     annonce trop signalée (moderation_actions.masquer_si_trop_signalee).
 # en_attente → brouillon reste ouvert au propriétaire : retirer son annonce
 # de la file pour la corriger (la republication repasse par la modération).
 TRANSITIONS_RESERVEES_MODERATION: frozenset[tuple[str, str]] = frozenset({
     ("en_attente", "en_ligne"),
     ("brouillon", "en_attente"),
+    ("en_ligne", "en_attente"),
 })
 
 

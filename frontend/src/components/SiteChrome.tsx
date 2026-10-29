@@ -23,10 +23,12 @@ export default function SiteChrome({
   children,
   utilisateur,
   messagesNonLus,
+  annoncesARevoir,
 }: {
   children: React.ReactNode;
   utilisateur: User | null;
   messagesNonLus: number;
+  annoncesARevoir: number;
 }) {
   const pathname = usePathname();
 
@@ -36,7 +38,7 @@ export default function SiteChrome({
 
   return (
     <>
-      <Navbar utilisateur={utilisateur} messagesNonLus={messagesNonLus} />
+      <Navbar utilisateur={utilisateur} messagesNonLus={messagesNonLus} annoncesARevoir={annoncesARevoir} />
       <div style={{ flex: 1 }}>{children}</div>
       {!estFilDeConversation(pathname) && <Footer />}
     </>

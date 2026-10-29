@@ -49,7 +49,15 @@ function IconeProfil({ utilisateur }: { utilisateur: User | null }) {
   );
 }
 
-export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: User | null; messagesNonLus: number }) {
+export default function Navbar({
+  utilisateur,
+  messagesNonLus,
+  annoncesARevoir = 0,
+}: {
+  utilisateur: User | null;
+  messagesNonLus: number;
+  annoncesARevoir?: number;
+}) {
   const pathname = usePathname();
   const isExplorer = pathname.startsWith("/parcelles");
   // Route dédiée (refonte nav du 19/08) — jusque-là, "Carte" menait à
@@ -274,11 +282,35 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
             <Link
               href="/moderation"
               className="akal-icon-link akal-focusable"
-              style={{ color: "var(--color-foret)", display: "flex" }}
-              title="Modération"
-              aria-label="Modération"
+              style={{ color: "var(--color-foret)", display: "flex", position: "relative" }}
+              title={annoncesARevoir > 0 ? `Modération (${annoncesARevoir} à revoir)` : "Modération"}
+              aria-label={annoncesARevoir > 0 ? `Modération, ${annoncesARevoir} annonce${annoncesARevoir > 1 ? "s" : ""} à revoir` : "Modération"}
             >
               <Shield size={24} strokeWidth={1.7} />
+              {annoncesARevoir > 0 && (
+                // Même pastille que les messages non lus ci-dessus.
+                <span
+                  className="akal-notify-dot"
+                  style={{
+                    position: "absolute",
+                    top: -4,
+                    right: -6,
+                    minWidth: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    backgroundColor: "var(--color-terre)",
+                    color: "white",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "0 3px",
+                  }}
+                >
+                  {annoncesARevoir > 9 ? "9+" : annoncesARevoir}
+                </span>
+              )}
             </Link>
           )}
 
@@ -389,6 +421,14 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
                   style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", borderRadius: "var(--radius-sm)" }}
                 >
                   <Shield size={18} strokeWidth={1.7} style={{ color: "var(--color-foret)" }} /> Modération
+                  {annoncesARevoir > 0 && (
+                    <span
+                      className="akal-notify-dot"
+                      style={{ minWidth: 18, height: 18, borderRadius: "50%", backgroundColor: "var(--color-terre)", color: "white", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}
+                    >
+                      {annoncesARevoir > 9 ? "9+" : annoncesARevoir}
+                    </span>
+                  )}
                 </Link>
               )}
               <Link

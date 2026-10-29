@@ -14,6 +14,8 @@ from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+from annonces.models import DecisionModeration
+
 from .admin import suspendre_selection
 from .models import User
 
@@ -840,7 +842,8 @@ class SuspendreSelectionTests(TestCase):
         self.moderateur.save(update_fields=['is_superuser'])
 
     def _requete(self):
-        request = RequestFactory().get('/admin/accounts/user/')
+        # Second POST de la page intermédiaire de motif (annonces/admin_moderation.py).
+        request = RequestFactory().post('/admin/accounts/user/', {'appliquer': '1', 'motif': 'arnaque_suspectee'})
         request.user = self.moderateur
         request.session = {}
         request._messages = FallbackStorage(request)
@@ -856,6 +859,11 @@ class SuspendreSelectionTests(TestCase):
 
         acheteur.refresh_from_db()
         self.assertFalse(acheteur.is_active)
+        # Journalisé comme une suspension depuis le dashboard.
+        self.assertTrue(DecisionModeration.objects.filter(
+            utilisateur_cible=acheteur, action=DecisionModeration.Action.SUSPENSION_COMPTE,
+            motif='arnaque_suspectee', moderateur=self.moderateur,
+        ).exists())
 
     def test_ignore_un_superutilisateur(self):
         admin_cible = User.objects.create_superuser(

@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls %}
+{% comment %}
+Page intermédiaire des actions groupées de modération (annonces/admin_moderation.py) :
+renvoie l'action et la sélection d'origine, plus le motif, avec `appliquer`.
+{% endcomment %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Accueil</a>
+  &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<p>Cette décision sera journalisée{% if opts.model_name == 'annonce' %} et le vendeur prévenu avec le motif{% endif %} :</p>
+<ul>
+  {% for objet in objets %}<li>{{ objet }}</li>{% endfor %}
+</ul>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <fieldset class="module aligned">
+    {% for champ in form %}
+    <div class="form-row">
+      {{ champ.errors }}
+      {{ champ.label_tag }} {{ champ }}
+      {% if champ.help_text %}<div class="help">{{ champ.help_text }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </fieldset>
+  {% for objet in objets %}
+  <input type="hidden" name="{{ action_checkbox_name }}" value="{{ objet.pk }}">
+  {% endfor %}
+  <input type="hidden" name="action" value="{{ action }}">
+  <input type="hidden" name="appliquer" value="1">
+  <div class="submit-row">
+    <input type="submit" class="default" value="Confirmer">
+    <a href="{% url opts|admin_urlname:'changelist' %}" class="button cancel-link">Annuler</a>
+  </div>
+</form>
+{% endblock %}
