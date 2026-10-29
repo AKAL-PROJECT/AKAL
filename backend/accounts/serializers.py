@@ -45,12 +45,14 @@ class UserSerializer(serializers.ModelSerializer):
     # barrière (PeutModererAnnonces, annonces/api_views.py) — ce champ ne
     # fait qu'éviter d'afficher un lien qui renverrait 403.
     peut_moderer = serializers.SerializerMethodField()
+    peut_suspendre_comptes = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'nom', 'prenom', 'telephone', 'telephone_verifie',
             'avatar', 'role', 'is_verified', 'date_inscription', 'peut_moderer',
+            'peut_suspendre_comptes',
         ]
         read_only_fields = fields
 
@@ -64,6 +66,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_peut_moderer(self, obj):
         return obj.has_perm('annonces.valider_annonce')
+
+    def get_peut_suspendre_comptes(self, obj):
+        return obj.has_perm('accounts.suspendre_utilisateur')
 
 
 # Plafond de taille pour l'avatar — même valeur que MAX_PHOTO_OCTETS

@@ -34,7 +34,9 @@ from .admin import publier_selection, rejeter_selection, suspendre_selection
 from .alertes import notifier_recherches_correspondantes
 from .moderation import evaluer_signal_moderation
 from .moderation_ia import SignalModerationIA, evaluer_signal_ia
-from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
+from .models import (
+    Annonce, DecisionModeration, Parcelle, Photo, RechercheSauvegardee, Signalement, StatistiqueAnnonce,
+)
 from .serializers import AnnonceDetailSerializer, _message_whatsapp, _numero_whatsapp
 
 ANNONCES_URL = '/api/annonces/'
@@ -2660,6 +2662,231 @@ class ModerationAPITests(AnnoncesTestBase):
             **self.csrf_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ModerationV2Tests(AnnoncesTestBase):
+    """Dashboard /moderation v2 : fiche de revue, motif de rejet obligatoire,
+    notification du vendeur, journal, signalements, suspension d'annonce et
+    de compte (annonces/moderation_actions.py)."""
+
+    MOT_DE_PASSE = 'un-mot-de-passe-solide-2026'
+
+    def setUp(self):
+        super().setUp()
+        self.vendeur = self.authentifier('vendeur@akal.ma')
+        self.annonce = self._annonce_publiable()
+        call_command('init_groupes')
+        self.moderateur = User.objects.create_user(
+            email='moderateur@akal.ma', password=self.MOT_DE_PASSE, nom='Modo', prenom='AKAL',
+        )
+        self.moderateur.groups.add(Group.objects.get(name='Moderateur'))
+        self.acheteur = User.objects.create_user(
+            email='acheteur@akal.ma', password=self.MOT_DE_PASSE, nom='Acheteur', prenom='Ali',
+        )
+
+    # ── helpers ──────────────────────────────────────────────────────────
+    def _annonce_publiable(self, statut=Annonce.StatutAnnonce.EN_ATTENTE):
+        annonce_id = self.creer_brouillon().data['id']
+        self.localiser(annonce_id)
+        self.client.patch(
+            f'{ANNONCES_URL}{annonce_id}/', {'photos[]': [image_jpeg()]},
+            format='multipart', **self.csrf_headers(),
+        )
+        annonce = Annonce.objects.get(id=annonce_id)
+        annonce.statut = statut
+        if statut == Annonce.StatutAnnonce.EN_LIGNE:
+            annonce.date_publication = timezone.now()
+        annonce.save()
+        return annonce
+
+    def _connecter(self, utilisateur):
+        self.client.logout()
+        response = self.client.post(LOGIN_URL, {'email': utilisateur.email, 'password': self.MOT_DE_PASSE})
+        assert response.status_code == status.HTTP_200_OK, response.data
+
+    def _decider(self, annonce, **donnees):
+        return self.client.patch(
+            f'{MODERATION_URL}{annonce.id}/', donnees, format='json', **self.csrf_headers(),
+        )
+
+    def _mettre_en_ligne_et_signaler(self):
+        self.annonce.statut = Annonce.StatutAnnonce.EN_LIGNE
+        self.annonce.date_publication = timezone.now()
+        self.annonce.save()
+        Signalement.objects.create(annonce=self.annonce, auteur=self.acheteur, raison=Signalement.Raison.ARNAQUE)
+
+    # ── fiche de revue ───────────────────────────────────────────────────
+    def test_fiche_de_revue_complete_reservee_aux_moderateurs(self):
+        refus = self.client.get(f'{MODERATION_URL}{self.annonce.id}/')  # vendeur connecté
+        self.assertEqual(refus.status_code, status.HTTP_403_FORBIDDEN)
+
+        Annonce.objects.filter(id=self.annonce.id).update(loc_confidentielle=True)
+        self._connecter(self.moderateur)
+        response = self.client.get(f'{MODERATION_URL}{self.annonce.id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['description'], self.annonce.description)
+        self.assertEqual(len(response.data['photos']), 1)
+        self.assertEqual(response.data['vendeur']['email'], 'vendeur@akal.ma')
+        # Position exacte pour le modérateur, même si l'annonce est confidentielle.
+        self.assertEqual(response.data['parcelle']['localisation']['latitude'], 33.5)
+
+    # ── rejet / validation ───────────────────────────────────────────────
+    def test_rejet_exige_un_motif(self):
+        self._connecter(self.moderateur)
+        sans_motif = self._decider(self.annonce, decision='rejeter')
+        autre_sans_texte = self._decider(self.annonce, decision='rejeter', motif='autre')
+        self.assertEqual(sans_motif.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(autre_sans_texte.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Annonce.objects.get(id=self.annonce.id).statut, Annonce.StatutAnnonce.EN_ATTENTE)
+
+    def test_rejet_journalise_notifie_et_explique_au_vendeur(self):
+        self._connecter(self.moderateur)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._decider(
+                self.annonce, decision='rejeter', motif='photos_non_conformes', commentaire='Ajoutez une vue du terrain.',
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.annonce.refresh_from_db()
+        self.assertEqual(self.annonce.statut, Annonce.StatutAnnonce.BROUILLON)
+        self.assertIn('Ajoutez une vue du terrain.', self.annonce.motif_rejet)
+        decision = DecisionModeration.objects.get(annonce=self.annonce)
+        self.assertEqual((decision.action, decision.moderateur, decision.motif),
+                         (DecisionModeration.Action.REJET, self.moderateur, 'photos_non_conformes'))
+        self.assertTrue(Notification.objects.filter(
+            destinataire=self.vendeur, type_notif=Notification.TypeNotif.ANNONCE_REJETEE).exists())
+        self.assertEqual(mail.outbox[-1].to, ['vendeur@akal.ma'])
+
+    def test_vendeur_voit_le_motif_dans_mes_annonces(self):
+        self._connecter(self.moderateur)
+        self._decider(self.annonce, decision='rejeter', motif='prix_incoherent')
+        self._connecter(self.vendeur)
+        response = self.client.get(f'{ANNONCES_URL}mes-annonces/')
+        ligne = next(a for a in response.data if a['id'] == str(self.annonce.id))
+        self.assertIn('prix', ligne['motif_rejet'])
+
+    def test_republication_apres_rejet_repasse_par_un_moderateur(self):
+        self._connecter(self.moderateur)
+        self._decider(self.annonce, decision='rejeter', motif='photos_non_conformes')
+        self._connecter(self.vendeur)
+        response = self.client.patch(
+            f'{ANNONCES_URL}{self.annonce.id}/', {'statut': 'en_ligne'}, format='json', **self.csrf_headers(),
+        )
+        self.assertEqual(response.data['statut'], 'en_attente')
+
+    def test_validation_journalise_notifie_et_vide_le_motif(self):
+        Annonce.objects.filter(id=self.annonce.id).update(motif_rejet='ancien motif')
+        self._connecter(self.moderateur)
+        response = self._decider(self.annonce, decision='valider')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.annonce.refresh_from_db()
+        self.assertEqual((self.annonce.statut, self.annonce.motif_rejet), (Annonce.StatutAnnonce.EN_LIGNE, ''))
+        self.assertTrue(DecisionModeration.objects.filter(
+            annonce=self.annonce, action=DecisionModeration.Action.VALIDATION).exists())
+        self.assertTrue(Notification.objects.filter(type_notif=Notification.TypeNotif.ANNONCE_VALIDEE).exists())
+
+    # ── signalements ─────────────────────────────────────────────────────
+    def test_signalement_par_un_acheteur(self):
+        self.annonce.statut = Annonce.StatutAnnonce.EN_LIGNE
+        self.annonce.save()
+        self._connecter(self.acheteur)
+        url = f'{ANNONCES_URL}{self.annonce.id}/signalements/'
+        premier = self.client.post(url, {'raison': 'arnaque'}, format='json', **self.csrf_headers())
+        doublon = self.client.post(url, {'raison': 'doublon'}, format='json', **self.csrf_headers())
+        autre_vide = self.client.post(url, {'raison': 'autre'}, format='json', **self.csrf_headers())
+
+        self.assertEqual(premier.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(doublon.status_code, status.HTTP_200_OK)
+        self.assertEqual(autre_vide.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Signalement.objects.filter(annonce=self.annonce).count(), 1)
+
+    def test_proprietaire_ne_peut_pas_signaler_et_annonce_non_publique_introuvable(self):
+        url = f'{ANNONCES_URL}{self.annonce.id}/signalements/'
+        self._connecter(self.acheteur)
+        non_publique = self.client.post(url, {'raison': 'arnaque'}, format='json', **self.csrf_headers())
+        self.assertEqual(non_publique.status_code, status.HTTP_404_NOT_FOUND)
+
+        self.annonce.statut = Annonce.StatutAnnonce.EN_LIGNE
+        self.annonce.save()
+        self._connecter(self.vendeur)
+        propre = self.client.post(url, {'raison': 'arnaque'}, format='json', **self.csrf_headers())
+        self.assertEqual(propre.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_annonce_signalee_entre_dans_la_file(self):
+        self._mettre_en_ligne_et_signaler()
+        self._connecter(self.moderateur)
+        response = self.client.get(MODERATION_URL)
+        ligne = next(a for a in response.data if a['id'] == str(self.annonce.id))
+        self.assertEqual(ligne['nb_signalements'], 1)
+
+    def test_suspension_d_une_annonce_signalee(self):
+        self._mettre_en_ligne_et_signaler()
+        self._connecter(self.moderateur)
+        response = self._decider(self.annonce, decision='suspendre', motif='arnaque_suspectee')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.annonce.refresh_from_db()
+        self.assertEqual(self.annonce.statut, Annonce.StatutAnnonce.ARCHIVEE)
+        self.assertFalse(Signalement.objects.filter(annonce=self.annonce, statut='ouvert').exists())
+
+        # Le vendeur ne peut pas la remettre en ligne seul : retour en file.
+        self._connecter(self.vendeur)
+        reactivation = self.client.patch(
+            f'{ANNONCES_URL}{self.annonce.id}/', {'statut': 'en_ligne'}, format='json', **self.csrf_headers(),
+        )
+        self.assertEqual(reactivation.data['statut'], 'en_attente')
+
+    def test_classement_sans_suite_garde_l_annonce_en_ligne(self):
+        self._mettre_en_ligne_et_signaler()
+        self._connecter(self.moderateur)
+        response = self._decider(self.annonce, decision='classer', commentaire='Signalement infondé.')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.annonce.refresh_from_db()
+        self.assertEqual(self.annonce.statut, Annonce.StatutAnnonce.EN_LIGNE)
+        file_ = self.client.get(MODERATION_URL)
+        self.assertNotIn(str(self.annonce.id), [a['id'] for a in file_.data])
+
+    # ── comptes ──────────────────────────────────────────────────────────
+    def _url_vendeur(self, utilisateur):
+        return f'{MODERATION_URL}vendeurs/{utilisateur.id}/'
+
+    def test_suspension_de_compte_retire_ses_annonces_du_catalogue(self):
+        self.annonce.statut = Annonce.StatutAnnonce.EN_LIGNE
+        self.annonce.save()
+        self._connecter(self.moderateur)
+        response = self.client.patch(
+            self._url_vendeur(self.vendeur), {'actif': False, 'motif': 'arnaque_suspectee'},
+            format='json', **self.csrf_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['vendeur']['is_active'])
+        catalogue = APIClient().get(ANNONCES_URL)
+        self.assertNotIn(str(self.annonce.id), [a['id'] for a in catalogue.data['results']])
+
+        reactivation = self.client.patch(
+            self._url_vendeur(self.vendeur), {'actif': True}, format='json', **self.csrf_headers(),
+        )
+        self.assertTrue(reactivation.data['vendeur']['is_active'])
+
+    def test_un_moderateur_ne_suspend_ni_lui_meme_ni_l_equipe(self):
+        self.acheteur.is_staff = True
+        self.acheteur.save()
+        self._connecter(self.moderateur)
+        soi = self.client.patch(self._url_vendeur(self.moderateur), {'actif': False, 'motif': 'doublon'},
+                                format='json', **self.csrf_headers())
+        equipe = self.client.patch(self._url_vendeur(self.acheteur), {'actif': False, 'motif': 'doublon'},
+                                   format='json', **self.csrf_headers())
+        self.assertEqual(soi.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(equipe.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_journal_liste_les_decisions(self):
+        self._connecter(self.moderateur)
+        self._decider(self.annonce, decision='rejeter', motif='doublon')
+        response = self.client.get(f'{MODERATION_URL}journal/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]['action'], 'rejet')
+        self.assertEqual(response.data[0]['titre_annonce'], self.annonce.titre)
 
 
 class AlertesRechercheSauvegardeeTests(AnnoncesTestBase):

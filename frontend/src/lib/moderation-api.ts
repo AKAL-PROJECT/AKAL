@@ -1,30 +1,76 @@
-// Client du dashboard modérateur (/moderation, 2026-10-01) — même
-// séparation que lib/annonces-api.ts : getQueueModeration() est un fetch
-// simple (appelée uniquement depuis app/moderation/page.tsx, un Server
-// Component — fetchWithAuth y lèverait l'erreur cookies().set(), cf.
-// lib/annonces-api.ts) ; decider() passe par fetchWithAuth (appelée
-// uniquement depuis app/actions/moderation.ts, une Server Action).
+// Client du dashboard de modération (/moderation) — côté serveur uniquement
+// (Server Components / Server Actions), même raison que lib/annonces-api.ts :
+// les cookies d'auth httpOnly ne sont lisibles que via next/headers.
 //
-// Pas de vérification `peut_moderer` ici : c'est à app/moderation/page.tsx
-// de garder l'accès à la page (cf. son redirect()) — l'API REST
-// (PeutModererAnnonces, backend/annonces/api_views.py) reste la vraie
-// barrière si ce client est appelé malgré tout sans ce droit (403, traduit
-// en ApiError par lireOuLeverErreur ci-dessous).
+// Pas de vérification `peut_moderer` ici : c'est aux pages /moderation de
+// rediriger un non-modérateur, le backend (PeutModererAnnonces) restant la
+// seule vraie barrière.
 
 import { cookies } from "next/headers";
 import { ApiError, lireErreur } from "./api";
 import { fetchWithAuth } from "./fetchWithAuth";
-import type { AnnonceListDTO } from "./mapAnnonceToParcelle";
-
+import type { AnnonceDetailDTO, AnnonceListDTO } from "./mapAnnonceToParcelle";
+import { entetesBackendRequete } from "./entetes-backend-serveur";
 import { API_URL } from "./api-base";
 
 export type AnnonceModerationDTO = AnnonceListDTO & {
-  // Raisons détectées par le signal automatique (backend/annonces/
-  // moderation.py) — chaîne vide si l'annonce est en_attente pour une autre
-  // raison (aucune aujourd'hui : c'est la seule source qui y mène, cf.
-  // ModerationQueueListAPIView).
   motif_moderation: string;
+  nb_signalements: number;
 };
+
+export type SignalementDTO = {
+  id: string;
+  raison: string;
+  raison_libelle: string;
+  commentaire: string;
+  statut: "ouvert" | "traite" | "classe";
+  created_at: string;
+  auteur: { id: string; prenom: string; email: string };
+};
+
+export type DecisionModerationDTO = {
+  id: string;
+  action: "validation" | "rejet" | "suspension" | "classement" | "suspension_compte" | "reactivation_compte";
+  action_libelle: string;
+  moderateur: string | null;
+  annonce_id: string | null;
+  titre_annonce: string;
+  utilisateur_cible_id: string | null;
+  motif: string;
+  commentaire: string;
+  created_at: string;
+};
+
+export type VendeurModerationDTO = {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string | null;
+  telephone_verifie: boolean;
+  date_inscription: string;
+  is_active: boolean;
+  est_equipe: boolean;
+  nb_annonces: number;
+  nb_annonces_en_ligne: number;
+  nb_rejets: number;
+};
+
+export type RevueAnnonceDTO = AnnonceDetailDTO & {
+  motif_moderation: string;
+  motif_rejet: string;
+  vendeur: VendeurModerationDTO;
+  signalements: SignalementDTO[];
+  historique: DecisionModerationDTO[];
+};
+
+export type DossierVendeurDTO = {
+  vendeur: VendeurModerationDTO;
+  annonces: AnnonceModerationDTO[];
+  historique: DecisionModerationDTO[];
+};
+
+export type Decision = "valider" | "rejeter" | "suspendre" | "classer";
 
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();
@@ -36,26 +82,68 @@ async function lireOuLeverErreur(res: Response): Promise<never> {
   throw new ApiError(res.status, message, fieldErrors);
 }
 
-// Appelée uniquement depuis app/moderation/page.tsx (Server Component).
-export async function getQueueModeration(): Promise<AnnonceModerationDTO[]> {
-  const res = await fetch(`${API_URL}/annonces/moderation/`, {
-    headers: { Cookie: await cookieHeader() },
+async function lire<T>(chemin: string): Promise<T | null> {
+  const res = await fetch(`${API_URL}${chemin}`, {
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
-  if (!res.ok) return [];
-  return (await res.json()) as AnnonceModerationDTO[];
+  if (res.status === 404) return null;
+  if (!res.ok) await lireOuLeverErreur(res);
+  return (await res.json()) as T;
 }
 
-// "valider"/"rejeter" plutôt que le statut cible brut : le composant
-// appelant (ModerationScreen.tsx) n'a pas à connaître le vocabulaire de
-// statut de l'annonce pour agir, seulement la décision prise.
-export async function decider(id: string, decision: "valider" | "rejeter"): Promise<AnnonceModerationDTO> {
-  const statut = decision === "valider" ? "en_ligne" : "brouillon";
+export async function getQueueModeration(): Promise<AnnonceModerationDTO[]> {
+  return (await lire<AnnonceModerationDTO[]>("/annonces/moderation/").catch(() => null)) ?? [];
+}
+
+export async function getJournalModeration(): Promise<DecisionModerationDTO[]> {
+  return (await lire<DecisionModerationDTO[]>("/annonces/moderation/journal/").catch(() => null)) ?? [];
+}
+
+export async function getRevueAnnonce(id: string): Promise<RevueAnnonceDTO | null> {
+  return lire<RevueAnnonceDTO>(`/annonces/moderation/${id}/`);
+}
+
+export async function getDossierVendeur(id: string): Promise<DossierVendeurDTO | null> {
+  return lire<DossierVendeurDTO>(`/annonces/moderation/vendeurs/${id}/`);
+}
+
+export async function decider(
+  id: string,
+  decision: Decision,
+  motif = "",
+  commentaire = "",
+): Promise<RevueAnnonceDTO> {
   const res = await fetchWithAuth(`${API_URL}/annonces/moderation/${id}/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ statut }),
+    body: JSON.stringify({ decision, motif, commentaire }),
   });
   if (!res.ok) await lireOuLeverErreur(res);
-  return (await res.json()) as AnnonceModerationDTO;
+  return (await res.json()) as RevueAnnonceDTO;
+}
+
+export async function changerStatutVendeur(
+  id: string,
+  actif: boolean,
+  motif = "",
+  commentaire = "",
+): Promise<DossierVendeurDTO> {
+  const res = await fetchWithAuth(`${API_URL}/annonces/moderation/vendeurs/${id}/`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actif, motif, commentaire }),
+  });
+  if (!res.ok) await lireOuLeverErreur(res);
+  return (await res.json()) as DossierVendeurDTO;
+}
+
+export async function signalerAnnonce(annonceId: string, raison: string, commentaire: string): Promise<string> {
+  const res = await fetchWithAuth(`${API_URL}/annonces/${annonceId}/signalements/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ raison, commentaire }),
+  });
+  if (!res.ok) await lireOuLeverErreur(res);
+  return ((await res.json()) as { detail: string }).detail;
 }

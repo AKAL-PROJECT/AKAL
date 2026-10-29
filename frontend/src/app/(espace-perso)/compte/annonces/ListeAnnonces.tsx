@@ -181,6 +181,19 @@ export function ListeAnnonces({ annonces }: { annonces: AnnonceProprietaire[] })
                     </>
                   )}
                 </div>
+                {/* Motif d'un rejet / d'une suspension par la modération :
+                    ce que le vendeur doit corriger avant une nouvelle revue. */}
+                {a.motifRejet && a.statut !== "en_ligne" && (
+                  <p
+                    role="note"
+                    style={{
+                      fontSize: "13px", color: "var(--color-terre-texte)", backgroundColor: "var(--color-terre-fond)",
+                      borderRadius: "var(--radius-sm)", padding: "6px 10px", margin: "4px 0 0",
+                    }}
+                  >
+                    <strong>À corriger (modération) :</strong> {a.motifRejet}
+                  </p>
+                )}
               </div>
             </div>
 

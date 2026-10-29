@@ -24,7 +24,9 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from . import transitions
-from .models import Annonce, DonneesGeo, Parcelle, Photo, RechercheSauvegardee
+from .models import (
+    Annonce, DecisionModeration, DonneesGeo, Parcelle, Photo, RechercheSauvegardee, Signalement,
+)
 from .moderation import evaluer_signal_moderation
 from .moderation_ia import evaluer_signal_ia
 
@@ -472,8 +474,11 @@ class ModerationAnnonceSerializer(AnnonceListSerializer):
     décider, donc le seul champ ajouté ici.
     """
 
+    # Annotation posée par ModerationQueueListAPIView (0 si absente).
+    nb_signalements = serializers.IntegerField(read_only=True, default=0)
+
     class Meta(AnnonceListSerializer.Meta):
-        fields = AnnonceListSerializer.Meta.fields + ['motif_moderation']
+        fields = AnnonceListSerializer.Meta.fields + ['motif_moderation', 'nb_signalements']
 
 
 class AnnonceDetailSerializer(serializers.ModelSerializer):
@@ -554,7 +559,9 @@ class MesAnnoncesSerializer(AnnonceListSerializer):
     nb_vues = serializers.IntegerField(read_only=True)
 
     class Meta(AnnonceListSerializer.Meta):
-        fields = AnnonceListSerializer.Meta.fields + ['nb_vues']
+        # motif_rejet : motif d'un rejet / d'une suspension par la modération,
+        # affiché au vendeur dans « Mes annonces » (vide sinon).
+        fields = AnnonceListSerializer.Meta.fields + ['nb_vues', 'motif_rejet']
 
 
 # ──────────────────────────────────────────────
@@ -937,7 +944,18 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
                 # signaux sont évalués. Réactivation (archivee/vendue →
                 # en_ligne) : détournée seulement si un texte modifié depuis
                 # a été jugé suspect (audit S6, palier 1).
-                if statut_avant == Annonce.StatutAnnonce.BROUILLON:
+                if instance.motif_rejet:
+                    # Rejetée ou suspendue par un modérateur : la remise en
+                    # ligne repasse TOUJOURS par un humain, même si le signal
+                    # automatique juge le texte sain (sinon il suffirait de
+                    # republier sans rien corriger). motif_rejet n'est vidé
+                    # que par une validation (Annonce.valider()).
+                    instance.statut = Annonce.StatutAnnonce.EN_ATTENTE
+                    if not instance.motif_moderation:
+                        instance.motif_moderation = (
+                            f"Republication après décision de modération : {instance.motif_rejet}"
+                        )
+                elif statut_avant == Annonce.StatutAnnonce.BROUILLON:
                     raisons = []
                     signal = evaluer_signal_moderation(instance.titre, instance.description)
                     if signal.suspect:
@@ -1052,3 +1070,105 @@ class RechercheSauvegardeeSerializer(serializers.ModelSerializer):
         if not isinstance(valeur, dict):
             raise serializers.ValidationError("Les critères doivent être un objet (mêmes clés que les filtres du catalogue).")
         return valeur
+
+
+# ──────────────────────────────────────────────
+# MODÉRATION — fiche de revue, signalements, journal (dashboard /moderation)
+# ──────────────────────────────────────────────
+
+class SignalementCreationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Signalement
+        fields = ['raison', 'commentaire']
+
+    def validate(self, attrs):
+        if attrs.get('raison') == Signalement.Raison.AUTRE and not (attrs.get('commentaire') or '').strip():
+            raise serializers.ValidationError({'commentaire': ["Précisez la raison du signalement."]})
+        return attrs
+
+
+class SignalementSerializer(serializers.ModelSerializer):
+    raison_libelle = serializers.CharField(source='get_raison_display', read_only=True)
+    auteur = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Signalement
+        fields = ['id', 'raison', 'raison_libelle', 'commentaire', 'statut', 'created_at', 'auteur']
+
+    def get_auteur(self, obj):
+        return {'id': str(obj.auteur_id), 'prenom': obj.auteur.prenom, 'email': obj.auteur.email}
+
+
+class DecisionModerationSerializer(serializers.ModelSerializer):
+    action_libelle = serializers.CharField(source='get_action_display', read_only=True)
+    moderateur = serializers.SerializerMethodField()
+    annonce_id = serializers.UUIDField(read_only=True, allow_null=True)
+    utilisateur_cible_id = serializers.UUIDField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = DecisionModeration
+        fields = [
+            'id', 'action', 'action_libelle', 'moderateur', 'annonce_id', 'titre_annonce',
+            'utilisateur_cible_id', 'motif', 'commentaire', 'created_at',
+        ]
+
+    def get_moderateur(self, obj):
+        if obj.moderateur is None:
+            return None
+        return f"{obj.moderateur.prenom} {obj.moderateur.nom}".strip() or obj.moderateur.email
+
+
+def resume_vendeur(utilisateur):
+    """Ce qu'un modérateur doit savoir du vendeur pour décider — réservé au
+    dashboard /moderation (jamais exposé au public : email et téléphone en
+    clair)."""
+    annonces = Annonce.objects.filter(proprietaire=utilisateur)
+    return {
+        'id': str(utilisateur.id),
+        'prenom': utilisateur.prenom,
+        'nom': utilisateur.nom,
+        'email': utilisateur.email,
+        'telephone': utilisateur.telephone,
+        'telephone_verifie': utilisateur.telephone_verifie,
+        'date_inscription': utilisateur.date_inscription,
+        'is_active': utilisateur.is_active,
+        'est_equipe': utilisateur.is_staff or utilisateur.is_superuser,
+        'nb_annonces': annonces.count(),
+        'nb_annonces_en_ligne': annonces.filter(statut=Annonce.StatutAnnonce.EN_LIGNE).count(),
+        'nb_rejets': DecisionModeration.objects.filter(
+            utilisateur_cible=utilisateur,
+            action__in=[DecisionModeration.Action.REJET, DecisionModeration.Action.SUSPENSION],
+        ).count(),
+    }
+
+
+class ModerationRevueSerializer(AnnonceDetailSerializer):
+    """Fiche de revue complète : tout le détail public + position EXACTE
+    (jamais floutée pour un modérateur), signaux, signalements, historique
+    des décisions et résumé du vendeur."""
+
+    vendeur = serializers.SerializerMethodField()
+    signalements = serializers.SerializerMethodField()
+    historique = serializers.SerializerMethodField()
+
+    class Meta(AnnonceDetailSerializer.Meta):
+        fields = AnnonceDetailSerializer.Meta.fields + [
+            'motif_moderation', 'motif_rejet', 'vendeur', 'signalements', 'historique',
+        ]
+
+    def to_representation(self, instance):
+        # Saute le floutage de AnnonceDetailSerializer.to_representation.
+        return serializers.ModelSerializer.to_representation(self, instance)
+
+    def get_vendeur(self, obj):
+        return resume_vendeur(obj.proprietaire)
+
+    def get_signalements(self, obj):
+        return SignalementSerializer(
+            obj.signalements.select_related('auteur').all(), many=True,
+        ).data
+
+    def get_historique(self, obj):
+        return DecisionModerationSerializer(
+            obj.decisions_moderation.select_related('moderateur').all(), many=True,
+        ).data

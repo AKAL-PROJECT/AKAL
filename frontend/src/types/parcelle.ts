@@ -97,6 +97,7 @@ export type AnnonceProprietaire = {
   createdAt: string;
   photoPrincipale: string | null;
   nbVues: number; // total cumulé des vues de la fiche (0 tant que jamais consultée)
+  motifRejet: string; // motif d'un rejet / d'une suspension par la modération, "" sinon
 };
 
 export type Parcelle = {

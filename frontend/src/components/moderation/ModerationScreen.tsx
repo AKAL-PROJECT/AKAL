@@ -1,135 +1,136 @@
 "use client";
 
-// Dashboard modérateur (/moderation, 2026-10-01) — valider/rejeter une
-// annonce `en_attente`. Pas de modale de confirmation contrôlée (contr.
-// app/(espace-perso)/compte/annonces/ListeAnnonces.tsx) : les deux actions
-// sont réversibles l'une par l'autre côté modération (une annonce rejetée
-// par erreur reste modifiable par son propriétaire puis revient dans cette
-// même file), contrairement à archiver/marquer vendue qui ferment un cycle
-// de vie — le risque justifiant cette modale n'existe pas ici.
-//
-// `enCours` verrouille uniquement la carte concernée (pas toute la liste,
-// contrairement à ListeAnnonces.tsx) : deux modérateurs ou deux décisions
-// indépendantes sur deux annonces différentes n'ont aucune raison de se
-// bloquer l'une l'autre.
+// Dashboard modérateur (/moderation) — deux onglets :
+//   - File : annonces en attente (signal automatique, republication après
+//     décision) et annonces en ligne signalées par des utilisateurs. Chaque
+//     ligne ouvre la fiche de revue (/moderation/[id]), où se prennent les
+//     décisions — jamais depuis la liste, pour décider sur le dossier
+//     complet plutôt que sur une vignette.
+//   - Journal : les 100 dernières décisions (qui, quand, quoi, pourquoi).
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { EtatVide } from "@/components/EtatVide";
-import { Check, X } from "@/components/icons/Icons";
-import {
-  rejeterAnnonceAction,
-  validerAnnonceAction,
-  type ActionModerationResultat,
-} from "@/app/actions/moderation";
-import type { AnnonceModerationDTO } from "@/lib/moderation-api";
+import BadgeStatutAnnonce from "@/components/parcelles/BadgeStatutAnnonce";
+import { libelleMotif } from "@/lib/moderation-motifs";
+import type { AnnonceModerationDTO, DecisionModerationDTO } from "@/lib/moderation-api";
 
 const formatMAD = new Intl.NumberFormat("fr-MA");
+const formatDateHeure = new Intl.DateTimeFormat("fr-MA", { dateStyle: "medium", timeStyle: "short" });
 
-export function ModerationScreen({ annoncesInitiales }: { annoncesInitiales: AnnonceModerationDTO[] }) {
-  const [items, setItems] = useState(annoncesInitiales);
-  const [enCours, setEnCours] = useState<string | null>(null);
-  const [erreur, setErreur] = useState<string | null>(null);
+const STYLE_PASTILLE: React.CSSProperties = {
+  fontSize: 12, padding: "2px 8px", borderRadius: 999, fontWeight: 500, whiteSpace: "nowrap",
+};
 
-  async function decider(id: string, action: (id: string) => Promise<ActionModerationResultat>) {
-    if (enCours) return;
-    setErreur(null);
-    setEnCours(id);
-    const resultat = await action(id);
-    setEnCours(null);
-    if (resultat.ok) {
-      setItems((prev) => prev.filter((a) => a.id !== id));
-    } else {
-      setErreur(resultat.error);
-    }
-  }
+export function ModerationScreen({
+  annonces,
+  journal,
+}: {
+  annonces: AnnonceModerationDTO[];
+  journal: DecisionModerationDTO[];
+}) {
+  const [onglet, setOnglet] = useState<"file" | "journal">("file");
+  const nbSignalees = annonces.filter((a) => a.nb_signalements > 0).length;
 
   return (
-    <div style={{ maxWidth: "760px", margin: "0 auto", padding: "32px 16px" }}>
-      <h1 style={{ fontSize: "22px", fontWeight: 600, color: "var(--color-nuit)", marginBottom: "4px" }}>
-        Modération
-      </h1>
-      <p style={{ fontSize: "14px", color: "var(--color-tertiaire)", marginBottom: "24px" }}>
-        {items.length} annonce{items.length === 1 ? "" : "s"} en attente de validation.
+    <div style={{ maxWidth: "860px", margin: "0 auto", padding: "32px 16px" }}>
+      <h1 style={{ fontSize: "22px", fontWeight: 600, color: "var(--color-nuit)", marginBottom: "4px" }}>Modération</h1>
+      <p style={{ fontSize: "14px", color: "var(--color-tertiaire)", marginBottom: "20px" }}>
+        {annonces.length} annonce{annonces.length === 1 ? "" : "s"} à revoir
+        {nbSignalees > 0 && ` dont ${nbSignalees} signalée${nbSignalees === 1 ? "" : "s"} par des utilisateurs`}.
       </p>
 
-      {erreur && (
-        <p
-          className="akal-alert-in"
-          style={{
-            color: "var(--color-erreur)",
-            fontSize: 14,
-            backgroundColor: "var(--color-erreur-fond)",
-            border: "1px solid var(--color-erreur)",
-            borderRadius: "var(--radius-sm)",
-            padding: "10px 14px",
-            marginBottom: 16,
-          }}
-        >
-          {erreur}
-        </p>
-      )}
+      <div role="tablist" aria-label="Modération" style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: "1px solid var(--color-bordure)" }}>
+        {([["file", `File (${annonces.length})`], ["journal", "Journal"]] as const).map(([cle, libelle]) => (
+          <button
+            key={cle}
+            type="button"
+            role="tab"
+            aria-selected={onglet === cle}
+            onClick={() => setOnglet(cle)}
+            className="akal-focusable"
+            style={{
+              padding: "10px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 14,
+              fontWeight: onglet === cle ? 600 : 400,
+              color: onglet === cle ? "var(--color-foret)" : "var(--color-secondaire)",
+              borderBottom: onglet === cle ? "2px solid var(--color-foret)" : "2px solid transparent",
+              marginBottom: -1,
+            }}
+          >
+            {libelle}
+          </button>
+        ))}
+      </div>
 
-      {items.length === 0 ? (
-        <EtatVide titre="File vide" description="Aucune annonce en attente de modération pour l'instant." />
-      ) : (
-        <div className="akal-stagger" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {items.map((a) => (
-            <div
-              key={a.id}
-              className="card"
-              style={{ display: "flex", gap: "16px", padding: "16px", flexWrap: "wrap", alignItems: "center" }}
-            >
-              <div
-                style={{
-                  position: "relative",
-                  width: "88px",
-                  height: "88px",
-                  flexShrink: 0,
-                  borderRadius: "var(--radius-sm)",
-                  overflow: "hidden",
-                  backgroundColor: "var(--color-menthe)",
-                }}
+      {onglet === "file" ? (
+        annonces.length === 0 ? (
+          <EtatVide titre="File vide" description="Aucune annonce à revoir pour l'instant." />
+        ) : (
+          <div className="akal-stagger" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {annonces.map((a) => (
+              <Link
+                key={a.id}
+                href={`/moderation/${a.id}`}
+                className="card akal-focusable"
+                style={{ display: "flex", gap: "16px", padding: "14px", alignItems: "center", textDecoration: "none", color: "inherit", flexWrap: "wrap" }}
               >
-                {a.photo_principale && (
-                  <Image src={a.photo_principale} alt={a.titre} fill sizes="88px" style={{ objectFit: "cover" }} />
+                <div style={{ position: "relative", width: 80, height: 80, flexShrink: 0, borderRadius: "var(--radius-sm)", overflow: "hidden", backgroundColor: "var(--color-menthe)" }}>
+                  {a.photo_principale && <Image src={a.photo_principale} alt="" fill sizes="80px" style={{ objectFit: "cover" }} />}
+                </div>
+                <div style={{ flex: "1 1 240px", minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <BadgeStatutAnnonce statut={a.statut} />
+                    {a.nb_signalements > 0 && (
+                      <span style={{ ...STYLE_PASTILLE, backgroundColor: "var(--color-erreur-fond)", color: "var(--color-erreur)" }}>
+                        {a.nb_signalements} signalement{a.nb_signalements === 1 ? "" : "s"}
+                      </span>
+                    )}
+                    {a.statut === "en_attente" && a.motif_moderation && (
+                      <span style={{ ...STYLE_PASTILLE, backgroundColor: "var(--color-terre-fond)", color: "var(--color-terre-texte)" }}>
+                        Signal automatique
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 15, fontWeight: 500 }}>{a.titre}</span>
+                  <span style={{ fontSize: 13, color: "var(--color-secondaire)" }}>
+                    {formatMAD.format(a.prix_mad)} MAD · {a.parcelle.surface_ha} ha{a.parcelle.region ? ` · ${a.parcelle.region.nom}` : ""}
+                  </span>
+                  {a.motif_moderation && (
+                    <span style={{ fontSize: 12, color: "var(--color-erreur)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      ⚠ {a.motif_moderation}
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 13, color: "var(--color-foret)", fontWeight: 500, flexShrink: 0 }}>Examiner →</span>
+              </Link>
+            ))}
+          </div>
+        )
+      ) : journal.length === 0 ? (
+        <EtatVide titre="Aucune décision" description="Les décisions de modération apparaîtront ici." />
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+          {journal.map((d) => (
+            <li key={d.id} className="card" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <strong style={{ fontSize: 14 }}>{d.action_libelle}</strong>
+                <span style={{ fontSize: 12, color: "var(--color-tertiaire)" }}>{formatDateHeure.format(new Date(d.created_at))}</span>
+              </div>
+              <span style={{ fontSize: 13, color: "var(--color-secondaire)" }}>
+                {d.annonce_id ? (
+                  <Link href={`/moderation/${d.annonce_id}`} style={{ color: "var(--color-foret)" }}>{d.titre_annonce || "Annonce"}</Link>
+                ) : d.utilisateur_cible_id ? (
+                  <Link href={`/moderation/vendeurs/${d.utilisateur_cible_id}`} style={{ color: "var(--color-foret)" }}>Voir le compte</Link>
+                ) : (
+                  d.titre_annonce
                 )}
-              </div>
-
-              <div style={{ flex: "1 1 220px", minWidth: 0, display: "flex", flexDirection: "column", gap: "6px" }}>
-                <h3 style={{ fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", margin: 0 }}>
-                  {a.titre}
-                </h3>
-                <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-foret)" }}>
-                  {formatMAD.format(a.prix_mad)} MAD
-                </span>
-                {a.motif_moderation && (
-                  <p style={{ fontSize: "13px", color: "var(--color-erreur)", margin: 0 }}>⚠ {a.motif_moderation}</p>
-                )}
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ padding: "6px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                  disabled={enCours === a.id}
-                  onClick={() => decider(a.id, validerAnnonceAction)}
-                >
-                  <Check size={14} /> Valider
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{ padding: "6px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                  disabled={enCours === a.id}
-                  onClick={() => decider(a.id, rejeterAnnonceAction)}
-                >
-                  <X size={14} /> Rejeter
-                </button>
-              </div>
-            </div>
+                {" · par "}{d.moderateur ?? "—"}
+                {d.motif && ` · ${libelleMotif(d.motif)}`}
+              </span>
+              {d.commentaire && <span style={{ fontSize: 13 }}>« {d.commentaire} »</span>}
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
