@@ -475,6 +475,23 @@ AGRISCORE_HTTP_TIMEOUT_S = env.float('AGRISCORE_HTTP_TIMEOUT_S', default=10.0)
 
 
 # ──────────────────────────────────────────────
+# MODÉRATION IA — palier 2 (2026-10-01, branche feat/moderation-ia)
+# ──────────────────────────────────────────────
+#
+# Signal texte (darija/arabe/français) + images via un modèle local
+# (Qwen2.5-VL, Ollama) — JAMAIS un service tiers payant : Ollama tourne en
+# local, cf. docker-compose.ia.yml (jamais fusionné au compose principal,
+# la machine de dev ne supporte pas de le faire tourner en permanence).
+#
+# Désactivé par défaut même sur cette branche : le code existe mais ne
+# s'exécute pas sans l'avoir explicitement activé (ollama installé +
+# modèle téléchargé requis, cf. docs/plans/2026-10-01-moderation-ia-design.md).
+MODERATION_IA_ACTIVE = env.bool('MODERATION_IA_ACTIVE', default=False)
+OLLAMA_URL = env('OLLAMA_URL', default='http://localhost:11434')
+OLLAMA_MODERATION_MODEL = env('OLLAMA_MODERATION_MODEL', default='qwen2.5vl:3b')
+
+
+# ──────────────────────────────────────────────
 # DATASET — simulated / scraped (2026-08-11)
 # ──────────────────────────────────────────────
 #
