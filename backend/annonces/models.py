@@ -213,6 +213,12 @@ class Annonce(models.Model):
     # QUOI regarder sans deviner. Vide dans tous les autres cas (jamais
     # rempli à la main, jamais lu ailleurs que dans l'admin).
     motif_moderation = models.TextField(blank=True, default='')
+    # Motif communiqué au PROPRIÉTAIRE quand un modérateur rejette ou suspend
+    # l'annonce (dashboard /moderation, cf. annonces/moderation_actions.py) —
+    # contrairement à motif_moderation (signal automatique, interne), ce
+    # texte est affiché dans « Mes annonces » pour que le vendeur sache quoi
+    # corriger. Vidé à la validation suivante.
+    motif_rejet = models.TextField(blank=True, default='')
     loc_confidentielle = models.BooleanField(default=False)
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.INTERNE)
     # Identifiant de l'annonce chez la source externe (ex. id_annonce Avito) —
@@ -335,7 +341,8 @@ class Annonce(models.Model):
         # Approbation humaine : le signal automatique est levé (sinon une
         # réactivation ultérieure la redétournerait, cf. serializers.update).
         self.motif_moderation = ''
-        self.save(update_fields=['statut', 'date_publication', 'motif_moderation'])
+        self.motif_rejet = ''
+        self.save(update_fields=['statut', 'date_publication', 'motif_moderation', 'motif_rejet'])
         return True, []
 
     def rejeter(self):
@@ -456,3 +463,98 @@ class RechercheSauvegardee(models.Model):
 
     def __str__(self):
         return self.nom or f"Recherche {str(self.id)[:8]} ({self.utilisateur})"
+
+
+# ──────────────────────────────────────────────
+# MODÉRATION — signalements et journal des décisions
+# ──────────────────────────────────────────────
+
+class Signalement(models.Model):
+    """Signalement d'une annonce publiée par un utilisateur connecté (bouton
+    « Signaler cette annonce » de la fiche). Les signalements ouverts font
+    entrer l'annonce dans la file de modération (/moderation), à côté des
+    annonces détournées en_attente par le signal automatique."""
+
+    class Raison(models.TextChoices):
+        ARNAQUE = 'arnaque', 'Arnaque ou fraude suspectée'
+        HORS_SUJET = 'hors_sujet', "Ce n'est pas un terrain agricole"
+        INFORMATIONS_FAUSSES = 'informations_fausses', 'Informations fausses ou trompeuses'
+        DEJA_VENDUE = 'deja_vendue', 'Parcelle déjà vendue'
+        DOUBLON = 'doublon', 'Annonce en double'
+        CONTENU_INAPPROPRIE = 'contenu_inapproprie', 'Contenu inapproprié'
+        AUTRE = 'autre', 'Autre'
+
+    class Statut(models.TextChoices):
+        OUVERT = 'ouvert', 'Ouvert'
+        TRAITE = 'traite', 'Traité (annonce rejetée ou suspendue)'
+        CLASSE = 'classe', 'Classé sans suite'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    annonce = models.ForeignKey(Annonce, on_delete=models.CASCADE, related_name='signalements')
+    auteur = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='signalements_emis',
+    )
+    raison = models.CharField(max_length=30, choices=Raison.choices)
+    commentaire = models.TextField(blank=True, default='', max_length=1000)
+    statut = models.CharField(max_length=10, choices=Statut.choices, default=Statut.OUVERT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    traite_le = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'signalement'
+        verbose_name = 'Signalement'
+        verbose_name_plural = 'Signalements'
+        ordering = ['-created_at']
+        constraints = [
+            # Un utilisateur ne compte qu'une fois par annonce tant que son
+            # signalement est ouvert (anti-gonflement du compteur).
+            models.UniqueConstraint(
+                fields=['annonce', 'auteur'],
+                condition=models.Q(statut='ouvert'),
+                name='signalement_ouvert_unique_par_auteur',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_raison_display()} — {self.annonce}"
+
+
+class DecisionModeration(models.Model):
+    """Journal des décisions humaines de modération (qui, quand, quoi,
+    pourquoi). Jamais modifié après coup : une erreur se corrige par une
+    nouvelle décision, l'historique reste complet."""
+
+    class Action(models.TextChoices):
+        VALIDATION = 'validation', 'Annonce validée'
+        REJET = 'rejet', 'Annonce rejetée'
+        SUSPENSION = 'suspension', 'Annonce suspendue'
+        CLASSEMENT = 'classement', 'Signalements classés sans suite'
+        SUSPENSION_COMPTE = 'suspension_compte', 'Compte suspendu'
+        REACTIVATION_COMPTE = 'reactivation_compte', 'Compte réactivé'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    action = models.CharField(max_length=30, choices=Action.choices)
+    moderateur = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='decisions_moderation',
+    )
+    annonce = models.ForeignKey(
+        Annonce, on_delete=models.SET_NULL, null=True, blank=True, related_name='decisions_moderation',
+    )
+    utilisateur_cible = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='decisions_moderation_subies',
+    )
+    # Copie du titre : le journal reste lisible même si l'annonce est supprimée.
+    titre_annonce = models.CharField(max_length=120, blank=True, default='')
+    motif = models.CharField(max_length=40, blank=True, default='')
+    commentaire = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'decision_moderation'
+        verbose_name = 'Décision de modération'
+        verbose_name_plural = 'Décisions de modération'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_action_display()} — {self.titre_annonce or self.utilisateur_cible}"

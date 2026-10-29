@@ -2,7 +2,7 @@
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
-from .models import Parcelle, Annonce, Photo, DonneesGeo, RechercheSauvegardee, StatistiqueAnnonce
+from .models import Parcelle, Annonce, Photo, DonneesGeo, RechercheSauvegardee, StatistiqueAnnonce, DecisionModeration, Signalement
 from .transitions import transition_autorisee
 
 
@@ -205,3 +205,30 @@ class RechercheSauvegardeeAdmin(admin.ModelAdmin):
     list_display = ('nom', 'utilisateur', 'actif', 'created_at')
     list_filter = ('actif',)
     search_fields = ('nom', 'utilisateur__email')
+
+
+@admin.register(Signalement)
+class SignalementAdmin(admin.ModelAdmin):
+    list_display = ('annonce', 'raison', 'statut', 'auteur', 'created_at')
+    list_filter = ('statut', 'raison')
+    search_fields = ('annonce__titre', 'auteur__email', 'commentaire')
+    raw_id_fields = ('annonce', 'auteur')
+
+
+@admin.register(DecisionModeration)
+class DecisionModerationAdmin(admin.ModelAdmin):
+    """Journal en lecture seule : une décision ne se réécrit pas, elle se
+    corrige par une nouvelle décision (cf. annonces/moderation_actions.py)."""
+
+    list_display = ('created_at', 'action', 'titre_annonce', 'utilisateur_cible', 'moderateur', 'motif')
+    list_filter = ('action', 'motif')
+    search_fields = ('titre_annonce', 'commentaire', 'utilisateur_cible__email', 'moderateur__email')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

@@ -119,6 +119,10 @@ class Notification(models.Model):
         NOUVEAU_FAVORI = 'nouveau_favori', 'Nouveau favori'
         CONTACT_RECU = 'contact_recu', 'Contact reçu'
         ALERTE_RECHERCHE = 'alerte_recherche', 'Alerte recherche sauvegardée'
+        # Décisions de modération communiquées au vendeur (annonces/moderation_actions.py).
+        ANNONCE_VALIDEE = 'annonce_validee', 'Annonce validée par la modération'
+        ANNONCE_REJETEE = 'annonce_rejetee', 'Annonce rejetée par la modération'
+        ANNONCE_SUSPENDUE = 'annonce_suspendue', 'Annonce suspendue par la modération'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     destinataire = models.ForeignKey(

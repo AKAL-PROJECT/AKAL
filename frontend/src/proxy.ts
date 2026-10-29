@@ -58,7 +58,7 @@
 // son échec ne redirige JAMAIS — /connexion et /inscription ont d'ailleurs
 // la logique inverse (redirigent SI une session existe), gérée par les
 // pages elles-mêmes, pas ici.
-const ROUTES_PROTEGEES = [/^\/compte(\/|$)/, /^\/bienvenue(\/|$)/, /^\/publier(\/|$)/, /^\/messages(\/|$)/, /^\/favoris(\/|$)/];
+const ROUTES_PROTEGEES = [/^\/compte(\/|$)/, /^\/bienvenue(\/|$)/, /^\/publier(\/|$)/, /^\/messages(\/|$)/, /^\/favoris(\/|$)/, /^\/moderation(\/|$)/];
 
 function estRouteProtegee(pathname: string): boolean {
   return ROUTES_PROTEGEES.some((re) => re.test(pathname));

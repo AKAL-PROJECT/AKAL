@@ -72,6 +72,7 @@ export type AnnonceListDTO = {
   // Uniquement sur GET /api/annonces/mes-annonces/ (MesAnnoncesSerializer) —
   // total cumulé des vues de la fiche. Absent du catalogue public.
   nb_vues?: number;
+  motif_rejet?: string; // mes-annonces uniquement
 };
 
 export type PhotoDTO = {
@@ -192,6 +193,7 @@ export function mapAnnonceToAnnonceProprietaire(dto: AnnonceListDTO): AnnoncePro
     createdAt: dto.created_at,
     photoPrincipale: dto.photo_principale,
     nbVues: dto.nb_vues ?? 0,
+    motifRejet: dto.motif_rejet ?? "",
   };
 }
 

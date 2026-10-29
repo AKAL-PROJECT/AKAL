@@ -38,6 +38,7 @@ export type User = {
   // "Moderateur") — sert à afficher le lien "Modération" (Navbar.tsx) et à
   // garder /moderation (page.tsx) ; l'API REST reste la vraie barrière.
   peut_moderer: boolean;
+  peut_suspendre_comptes?: boolean;
 };
 
 export type SignupInput = {

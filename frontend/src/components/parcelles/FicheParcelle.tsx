@@ -9,6 +9,7 @@ import AgriScoreResume from "./passeport/AgriScoreResume";
 import CarrouselPhotos from "./CarrouselPhotos";
 import BlocCaracteristiques from "./BlocCaracteristiques";
 import BoutonWhatsapp from "./BoutonWhatsapp";
+import SignalerAnnonce from "./SignalerAnnonce";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { ContactVendeurPanel } from "@/components/messaging/ContactVendeurPanel";
@@ -502,6 +503,9 @@ export default function FicheParcelle({
                 </Link>
               </p>
             )}
+
+            {/* Signalement à la modération — jamais sur sa propre annonce. */}
+            {!estProprietaire && <SignalerAnnonce annonceId={a.id} estConnecte={estConnecte} />}
           </div>
         </aside>
       </div>

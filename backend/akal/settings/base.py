@@ -301,6 +301,9 @@ REST_FRAMEWORK = {
         # déjà l'impact réel sur le compteur, ce scope ne fait que couper un
         # script qui martèlerait l'endpoint.
         'vue': '120/hour',
+        # Signalement d'annonce (SignalementCreateAPIView) — contre le
+        # harcèlement d'une annonce par un même compte.
+        'signalement': '10/hour',
         # Passeport AgriScore (PasseportParcelleAPIView) — un appel non caché
         # déclenche jusqu'à 5 requêtes vers des API externes (Copernicus,
         # Open-Meteo, SoilGrids, OSRM). Défense en profondeur, cf. la docstring

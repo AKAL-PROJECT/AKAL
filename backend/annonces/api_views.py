@@ -40,7 +40,7 @@ from urllib.parse import quote
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import F, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -65,18 +65,27 @@ from messaging.models import Conversation, Favori, Message
 # compter), aucune dépendance de geo vers annonces en retour.
 from geo.models import RegionOfficielle
 
-from .models import Annonce, Parcelle, Photo, RechercheSauvegardee, StatistiqueAnnonce
+from accounts.models import User
+
+from . import moderation_actions
+from .models import (
+    Annonce, DecisionModeration, Parcelle, Photo, RechercheSauvegardee, Signalement, StatistiqueAnnonce,
+)
 from .serializers import (
     AnnonceListSerializer,
     AnnonceDetailSerializer,
     AnnonceEcritureSerializer,
     MesAnnoncesSerializer,
     MesStatistiquesSerializer,
+    DecisionModerationSerializer,
     ModerationAnnonceSerializer,
+    ModerationRevueSerializer,
     RechercheSauvegardeeSerializer,
+    SignalementCreationSerializer,
     WhatsAppLienSerializer,
     _message_whatsapp,
     _numero_whatsapp,
+    resume_vendeur,
 )
 
 
@@ -539,73 +548,217 @@ class PeutModererAnnonces(permissions.BasePermission):
         return request.user.has_perm('annonces.valider_annonce')
 
 
+class PeutSuspendreComptes(permissions.BasePermission):
+    """Suspension / réactivation de compte — permission distincte de la
+    revue d'annonces (accounts.suspendre_utilisateur, groupe Moderateur)."""
+
+    def has_permission(self, request, view):
+        return request.user.has_perm('accounts.suspendre_utilisateur')
+
+
+def _file_de_moderation():
+    """Annonces à revoir : en attente (signal automatique, republication
+    après décision) OU en ligne avec au moins un signalement ouvert."""
+    return (
+        Annonce.objects
+        .annotate(nb_signalements=Count(
+            'signalements', filter=Q(signalements__statut=Signalement.Statut.OUVERT), distinct=True,
+        ))
+        .filter(
+            Q(statut=Annonce.StatutAnnonce.EN_ATTENTE)
+            | Q(statut=Annonce.StatutAnnonce.EN_LIGNE, nb_signalements__gt=0)
+        )
+        .with_relations()
+    )
+
+
 class ModerationQueueListAPIView(generics.ListAPIView):
     """
     GET /api/annonces/moderation/
 
-    File d'attente de modération (dashboard front /moderation) — toutes les
-    annonces `en_attente`, la seule source alimentée aujourd'hui (signal
-    automatique, cf. annonces/moderation.py) : `transitions.py` réserve bien
-    `brouillon -> en_attente` dans le graphe, mais rien côté API ne déclenche
-    cette transition pour l'instant, donc filtrer sur `en_attente` couvre
-    déjà tout ce qui peut exister dans cet état.
-
-    Pas de pagination, même raison que MesAnnoncesListAPIView : volume
-    attendu faible pour le MVP.
+    File de modération (dashboard /moderation) : annonces en attente et
+    annonces en ligne signalées par des utilisateurs, avec le nombre de
+    signalements ouverts. Les plus signalées d'abord, puis les plus
+    anciennes. Pas de pagination : volume attendu faible pour le MVP.
     """
 
     serializer_class = ModerationAnnonceSerializer
     permission_classes = [IsAuthenticated, PeutModererAnnonces]
     pagination_class = None
-    queryset = (
-        Annonce.objects
-        .filter(statut=Annonce.StatutAnnonce.EN_ATTENTE)
-        .with_relations()
-        .order_by('created_at')
-    )
+
+    def get_queryset(self):
+        return _file_de_moderation().order_by('-nb_signalements', 'created_at')
+
+
+# Ancien format du PATCH ({"statut": ...}) conservé pour compatibilité.
+_DECISION_PAR_STATUT = {
+    Annonce.StatutAnnonce.EN_LIGNE: 'valider',
+    Annonce.StatutAnnonce.BROUILLON: 'rejeter',
+}
+# Statut requis pour chaque décision : une annonce dans un autre état n'est
+# pas dans la file pour cette décision -> 404, pas 400.
+_STATUT_REQUIS = {
+    'valider': Annonce.StatutAnnonce.EN_ATTENTE,
+    'rejeter': Annonce.StatutAnnonce.EN_ATTENTE,
+    'suspendre': Annonce.StatutAnnonce.EN_LIGNE,
+    'classer': Annonce.StatutAnnonce.EN_LIGNE,
+}
 
 
 class ModerationDecisionAPIView(APIView):
     """
-    PATCH /api/annonces/moderation/<uuid:pk>/
-
-    Body : {"statut": "en_ligne"} (valider) ou {"statut": "brouillon"}
-    (rejeter) — même vocabulaire que PATCH /api/annonces/<uuid:pk>/
-    (AnnonceEcritureSerializer.validate_statut), pas un verbe dans l'URL
-    (charte §4.1). Délègue à Annonce.valider()/rejeter() (models.py), les
-    mêmes méthodes qu'utilise admin.py::publier_selection/rejeter_selection
-    — jamais une deuxième implémentation de cette règle.
-
-    Queryset scopé à `en_attente` : une tentative sur une annonce à un
-    autre statut renvoie 404, pas 400 — elle n'est simplement pas dans la
-    file de modération (cohérent avec ModerationQueueListAPIView ci-dessus,
-    qui ne la listerait pas non plus).
+    GET   /api/annonces/moderation/<uuid:pk>/ → fiche de revue complète
+          (position exacte, photos, vendeur, signalements, historique).
+    PATCH /api/annonces/moderation/<uuid:pk>/ → décision :
+          {"decision": "valider" | "rejeter" | "suspendre" | "classer",
+           "motif": "<code>", "commentaire": "..."}
+          — motif obligatoire pour rejeter / suspendre (cf.
+          annonces/moderation_actions.py::MOTIFS). L'ancien format
+          {"statut": "en_ligne" | "brouillon"} reste accepté.
+    Toute la logique vit dans annonces/moderation_actions.py (journal,
+    notification du vendeur, clôture des signalements).
     """
 
     permission_classes = [IsAuthenticated, PeutModererAnnonces]
-    serializer_class = ModerationAnnonceSerializer
+    serializer_class = ModerationRevueSerializer
+
+    def get(self, request, pk):
+        annonce = get_object_or_404(Annonce.objects.with_relations(), pk=pk)
+        return Response(ModerationRevueSerializer(annonce, context={'request': request}).data)
 
     def patch(self, request, pk):
-        annonce = get_object_or_404(Annonce.objects.with_relations(), pk=pk, statut=Annonce.StatutAnnonce.EN_ATTENTE)
-        statut_cible = request.data.get('statut')
-
-        if statut_cible == Annonce.StatutAnnonce.EN_LIGNE:
-            ok, raisons = annonce.valider()
-        elif statut_cible == Annonce.StatutAnnonce.BROUILLON:
-            ok = annonce.rejeter()
-            raisons = []
-        else:
+        decision = request.data.get('decision')
+        motif = request.data.get('motif') or ''
+        commentaire = request.data.get('commentaire') or ''
+        if decision is None and 'statut' in request.data:
+            decision = _DECISION_PAR_STATUT.get(request.data.get('statut'))
+            if decision is None:
+                raise serializers.ValidationError({
+                    'statut': "Doit être 'en_ligne' (valider) ou 'brouillon' (rejeter).",
+                })
+            motif = motif or 'autre'
+            commentaire = commentaire or "Rejet sans motif détaillé."
+        if decision not in _STATUT_REQUIS:
             raise serializers.ValidationError({
-                'statut': "Doit être 'en_ligne' (valider) ou 'brouillon' (rejeter).",
+                'decision': "Décision inconnue (valider, rejeter, suspendre ou classer).",
             })
 
-        if not ok:
-            raise serializers.ValidationError({'statut': raisons or ["Transition refusée."]})
+        annonce = get_object_or_404(
+            Annonce.objects.with_relations(), pk=pk, statut=_STATUT_REQUIS[decision],
+        )
+        try:
+            if decision == 'valider':
+                moderation_actions.valider(annonce, request.user, commentaire)
+            elif decision == 'rejeter':
+                moderation_actions.rejeter(annonce, request.user, motif, commentaire)
+            elif decision == 'suspendre':
+                if not request.user.has_perm('annonces.suspendre_annonce'):
+                    raise PermissionDenied("Vous n'avez pas le droit de suspendre une annonce.")
+                moderation_actions.suspendre(annonce, request.user, motif, commentaire)
+            else:
+                moderation_actions.classer_signalements(annonce, request.user, commentaire)
+        except moderation_actions.DecisionImpossible as exc:
+            raise serializers.ValidationError({'decision': [str(exc)]})
 
-        return Response(ModerationAnnonceSerializer(annonce, context=self.get_serializer_context()).data)
+        annonce.refresh_from_db()
+        return Response(ModerationRevueSerializer(annonce, context={'request': request}).data)
 
-    def get_serializer_context(self):
-        return {'request': self.request, 'view': self}
+
+class ModerationJournalAPIView(generics.ListAPIView):
+    """GET /api/annonces/moderation/journal/ — 100 dernières décisions."""
+
+    serializer_class = DecisionModerationSerializer
+    permission_classes = [IsAuthenticated, PeutModererAnnonces]
+    pagination_class = None
+
+    def get_queryset(self):
+        return DecisionModeration.objects.select_related('moderateur').all()[:100]
+
+
+class ModerationVendeurAPIView(APIView):
+    """
+    GET   /api/annonces/moderation/vendeurs/<uuid:pk>/ → résumé du vendeur,
+          ses annonces et l'historique des décisions le concernant.
+    PATCH /api/annonces/moderation/vendeurs/<uuid:pk>/ → {"actif": false,
+          "motif": "<code>", "commentaire": "..."} suspend le compte (ses
+          annonces disparaissent du catalogue, il ne peut plus se connecter),
+          {"actif": true} le réactive. Permission accounts.suspendre_utilisateur.
+    """
+
+    permission_classes = [IsAuthenticated, PeutModererAnnonces]
+
+    def get_permissions(self):
+        if self.request.method == 'PATCH':
+            return [IsAuthenticated(), PeutSuspendreComptes()]
+        return super().get_permissions()
+
+    def _reponse(self, request, utilisateur):
+        annonces = (
+            Annonce.objects.filter(proprietaire=utilisateur)
+            .with_relations().annotate(nb_signalements=Count(
+                'signalements', filter=Q(signalements__statut=Signalement.Statut.OUVERT), distinct=True,
+            ))
+            .order_by('-created_at')
+        )
+        return Response({
+            'vendeur': resume_vendeur(utilisateur),
+            'annonces': ModerationAnnonceSerializer(annonces, many=True, context={'request': request}).data,
+            'historique': DecisionModerationSerializer(
+                DecisionModeration.objects.filter(utilisateur_cible=utilisateur).select_related('moderateur'),
+                many=True,
+            ).data,
+        })
+
+    def get(self, request, pk):
+        utilisateur = get_object_or_404(User, pk=pk)
+        return self._reponse(request, utilisateur)
+
+    def patch(self, request, pk):
+        utilisateur = get_object_or_404(User, pk=pk)
+        actif = request.data.get('actif')
+        if not isinstance(actif, bool):
+            raise serializers.ValidationError({'actif': "Doit être true (réactiver) ou false (suspendre)."})
+        try:
+            if actif:
+                moderation_actions.reactiver_compte(utilisateur, request.user, request.data.get('commentaire') or '')
+            else:
+                moderation_actions.suspendre_compte(
+                    utilisateur, request.user,
+                    request.data.get('motif') or '', request.data.get('commentaire') or '',
+                )
+        except moderation_actions.DecisionImpossible as exc:
+            raise serializers.ValidationError({'actif': [str(exc)]})
+        utilisateur.refresh_from_db()
+        return self._reponse(request, utilisateur)
+
+
+class SignalementCreateAPIView(APIView):
+    """
+    POST /api/annonces/<uuid:pk>/signalements/  {"raison": "...", "commentaire": "..."}
+
+    Signaler une annonce publique (utilisateur connecté, jamais le
+    propriétaire). Un seul signalement ouvert par utilisateur et par
+    annonce : un second envoi répond 200 sans rien créer. Throttle dédié
+    'signalement' contre le harcèlement d'une annonce.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [UserRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'signalement'
+
+    def post(self, request, pk):
+        annonce = get_object_or_404(Annonce.objects.en_ligne().dataset_actif(), pk=pk)
+        if annonce.proprietaire_id == request.user.id:
+            raise PermissionDenied("Vous ne pouvez pas signaler votre propre annonce.")
+        serializer = SignalementCreationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if annonce.signalements.filter(auteur=request.user, statut=Signalement.Statut.OUVERT).exists():
+            return Response({'detail': "Vous avez déjà signalé cette annonce, merci."})
+        serializer.save(annonce=annonce, auteur=request.user)
+        return Response(
+            {'detail': "Merci, votre signalement a été transmis à l'équipe de modération."},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class MesStatistiquesAPIView(APIView):

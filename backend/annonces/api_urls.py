@@ -6,7 +6,10 @@ Routes API REST (DRF) de l'app annonces.
     /api/annonces/mes-annonces/                       → GET toutes les annonces du propriétaire connecté, tous statuts (dashboard)
     /api/annonces/mes-annonces/statistiques/          → GET favoris/conversations reçus, messages non lus (dashboard)
     /api/annonces/moderation/                         → GET file d'attente (en_attente), réservé à annonces.valider_annonce (dashboard /moderation)
-    /api/annonces/moderation/<uuid:pk>/               → PATCH {"statut": "en_ligne"|"brouillon"} — valide/rejette, même garde-fou que l'admin
+    /api/annonces/moderation/journal/                 → GET 100 dernières décisions de modération
+    /api/annonces/moderation/vendeurs/<uuid:pk>/      → GET résumé vendeur, PATCH {"actif": bool} suspend/réactive le compte
+    /api/annonces/moderation/<uuid:pk>/               → GET fiche de revue, PATCH décision (valider/rejeter/suspendre/classer)
+    /api/annonces/<uuid:pk>/signalements/             → POST signaler une annonce publique (authentifié)
     /api/annonces/<uuid:pk>/                          → GET/PATCH brouillon par son propriétaire (F03)
     /api/annonces/<uuid:pk>/whatsapp/                 → GET lien wa.me (authentifié + throttlé) — le numéro n'est plus dans le DTO public
     /api/annonces/<uuid:pk>/vue/                      → POST enregistre une vue de fiche (beacon anonyme, dédupliqué 24 h, throttlé)
@@ -35,10 +38,13 @@ from .api_views import (
     MesAnnoncesListAPIView,
     MesStatistiquesAPIView,
     ModerationDecisionAPIView,
+    ModerationJournalAPIView,
     ModerationQueueListAPIView,
+    ModerationVendeurAPIView,
     PhotoDeleteAPIView,
     RechercheSauvegardeeDetailAPIView,
     RechercheSauvegardeeListCreateAPIView,
+    SignalementCreateAPIView,
     WhatsAppLienAPIView,
 )
 
@@ -56,6 +62,8 @@ urlpatterns = [
     # ordre, GET /api/annonces/moderation/ résoudrait comme
     # AnnonceDetailAPIView avec slug="moderation" au lieu du bon endpoint).
     path('moderation/', ModerationQueueListAPIView.as_view(), name='moderation-queue'),
+    path('moderation/journal/', ModerationJournalAPIView.as_view(), name='moderation-journal'),
+    path('moderation/vendeurs/<uuid:pk>/', ModerationVendeurAPIView.as_view(), name='moderation-vendeur'),
     path('moderation/<uuid:pk>/', ModerationDecisionAPIView.as_view(), name='moderation-decision'),
     # Recherches sauvegardées (alertes, 2026-08-19) — déclarées avant
     # <uuid:pk>/ et <slug:slug>/ pour la même raison que stats/regions/ et
@@ -67,6 +75,7 @@ urlpatterns = [
     path('<uuid:pk>/', AnnonceUpdateAPIView.as_view(), name='update'),
     path('<uuid:pk>/whatsapp/', WhatsAppLienAPIView.as_view(), name='whatsapp'),
     path('<uuid:pk>/vue/', EnregistrerVueAPIView.as_view(), name='vue'),
+    path('<uuid:pk>/signalements/', SignalementCreateAPIView.as_view(), name='signalements'),
     path('<uuid:annonce_id>/photos/<uuid:photo_id>/', PhotoDeleteAPIView.as_view(), name='photo-delete'),
     path('<slug:slug>/', AnnonceDetailAPIView.as_view(), name='detail'),
 ]

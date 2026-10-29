@@ -39,8 +39,10 @@ class AnnonceQuerySet(models.QuerySet):
     """QuerySet chainable avec des méthodes métier réutilisables."""
 
     def en_ligne(self):
-        """Filtre uniquement les annonces publiées (statut 'en_ligne')."""
-        return self.filter(statut='en_ligne')
+        """Annonces publiées (statut 'en_ligne') dont le propriétaire n'est
+        pas suspendu — suspendre un compte (dashboard /moderation, admin)
+        retire immédiatement toutes ses annonces du catalogue public."""
+        return self.filter(statut='en_ligne', proprietaire__is_active=True)
 
     def dataset_actif(self):
         """
