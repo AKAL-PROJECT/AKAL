@@ -70,14 +70,6 @@ def publier_selection(modeladmin, request, queryset):
             publiees += 1
         else:
             ignorees += 1
-            continue
-        annonce.statut = Annonce.StatutAnnonce.EN_LIGNE
-        annonce.date_publication = timezone.now()
-        # Approbation humaine : le signal automatique est levé (sinon une
-        # réactivation ultérieure la redétournerait, cf. serializers.update).
-        annonce.motif_moderation = ''
-        annonce.save(update_fields=['statut', 'date_publication', 'motif_moderation'])
-        publiees += 1
 
     if publiees:
         modeladmin.message_user(request, f"{publiees} annonce(s) publiée(s).", messages.SUCCESS)
