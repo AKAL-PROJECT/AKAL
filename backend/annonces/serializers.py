@@ -17,6 +17,7 @@ Sous-serializers :
 from decimal import Decimal
 
 # pyrefly: ignore [missing-import]
+from django.conf import settings
 from django.contrib.gis.geos import Point, Polygon
 from django.db import transaction
 from django.utils import timezone
@@ -25,6 +26,7 @@ from rest_framework import serializers
 from . import transitions
 from .models import Annonce, DonneesGeo, Parcelle, Photo, RechercheSauvegardee
 from .moderation import evaluer_signal_moderation
+from .moderation_ia import evaluer_signal_ia
 
 # Sentinelle distincte de `None` : `_appliquer_parcelle` doit pouvoir
 # distinguer "le client n'a pas touché au champ `contour`" (ne rien changer)
@@ -912,17 +914,32 @@ class AnnonceEcritureSerializer(serializers.ModelSerializer):
                 if not ok:
                     raise serializers.ValidationError({'statut': raisons})
 
-                # Modération automatique — palier 1 (cf. moderation.py) :
-                # jamais un rejet, seulement un aiguillage vers `en_attente`
-                # (file de AnnonceAdmin, groupe Modérateurs) au lieu de
-                # `en_ligne`. Premier passage en ligne : le texte est évalué.
-                # Réactivation (archivee/vendue → en_ligne) : détournée
-                # seulement si un texte modifié depuis a été jugé suspect.
+                # Modération automatique — palier 1 (cf. moderation.py) +
+                # palier 2 optionnel (cf. moderation_ia.py) : jamais un rejet,
+                # seulement un aiguillage vers `en_attente` (file de
+                # /moderation, groupe Moderateur) au lieu de `en_ligne`.
+                # Premier passage en ligne (brouillon → en_ligne) : les deux
+                # signaux sont évalués. Réactivation (archivee/vendue →
+                # en_ligne) : détournée seulement si un texte modifié depuis
+                # a été jugé suspect (audit S6, palier 1).
                 if statut_avant == Annonce.StatutAnnonce.BROUILLON:
+                    raisons = []
                     signal = evaluer_signal_moderation(instance.titre, instance.description)
                     if signal.suspect:
+                        raisons += [f"Palier 1 : {r}" for r in signal.raisons]
+
+                    # Désactivé par défaut (MODERATION_IA_ACTIVE, cf.
+                    # settings/base.py) — le modèle local (Ollama) n'est
+                    # pas censé tourner sur une machine/configuration qui
+                    # ne l'a pas explicitement activé.
+                    if settings.MODERATION_IA_ACTIVE:
+                        signal_ia = evaluer_signal_ia(instance.titre, instance.description, instance.photos.all())
+                        if signal_ia.suspect:
+                            raisons += [f"Palier 2 (IA) : {r}" for r in signal_ia.raisons]
+
+                    if raisons:
                         instance.statut = Annonce.StatutAnnonce.EN_ATTENTE
-                        instance.motif_moderation = "; ".join(signal.raisons)
+                        instance.motif_moderation = "; ".join(raisons)
                     else:
                         instance.date_publication = timezone.now()
                 elif instance.motif_moderation:

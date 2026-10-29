@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Heart, MessageSquare, Menu, User as UserIcon, X } from "@/components/icons/Icons";
-import { logoutAction } from "@/app/actions/auth";
+import LogoutForm from "@/components/LogoutForm";
 import type { User } from "@/lib/auth-api";
 
 // Icône de profil — remplace le 2026-08-17 un SVG importé (icon-profil-nav.svg,
@@ -268,7 +268,7 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
 
           {utilisateur ? (
             <>
-              <form action={logoutAction}>
+              <LogoutForm>
                 <button
                   type="submit"
                   style={{
@@ -282,7 +282,7 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
                 >
                   Déconnexion
                 </button>
-              </form>
+              </LogoutForm>
               <Link href="/compte" title={utilisateur.prenom} aria-label={`Profil de ${utilisateur.prenom}`} className="akal-icon-link akal-focusable" style={{ display: "flex", flexShrink: 0 }}>
                 <IconeProfil utilisateur={utilisateur} />
               </Link>
@@ -393,14 +393,14 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
 
               <div style={{ height: "1px", backgroundColor: "var(--color-bordure)", margin: "6px 4px" }} />
 
-              <form action={logoutAction}>
+              <LogoutForm>
                 <button
                   type="submit"
                   style={{ width: "100%", textAlign: "left", padding: "12px 14px", fontSize: "15px", color: "var(--color-secondaire)", background: "none", border: "none", cursor: "pointer", borderRadius: "var(--radius-sm)" }}
                 >
                   Déconnexion
                 </button>
-              </form>
+              </LogoutForm>
             </>
           ) : (
             <Link
