@@ -38,12 +38,21 @@ class UserSerializer(serializers.ModelSerializer):
     SerializerMethodField est structurellement read-only côté DRF)."""
 
     avatar = serializers.SerializerMethodField()
+    # Calculé via has_perm (2026-10-01) — jamais un champ brut is_staff/
+    # groups : le front n'a besoin de savoir qu'une seule chose (afficher le
+    # lien "Modération" + autoriser /moderation), pas la mécanique
+    # Django derrière. Sert de garde côté front ; l'API REST reste la vraie
+    # barrière (PeutModererAnnonces, annonces/api_views.py) — ce champ ne
+    # fait qu'éviter d'afficher un lien qui renverrait 403.
+    peut_moderer = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'nom', 'prenom', 'telephone', 'telephone_verifie',
             'avatar', 'role', 'is_verified', 'date_inscription',
+            'id', 'email', 'nom', 'prenom', 'telephone', 'avatar', 'role', 'is_verified',
+            'date_inscription', 'peut_moderer',
         ]
         read_only_fields = fields
 
@@ -54,6 +63,9 @@ class UserSerializer(serializers.ModelSerializer):
         elif obj.avatar:
             return obj.avatar.url
         return None
+
+    def get_peut_moderer(self, obj):
+        return obj.has_perm('annonces.valider_annonce')
 
 
 # Plafond de taille pour l'avatar — même valeur que MAX_PHOTO_OCTETS

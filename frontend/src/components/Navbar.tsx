@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Heart, MessageSquare, Menu, User as UserIcon, X } from "@/components/icons/Icons";
+import { Heart, MessageSquare, Menu, Shield, User as UserIcon, X } from "@/components/icons/Icons";
 import LogoutForm from "@/components/LogoutForm";
 import type { User } from "@/lib/auth-api";
 
@@ -266,6 +266,22 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
             )}
           </Link>
 
+          {/* Modération (2026-10-01) — réservé au groupe "Moderateur"
+              (peut_moderer, calculé côté backend via has_perm) : jamais
+              affiché à qui n'a pas ce droit, la page /moderation redirige
+              de toute façon si on y accède directement sans lui. */}
+          {utilisateur?.peut_moderer && (
+            <Link
+              href="/moderation"
+              className="akal-icon-link akal-focusable"
+              style={{ color: "var(--color-foret)", display: "flex" }}
+              title="Modération"
+              aria-label="Modération"
+            >
+              <Shield size={24} strokeWidth={1.7} />
+            </Link>
+          )}
+
           {utilisateur ? (
             <>
               <LogoutForm>
@@ -366,6 +382,15 @@ export default function Navbar({ utilisateur, messagesNonLus }: { utilisateur: U
               >
                 Mes annonces
               </Link>
+              {utilisateur.peut_moderer && (
+                <Link
+                  href="/moderation"
+                  role="menuitem"
+                  style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", fontSize: "15px", fontWeight: 500, color: "var(--color-texte)", textDecoration: "none", borderRadius: "var(--radius-sm)" }}
+                >
+                  <Shield size={18} strokeWidth={1.7} style={{ color: "var(--color-foret)" }} /> Modération
+                </Link>
+              )}
               <Link
                 href="/messages"
                 role="menuitem"

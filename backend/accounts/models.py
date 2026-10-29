@@ -84,6 +84,12 @@ class User(AbstractUser):
                 condition=models.Q(telephone_verifie=True),
                 name='user_telephone_verifie_unique',
             ),
+        # Permission custom (2026-09-21) pour le groupe "Moderateur" (cf.
+        # init_groupes, accounts/admin.py::suspendre_selection) — distincte
+        # de change_user, qui autoriserait aussi la modification de
+        # n'importe quel autre champ du compte.
+        permissions = [
+            ('suspendre_utilisateur', 'Peut suspendre un compte'),
         ]
 
     def __str__(self):

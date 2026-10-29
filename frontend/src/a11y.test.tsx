@@ -71,6 +71,7 @@ const UTILISATEUR: User = {
   role: "VENDEUR",
   is_verified: true,
   date_inscription: "2026-01-01T00:00:00Z",
+  peut_moderer: false,
 };
 
 describe("Accessibilité (axe-core, échantillon léger — cf. en-tête du fichier)", () => {

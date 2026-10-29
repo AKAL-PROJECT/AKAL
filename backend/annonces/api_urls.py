@@ -5,6 +5,8 @@ Routes API REST (DRF) de l'app annonces.
     /api/annonces/stats/regions/                      → GET nombre d'annonces en_ligne par région, sur tout le catalogue (Home, CouvertureSection.tsx)
     /api/annonces/mes-annonces/                       → GET toutes les annonces du propriétaire connecté, tous statuts (dashboard)
     /api/annonces/mes-annonces/statistiques/          → GET favoris/conversations reçus, messages non lus (dashboard)
+    /api/annonces/moderation/                         → GET file d'attente (en_attente), réservé à annonces.valider_annonce (dashboard /moderation)
+    /api/annonces/moderation/<uuid:pk>/               → PATCH {"statut": "en_ligne"|"brouillon"} — valide/rejette, même garde-fou que l'admin
     /api/annonces/<uuid:pk>/                          → GET/PATCH brouillon par son propriétaire (F03)
     /api/annonces/<uuid:pk>/whatsapp/                 → GET lien wa.me (authentifié + throttlé) — le numéro n'est plus dans le DTO public
     /api/annonces/<uuid:pk>/vue/                      → POST enregistre une vue de fiche (beacon anonyme, dédupliqué 24 h, throttlé)
@@ -32,6 +34,8 @@ from .api_views import (
     EnregistrerVueAPIView,
     MesAnnoncesListAPIView,
     MesStatistiquesAPIView,
+    ModerationDecisionAPIView,
+    ModerationQueueListAPIView,
     PhotoDeleteAPIView,
     RechercheSauvegardeeDetailAPIView,
     RechercheSauvegardeeListCreateAPIView,
@@ -45,6 +49,14 @@ urlpatterns = [
     path('stats/regions/', AnnonceStatsRegionAPIView.as_view(), name='stats-regions'),
     path('mes-annonces/', MesAnnoncesListAPIView.as_view(), name='mes-annonces'),
     path('mes-annonces/statistiques/', MesStatistiquesAPIView.as_view(), name='mes-statistiques'),
+    # Modération (dashboard front /moderation, 2026-10-01) — déclarées avant
+    # <uuid:pk>/ et <slug:slug>/ pour la même raison que stats/regions/ et
+    # mes-annonces/ ci-dessus ("moderation/" est à 1 segment, directement
+    # dans la portée du convertisseur <slug:slug>/ ci-dessous ; sans cet
+    # ordre, GET /api/annonces/moderation/ résoudrait comme
+    # AnnonceDetailAPIView avec slug="moderation" au lieu du bon endpoint).
+    path('moderation/', ModerationQueueListAPIView.as_view(), name='moderation-queue'),
+    path('moderation/<uuid:pk>/', ModerationDecisionAPIView.as_view(), name='moderation-decision'),
     # Recherches sauvegardées (alertes, 2026-08-19) — déclarées avant
     # <uuid:pk>/ et <slug:slug>/ pour la même raison que stats/regions/ et
     # mes-annonces/ ci-dessus (toutes à 2 segments, hors de portée du
