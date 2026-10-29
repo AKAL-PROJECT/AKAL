@@ -3,7 +3,8 @@ from django.contrib import admin, messages
 from django.utils.html import format_html
 
 from .models import Parcelle, Annonce, Photo, DonneesGeo, RechercheSauvegardee, StatistiqueAnnonce, DecisionModeration, Signalement
-from .transitions import transition_autorisee
+from . import moderation_actions
+from .admin_moderation import appliquer_avec_motif, rapporter
 
 
 @admin.register(Parcelle)
@@ -46,7 +47,9 @@ class PhotoInline(admin.TabularInline):
 # enfin d'agir dessus depuis l'admin, pour n'importe quelle annonce (pas
 # seulement les scrapées) et sans terminal.
 #
-# Aucune ne touche `annonce.statut` sans repasser par transition_autorisee()
+# Toutes passent par moderation_actions.py (2026-10-29), comme le dashboard
+# /moderation : une décision prise ici apparaît au journal. Aucune ne
+# touche `annonce.statut` sans repasser par transition_autorisee()
 # (le graphe officiel, annonces/transitions.py) — jamais une affectation
 # directe qui pourrait forcer une transition interdite (d'où l'absence
 # volontaire de `list_editable` sur `statut` : une édition inline en liste
@@ -60,27 +63,18 @@ class PhotoInline(admin.TabularInline):
 
 @admin.action(description="Publier la sélection (brouillon/en attente → en ligne)")
 def publier_selection(modeladmin, request, queryset):
-    # Délègue à Annonce.valider() (models.py) — même méthode qu'utilise
-    # ModerationDecisionAPIView (api_views.py, dashboard /moderation du
-    # front) : jamais deux implémentations de cette règle.
-    publiees, ignorees = 0, 0
+    # Délègue à moderation_actions.valider() — même fonction que le
+    # dashboard /moderation (ModerationDecisionAPIView) : transition via
+    # Annonce.valider(), ligne au journal, signalements classés, vendeur
+    # prévenu. Seul écart : un brouillon peut être publié directement d'ici.
+    appliquees, ignorees = 0, []
     for annonce in queryset:
-        ok, _raisons = annonce.valider()
-        if ok:
-            publiees += 1
-        else:
-            ignorees += 1
-
-    if publiees:
-        modeladmin.message_user(request, f"{publiees} annonce(s) publiée(s).", messages.SUCCESS)
-    if ignorees:
-        modeladmin.message_user(
-            request,
-            f"{ignorees} annonce(s) ignorée(s) — prérequis de publication non "
-            "remplis (localisation, photo, prix) ou statut de départ ne permettant "
-            "pas cette transition (ex. déjà en ligne, archivée…).",
-            messages.WARNING,
-        )
+        try:
+            moderation_actions.valider(annonce, request.user, depuis_brouillon=True)
+            appliquees += 1
+        except moderation_actions.DecisionImpossible as exc:
+            ignorees.append(f"{annonce} : {exc}")
+    rapporter(modeladmin, request, appliquees, ignorees)
 
 
 publier_selection.allowed_permissions = ('valider_annonce',)
@@ -88,24 +82,12 @@ publier_selection.allowed_permissions = ('valider_annonce',)
 
 @admin.action(description="Rejeter la sélection « en attente » (retour en brouillon)")
 def rejeter_selection(modeladmin, request, queryset):
-    # Délègue à Annonce.rejeter() (models.py) — même raison que
-    # publier_selection ci-dessus.
-    rejetees, ignorees = 0, 0
-    for annonce in queryset:
-        if annonce.rejeter():
-            rejetees += 1
-        else:
-            ignorees += 1
-
-    if rejetees:
-        modeladmin.message_user(request, f"{rejetees} annonce(s) repassée(s) en brouillon.", messages.SUCCESS)
-    if ignorees:
-        modeladmin.message_user(
-            request,
-            f"{ignorees} annonce(s) ignorée(s) — seule une annonce « en attente » "
-            "peut être rejetée (retour en brouillon).",
-            messages.WARNING,
-        )
+    # Motif obligatoire (montré au vendeur), demandé par une page
+    # intermédiaire — cf. admin_moderation.py.
+    return appliquer_avec_motif(
+        modeladmin, request, queryset, "Rejeter des annonces",
+        lambda annonce, motif, commentaire: moderation_actions.rejeter(annonce, request.user, motif, commentaire),
+    )
 
 
 rejeter_selection.allowed_permissions = ('valider_annonce',)
@@ -113,27 +95,12 @@ rejeter_selection.allowed_permissions = ('valider_annonce',)
 
 @admin.action(description="Suspendre la sélection « en ligne » (retour en archivée)")
 def suspendre_selection(modeladmin, request, queryset):
-    # en_ligne -> archivee à l'initiative d'un modérateur : même transition
-    # que l'archivage volontaire du propriétaire (ListeAnnonces.tsx), mais
-    # déclenchée ici, jamais par can_publish() puisqu'on quitte en_ligne au
-    # lieu d'y entrer.
-    suspendues, ignorees = 0, 0
-    for annonce in queryset:
-        if not transition_autorisee(annonce.statut, Annonce.StatutAnnonce.ARCHIVEE):
-            ignorees += 1
-            continue
-        annonce.statut = Annonce.StatutAnnonce.ARCHIVEE
-        annonce.save(update_fields=['statut'])
-        suspendues += 1
-
-    if suspendues:
-        modeladmin.message_user(request, f"{suspendues} annonce(s) suspendue(s).", messages.SUCCESS)
-    if ignorees:
-        modeladmin.message_user(
-            request,
-            f"{ignorees} annonce(s) ignorée(s) — seule une annonce « en ligne » peut être suspendue.",
-            messages.WARNING,
-        )
+    # en_ligne -> archivee à l'initiative d'un modérateur, motif obligatoire
+    # (même règle que le dashboard, cf. moderation_actions.suspendre).
+    return appliquer_avec_motif(
+        modeladmin, request, queryset, "Suspendre des annonces",
+        lambda annonce, motif, commentaire: moderation_actions.suspendre(annonce, request.user, motif, commentaire),
+    )
 
 
 suspendre_selection.allowed_permissions = ('suspendre_annonce',)

@@ -1,6 +1,9 @@
 # pyrefly: ignore [missing-import]
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
+from annonces import moderation_actions
+from annonces.admin_moderation import appliquer_avec_motif
 
 from .models import User
 
@@ -13,21 +16,17 @@ from .models import User
 # `suspendre_utilisateur` fait de même ici, sans rien donner d'autre que ça.
 @admin.action(description="Suspendre les comptes sélectionnés (is_active = False)")
 def suspendre_selection(modeladmin, request, queryset):
-    # Jamais un superutilisateur — même par sélection multiple accidentelle
-    # incluant un admin — ni le compte de la personne qui déclenche l'action
-    # (on ne se suspend pas soi-même, on se déconnecte).
-    cible = queryset.filter(is_superuser=False).exclude(pk=request.user.pk)
-    ignorees = queryset.count() - cible.count()
-    suspendues = cible.update(is_active=False)
-
-    if suspendues:
-        modeladmin.message_user(request, f"{suspendues} compte(s) suspendu(s).", messages.SUCCESS)
-    if ignorees:
-        modeladmin.message_user(
-            request,
-            f"{ignorees} compte(s) ignoré(s) — superutilisateur ou votre propre compte.",
-            messages.WARNING,
-        )
+    # Délègue à annonces/moderation_actions.suspendre_compte() (2026-10-29),
+    # comme le dashboard /moderation : motif obligatoire, ligne au journal.
+    # Mêmes garde-fous : jamais un membre de l'équipe (staff/superutilisateur)
+    # ni le compte de la personne qui déclenche l'action (on ne se suspend
+    # pas soi-même, on se déconnecte).
+    return appliquer_avec_motif(
+        modeladmin, request, queryset, "Suspendre des comptes",
+        lambda utilisateur, motif, commentaire: moderation_actions.suspendre_compte(
+            utilisateur, request.user, motif, commentaire,
+        ),
+    )
 
 
 suspendre_selection.allowed_permissions = ('suspendre_utilisateur',)

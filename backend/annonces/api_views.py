@@ -590,6 +590,21 @@ class ModerationQueueListAPIView(generics.ListAPIView):
         return _file_de_moderation().order_by('-nb_signalements', 'created_at')
 
 
+class ModerationCompteurAPIView(APIView):
+    """
+    GET /api/annonces/moderation/compteur/ → {"a_revoir": <int>}
+
+    Taille de la file de modération, pour le badge de la barre de navigation
+    (comme les messages non lus) — même périmètre que
+    ModerationQueueListAPIView, sans sérialiser les annonces.
+    """
+
+    permission_classes = [IsAuthenticated, PeutModererAnnonces]
+
+    def get(self, request):
+        return Response({'a_revoir': _file_de_moderation().count()})
+
+
 # Ancien format du PATCH ({"statut": ...}) conservé pour compatibilité.
 _DECISION_PAR_STATUT = {
     Annonce.StatutAnnonce.EN_LIGNE: 'valider',
@@ -739,7 +754,9 @@ class SignalementCreateAPIView(APIView):
     Signaler une annonce publique (utilisateur connecté, jamais le
     propriétaire). Un seul signalement ouvert par utilisateur et par
     annonce : un second envoi répond 200 sans rien créer. Throttle dédié
-    'signalement' contre le harcèlement d'une annonce.
+    'signalement' contre le harcèlement d'une annonce. Au-delà du seuil de
+    signalements, l'annonce est masquée en attendant la revue
+    (moderation_actions.masquer_si_trop_signalee).
     """
 
     permission_classes = [IsAuthenticated]
@@ -755,6 +772,7 @@ class SignalementCreateAPIView(APIView):
         if annonce.signalements.filter(auteur=request.user, statut=Signalement.Statut.OUVERT).exists():
             return Response({'detail': "Vous avez déjà signalé cette annonce, merci."})
         serializer.save(annonce=annonce, auteur=request.user)
+        moderation_actions.masquer_si_trop_signalee(annonce)
         return Response(
             {'detail': "Merci, votre signalement a été transmis à l'équipe de modération."},
             status=status.HTTP_201_CREATED,

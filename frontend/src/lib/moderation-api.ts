@@ -100,6 +100,13 @@ export async function getJournalModeration(): Promise<DecisionModerationDTO[]> {
   return (await lire<DecisionModerationDTO[]>("/annonces/moderation/journal/").catch(() => null)) ?? [];
 }
 
+// Badge de la barre de navigation (layout racine) — taille de la file, sans
+// la sérialiser. Jamais d'exception : 0 si l'appel échoue.
+export async function getNombreAnnoncesARevoir(): Promise<number> {
+  const data = await lire<{ a_revoir: number }>("/annonces/moderation/compteur/").catch(() => null);
+  return data?.a_revoir ?? 0;
+}
+
 export async function getRevueAnnonce(id: string): Promise<RevueAnnonceDTO | null> {
   return lire<RevueAnnonceDTO>(`/annonces/moderation/${id}/`);
 }
