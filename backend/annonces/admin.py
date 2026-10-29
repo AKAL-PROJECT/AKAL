@@ -1,6 +1,5 @@
 # pyrefly: ignore [missing-import]
 from django.contrib import admin, messages
-from django.utils import timezone
 from django.utils.html import format_html
 
 from .models import Parcelle, Annonce, Photo, DonneesGeo, RechercheSauvegardee, StatistiqueAnnonce
@@ -43,28 +42,34 @@ class PhotoInline(admin.TabularInline):
 # publier_scrapees_eligibles (annonces scrapées de test uniquement,
 # inutilisable par quelqu'un sans accès serveur) — et `en_attente` était un
 # statut du graphe de transitions.py sans aucun déclencheur qui l'exploite
-# (« réservé », cf. commentaire de ce module). Ces deux actions permettent
+# (« réservé », cf. commentaire de ce module). Ces trois actions permettent
 # enfin d'agir dessus depuis l'admin, pour n'importe quelle annonce (pas
 # seulement les scrapées) et sans terminal.
 #
-# Aucune des deux ne touche `annonce.statut` sans repasser par
-# transition_autorisee() (le graphe officiel, annonces/transitions.py) —
-# jamais une affectation directe qui pourrait forcer une transition
-# interdite (d'où l'absence volontaire de `list_editable` sur `statut` :
-# une édition inline en liste n'aurait, elle, aucune de ces garanties).
+# Aucune ne touche `annonce.statut` sans repasser par transition_autorisee()
+# (le graphe officiel, annonces/transitions.py) — jamais une affectation
+# directe qui pourrait forcer une transition interdite (d'où l'absence
+# volontaire de `list_editable` sur `statut` : une édition inline en liste
+# n'aurait, elle, aucune de ces garanties).
+#
+# `allowed_permissions` (cf. Django ModelAdmin.get_actions) masque chaque
+# action à qui n'a pas la permission custom correspondante — has_*_permission
+# ci-dessous sur AnnonceAdmin, appelées par ce mécanisme. Sans ça, Django
+# n'exigerait que l'accès à la liste elle-même (view_annonce suffirait) pour
+# voir apparaître les trois actions dans le menu déroulant.
 
 @admin.action(description="Publier la sélection (brouillon/en attente → en ligne)")
 def publier_selection(modeladmin, request, queryset):
+    # Délègue à Annonce.valider() (models.py) — même méthode qu'utilise
+    # ModerationDecisionAPIView (api_views.py, dashboard /moderation du
+    # front) : jamais deux implémentations de cette règle.
     publiees, ignorees = 0, 0
     for annonce in queryset:
-        peut_publier, _raisons = annonce.can_publish()
-        if not peut_publier or not transition_autorisee(annonce.statut, Annonce.StatutAnnonce.EN_LIGNE):
+        ok, _raisons = annonce.valider()
+        if ok:
+            publiees += 1
+        else:
             ignorees += 1
-            continue
-        annonce.statut = Annonce.StatutAnnonce.EN_LIGNE
-        annonce.date_publication = timezone.now()
-        annonce.save(update_fields=['statut', 'date_publication'])
-        publiees += 1
 
     if publiees:
         modeladmin.message_user(request, f"{publiees} annonce(s) publiée(s).", messages.SUCCESS)
@@ -78,16 +83,19 @@ def publier_selection(modeladmin, request, queryset):
         )
 
 
+publier_selection.allowed_permissions = ('valider_annonce',)
+
+
 @admin.action(description="Rejeter la sélection « en attente » (retour en brouillon)")
 def rejeter_selection(modeladmin, request, queryset):
+    # Délègue à Annonce.rejeter() (models.py) — même raison que
+    # publier_selection ci-dessus.
     rejetees, ignorees = 0, 0
     for annonce in queryset:
-        if not transition_autorisee(annonce.statut, Annonce.StatutAnnonce.BROUILLON):
+        if annonce.rejeter():
+            rejetees += 1
+        else:
             ignorees += 1
-            continue
-        annonce.statut = Annonce.StatutAnnonce.BROUILLON
-        annonce.save(update_fields=['statut'])
-        rejetees += 1
 
     if rejetees:
         modeladmin.message_user(request, f"{rejetees} annonce(s) repassée(s) en brouillon.", messages.SUCCESS)
@@ -100,6 +108,37 @@ def rejeter_selection(modeladmin, request, queryset):
         )
 
 
+rejeter_selection.allowed_permissions = ('valider_annonce',)
+
+
+@admin.action(description="Suspendre la sélection « en ligne » (retour en archivée)")
+def suspendre_selection(modeladmin, request, queryset):
+    # en_ligne -> archivee à l'initiative d'un modérateur : même transition
+    # que l'archivage volontaire du propriétaire (ListeAnnonces.tsx), mais
+    # déclenchée ici, jamais par can_publish() puisqu'on quitte en_ligne au
+    # lieu d'y entrer.
+    suspendues, ignorees = 0, 0
+    for annonce in queryset:
+        if not transition_autorisee(annonce.statut, Annonce.StatutAnnonce.ARCHIVEE):
+            ignorees += 1
+            continue
+        annonce.statut = Annonce.StatutAnnonce.ARCHIVEE
+        annonce.save(update_fields=['statut'])
+        suspendues += 1
+
+    if suspendues:
+        modeladmin.message_user(request, f"{suspendues} annonce(s) suspendue(s).", messages.SUCCESS)
+    if ignorees:
+        modeladmin.message_user(
+            request,
+            f"{ignorees} annonce(s) ignorée(s) — seule une annonce « en ligne » peut être suspendue.",
+            messages.WARNING,
+        )
+
+
+suspendre_selection.allowed_permissions = ('suspendre_annonce',)
+
+
 @admin.register(Annonce)
 class AnnonceAdmin(admin.ModelAdmin):
     list_display = ('titre', 'proprietaire', 'prix_mad', 'statut', 'signal_moderation', 'source', 'created_at')
@@ -107,10 +146,16 @@ class AnnonceAdmin(admin.ModelAdmin):
     search_fields = ('titre', 'slug')
     prepopulated_fields = {'slug': ('titre',)}
     inlines = [PhotoInline]
-    actions = [publier_selection, rejeter_selection]
+    actions = [publier_selection, rejeter_selection, suspendre_selection]
     # `motif_moderation` n'est jamais rempli à la main (cf. moderation.py) —
     # lecture seule pour tout le monde, y compris un superutilisateur.
     readonly_fields = ('motif_moderation',)
+
+    def has_valider_annonce_permission(self, request):
+        return request.user.has_perm('annonces.valider_annonce')
+
+    def has_suspendre_annonce_permission(self, request):
+        return request.user.has_perm('annonces.suspendre_annonce')
 
     @admin.display(description='Modération')
     def signal_moderation(self, obj):
@@ -122,11 +167,16 @@ class AnnonceAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         # `statut` reste modifiable en direct pour un superutilisateur
-        # (dépannage), mais lecture seule pour le groupe Modérateurs (cf.
-        # migration 0009_groupe_moderateurs) — sinon rien n'empêche une
-        # édition du formulaire de forcer une transition interdite par
-        # transitions.py (ex. vendue → brouillon) en contournant
-        # entièrement publier_selection/rejeter_selection ci-dessus.
+        # (dépannage). Pour tout le monde d'autre, déjà lecture seule de
+        # fait (Django force le formulaire entier en lecture pour qui n'a
+        # pas change_annonce, dont le groupe "Moderateur" depuis la
+        # migration 0016_retirer_groupe_moderateurs) — explicité ici en
+        # filet de sécurité pour un éventuel futur rôle qui aurait
+        # change_annonce sans être superutilisateur : rien n'empêcherait
+        # alors une édition du formulaire de forcer une transition interdite
+        # par transitions.py (ex. vendue → brouillon) en contournant
+        # entièrement publier_selection/rejeter_selection/suspendre_selection
+        # ci-dessus.
         if request.user.is_superuser:
             return super().get_readonly_fields(request, obj)
         return super().get_readonly_fields(request, obj) + ('statut',)

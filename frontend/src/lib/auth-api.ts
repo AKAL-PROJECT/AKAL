@@ -32,6 +32,10 @@ export type User = {
   role: Role;
   is_verified: boolean;
   date_inscription: string;
+  // Calculé côté backend (has_perm('annonces.valider_annonce'), groupe
+  // "Moderateur") — sert à afficher le lien "Modération" (Navbar.tsx) et à
+  // garder /moderation (page.tsx) ; l'API REST reste la vraie barrière.
+  peut_moderer: boolean;
 };
 
 export type SignupInput = {

@@ -1,15 +1,20 @@
 from unittest.mock import patch
 
 from axes.utils import reset as axes_reset
+from django.contrib import admin
+from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.core.cache import cache
-from django.test import Client, TestCase, override_settings
+from django.core.management import call_command
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+from .admin import suspendre_selection
 from .models import User
 
 SIGNUP_URL = '/api/auth/signup/'
@@ -173,6 +178,22 @@ class MeTests(AuthTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['email'], self.credentials['email'])
+
+    def test_me_peut_moderer_false_pour_un_utilisateur_normal(self):
+        response = self.client.get(ME_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['peut_moderer'])
+
+    def test_me_peut_moderer_true_pour_un_moderateur(self):
+        call_command('init_groupes')
+        moderateur = User.objects.get(email=self.credentials['email'])
+        moderateur.groups.add(Group.objects.get(name='Moderateur'))
+
+        response = self.client.get(ME_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['peut_moderer'])
 
     def test_me_without_cookie_is_unauthorized(self):
         self.client.cookies.pop('access_token', None)
@@ -641,3 +662,86 @@ class AdminAxesLockoutTests(TestCase):
         })
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class InitGroupesTests(TestCase):
+    """Commande init_groupes (2026-09-21) — garde-fou si une permission
+    custom (valider_annonce/suspendre_annonce sur Annonce, suspendre_utilisateur
+    sur User) est renommée sans mettre à jour PERMISSIONS dans la commande :
+    ce test échouerait (has_perm devient False) avant qu'un modérateur ne le
+    découvre en prod. Groupe "Moderateur" — remplace "Modérateurs" (migration
+    0016_retirer_groupe_moderateurs, cf. annonces/tests.py::AdminModerationTests)."""
+
+    def test_groupe_moderateur_a_les_permissions_custom(self):
+        call_command('init_groupes')
+        moderateur = User.objects.create_user(
+            email='moderateur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Modo', prenom='AKAL', is_staff=True,
+        )
+        moderateur.groups.add(Group.objects.get(name='Moderateur'))
+
+        self.assertTrue(moderateur.has_perm('annonces.valider_annonce'))
+        self.assertTrue(moderateur.has_perm('annonces.suspendre_annonce'))
+        self.assertTrue(moderateur.has_perm('accounts.suspendre_utilisateur'))
+
+    def test_un_acheteur_na_pas_ces_permissions(self):
+        call_command('init_groupes')
+        acheteur = User.objects.create_user(
+            email='acheteur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Bennani', prenom='Yasmine',
+        )
+
+        self.assertFalse(acheteur.has_perm('annonces.valider_annonce'))
+        self.assertFalse(acheteur.has_perm('annonces.suspendre_annonce'))
+        self.assertFalse(acheteur.has_perm('accounts.suspendre_utilisateur'))
+
+
+class SuspendreSelectionTests(TestCase):
+    """Action admin suspendre_selection (2026-09-29) — appelée directement,
+    comme annonces/tests.py::AdminModerationTests. Garde-fous : jamais un
+    superutilisateur, jamais son propre compte (on se déconnecte, on ne se
+    suspend pas soi-même)."""
+
+    def setUp(self):
+        self.modeladmin = admin.site._registry[User]
+        self.moderateur = User.objects.create_superuser(
+            email='moderateur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Modo', prenom='AKAL',
+        )
+        self.moderateur.is_superuser = False  # garde le is_staff du superuser sans son statut
+        self.moderateur.save(update_fields=['is_superuser'])
+
+    def _requete(self):
+        request = RequestFactory().get('/admin/accounts/user/')
+        request.user = self.moderateur
+        request.session = {}
+        request._messages = FallbackStorage(request)
+        return request
+
+    def test_suspend_un_compte_actif(self):
+        acheteur = User.objects.create_user(
+            email='acheteur@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Bennani', prenom='Yasmine',
+        )
+
+        suspendre_selection(self.modeladmin, self._requete(), User.objects.filter(pk=acheteur.pk))
+
+        acheteur.refresh_from_db()
+        self.assertFalse(acheteur.is_active)
+
+    def test_ignore_un_superutilisateur(self):
+        admin_cible = User.objects.create_superuser(
+            email='admin2@akal.ma', password='un-mot-de-passe-solide-2026',
+            nom='Chraibi', prenom='Omar',
+        )
+
+        suspendre_selection(self.modeladmin, self._requete(), User.objects.filter(pk=admin_cible.pk))
+
+        admin_cible.refresh_from_db()
+        self.assertTrue(admin_cible.is_active)
+
+    def test_ignore_son_propre_compte(self):
+        suspendre_selection(self.modeladmin, self._requete(), User.objects.filter(pk=self.moderateur.pk))
+
+        self.moderateur.refresh_from_db()
+        self.assertTrue(self.moderateur.is_active)
