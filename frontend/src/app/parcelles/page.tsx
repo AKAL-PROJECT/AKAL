@@ -466,7 +466,9 @@ function Catalogue() {
             </span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* flexWrap : à 360 px, tri + taille de page + bascule grille/carte
+              ne tiennent pas sur une ligne (le bouton « carte » était coupé). */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
             <select
               value={tri}
               onChange={(e) => { setTri(e.target.value as Tri); setPage(1); }}

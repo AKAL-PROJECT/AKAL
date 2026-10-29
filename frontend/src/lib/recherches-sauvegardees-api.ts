@@ -19,6 +19,7 @@ import { ApiError, lireErreur } from "./api";
 import { fetchWithAuth } from "./fetchWithAuth";
 
 import { API_URL } from "./api-base";
+import { entetesBackendRequete } from "./entetes-backend-serveur";
 const BASE = `${API_URL}/annonces/recherches-sauvegardees/`;
 
 export type RechercheSauvegardee = {
@@ -46,7 +47,7 @@ async function lireOuLeverErreur(res: Response): Promise<never> {
 // ici (cf. commentaire d'en-tête).
 export async function getMesRecherchesSauvegardees(): Promise<RechercheSauvegardee[]> {
   const res = await fetch(BASE, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) return [];

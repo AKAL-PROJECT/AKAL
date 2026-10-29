@@ -56,15 +56,15 @@
 | Composant | Technologie | Version |
 |---|---|---|
 | **Backend** | Django | 6.0.8 |
-| **API REST** | Django REST Framework (DRF) | ≥3.15.0 |
-| **Documentation API** | drf-spectacular (OpenAPI / Swagger) | ≥0.28.0 |
-| **CORS** | django-cors-headers | ≥4.6.0 |
+| **API REST** | Django REST Framework (DRF) | 3.18.1 |
+| **Documentation API** | drf-spectacular (OpenAPI / Swagger) | 0.30.0 |
+| **CORS** | django-cors-headers | 4.9.0 |
 | **Base de données** | PostgreSQL + PostGIS | — |
 | **ORM spatial** | `django.contrib.gis` (GeoDjango) | inclus dans Django |
-| **Cache** | Redis + django-redis | 7 (Alpine) / ≥5.4.0 |
+| **Cache** | Redis + django-redis | 7.4 (Alpine) / 7.0.0 |
 | **Variables d'environnement** | django-environ | 0.14.0 |
 | **Driver PostgreSQL** | psycopg2-binary | 2.9.12 |
-| **Test de charge** | Locust | ≥2.29.0 |
+| **Test de charge** | Locust (`requirements-dev.txt`) | 2.46.6 |
 | **Frontend** | Next.js | — |
 
 ### Dépendances système requises
@@ -72,7 +72,7 @@
 | Dépendance | Rôle | Installation |
 |---|---|---|
 | **PostgreSQL** | Base de données relationnelle | [postgresql.org](https://www.postgresql.org/download/) |
-| **PostGIS** | Extension spatiale de PostgreSQL | `CREATE EXTENSION postgis;` dans la DB |
+| **PostGIS** | Extension spatiale de PostgreSQL | Activée automatiquement par `python manage.py ensure_postgis` (entrypoint Docker, CI, Render) — rien à faire à la main |
 | **GDAL** | Bibliothèque géospatiale (requis par GeoDjango) | [Guide d'installation GDAL](https://docs.djangoproject.com/en/6.0/ref/contrib/gis/install/) |
 | **Pillow** | Traitement d'images (pour `ImageField`) | `pip install Pillow` |
 
@@ -84,7 +84,8 @@
 AKAL/
 ├── backend/
 │   ├── manage.py
-│   ├── requirements.txt
+│   ├── requirements.txt          # dépendances d'exécution, versions exactes
+│   ├── requirements-dev.txt      # + outils de dev (Faker, locust, playwright)
 │   ├── .env                          # Variables d'environnement (non versionné)
 │   ├── docker-compose.yml            # 🐳 Redis (test de charge)
 │   ├── locustfile.py                 # 🦗 Scénarios de test de charge
@@ -651,14 +652,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 cd backend
 python -m venv akal_env
 
-# 2. Installer les dépendances Python (utilise le venv !)
-akal_env\scripts\python.exe -m pip install -r requirements.txt
+# 2. Installer les dépendances Python (utilise le venv !) — versions épinglées ;
+#    requirements-dev.txt ajoute Faker / locust / playwright (outils de dev)
+akal_env\scripts\python.exe -m pip install -r requirements-dev.txt
 
-# 3. Activer PostGIS dans PostgreSQL
-psql -d akal_db -c "CREATE EXTENSION postgis;"
+# 3. Activer PostGIS (idempotent, crée l'extension si elle manque)
+akal_env\scripts\python.exe manage.py ensure_postgis --settings=akal.settings.dev
 
-# 4. Créer les migrations
-akal_env\scripts\python.exe manage.py makemigrations accounts geo annonces messaging --settings=akal.settings.dev
+# 4. (les migrations sont versionnées : ne PAS lancer makemigrations ici)
 
 # 5. Appliquer les migrations
 akal_env\scripts\python.exe manage.py migrate --settings=akal.settings.dev
@@ -833,74 +834,20 @@ Annonce.objects.en_ligne().search("Fès").with_relations()
 
 ---
 
-### 10.2 — AnnonceFilter (django-filter) — LEGACY (vues HTML)
+### 10.2 — Filtres, catalogue et fiche (API uniquement)
 
-> **Fichier** : `backend/annonces/filters.py`
-> **Dépendance** : `django-filter>=25.1` (ajouté dans `requirements.txt` et `INSTALLED_APPS`)
-> **⚠️ LEGACY** : Ce FilterSet est utilisé uniquement par les vues HTML de rétrocompatibilité. Le FilterSet de l'API REST est `AnnonceAPIFilter` (dans `api_views.py`).
-
-FilterSet déclaratif qui centralise toute la logique de filtrage à facettes pour les vues template. Chaque paramètre GET est validé et converti automatiquement avant d'atteindre l'ORM.
-
-#### Paramètres GET supportés
-
-| Paramètre | Type de filtre | Champ ORM | Exemple d'URL |
-|---|---|---|---|
-| `q` | Recherche textuelle (méthode custom, `Q objects`) | `titre`, `description` | `?q=terrain irrigué` |
-| `region` | `BaseInFilter` (multi-sélection) | `parcelle__commune__province__region_id` | `?region=1&region=3` |
-| `statut_foncier` | `BaseInFilter` (multi-sélection) | `parcelle__statut_foncier` | `?statut_foncier=melkia&statut_foncier=guich` |
-| `acces_eau` | `ChoiceFilter` (exact) | `parcelle__acces_eau` | `?acces_eau=irriguee` |
-| `prix_min` | `NumberFilter` (`gte`) | `prix_mad` | `?prix_min=100000` |
-| `prix_max` | `NumberFilter` (`lte`) | `prix_mad` | `?prix_max=500000` |
-| `surface_min` | `NumberFilter` (`gte`) | `parcelle__surface_ha` | `?surface_min=2` |
-| `surface_max` | `NumberFilter` (`lte`) | `parcelle__surface_ha` | `?surface_max=50` |
-| `sort` | `OrderingFilter` | — | `?sort=prix_mad`, `?sort=-prix_mad`, `?sort=date_publication`, `?sort=-date_publication` |
-
-#### Méthodes custom
-
-| Méthode | Paramètre | Logique |
-|---|---|---|
-| `filter_search` | `q` | `Q(titre__icontains=value) \| Q(description__icontains=value)` |
-
----
-
-### 10.3 — CatalogueView
-
-> **Fichier** : `backend/annonces/views.py`
-> **Route** : `/annonces/`
-> **Hérite de** : `django_filters.views.FilterView`
-
-Vue catalogue simplifiée qui délègue le filtrage et le tri au `AnnonceFilter`.
-
-**Architecture :**
-```
-Requête GET → FilterView
-                ├── get_queryset() → Annonce.objects.en_ligne().with_relations()
-                ├── AnnonceFilter.filter_queryset() → applique tous les filtres
-                ├── paginate_queryset() → pagination 12/page
-                └── get_context_data() → injecte active_filters + current_sort
-```
-
-**Caractéristiques :**
-*   **Filtrage** : Entièrement délégué à `AnnonceFilter` (déclaratif, validé).
-*   **Pagination** : 12 éléments/page. Gestion robuste des erreurs (`PageNotAnInteger` → page 1, `EmptyPage` → dernière page).
-*   **Contexte front-end (Persistance UI)** : La méthode `get_context_data` utilise la validation du FilterSet (`filterset.form.cleaned_data`) pour nettoyer et extraire uniquement les paramètres GET valides. Cela permet de rejeter avec grâce les erreurs de typage dans l'URL (ex: `prix_min=abc`) et d'injecter proprement `active_filters` et `current_sort` dans le contexte pour pré-remplir les formulaires UI.
-*   **Optimisation SQL** : Via `AnnonceManager.with_relations()` dans `get_queryset()`.
-
----
-
-### 10.4 — AnnonceDetailView
-
-> **Fichier** : `backend/annonces/views.py`
-> **Route** : `/annonces/<slug:slug>/`
-> **Hérite de** : `django.views.generic.DetailView`
-
-Vue détaillée affichant la fiche complète d'une annonce et incluant un système de recommandation.
-
-**Caractéristiques principales :**
-*   **Optimisation N+1** : Surcharge de `get_queryset()` pour inclure `Annonce.objects.en_ligne().with_relations()` afin de charger en une seule requête le propriétaire, la chaîne géographique, et les photos. La relation OneToOne `parcelle__agriscore` y est également pré-chargée via un `select_related` dédié.
-*   **Algorithme de recommandation** : Injecte dans le contexte un queryset `parcelles_similaires` (jusqu'à 3 annonces).
-    *   *Critères* : Prix situé dans une fourchette de +/- 20% **ET** (même région **OU** même type de culture).
-    *   *Optimisation* : Ce queryset utilise également `.with_relations()` pour éviter tout problème N+1 lors de l'affichage des cartes de suggestion sur le frontend. L'annonce actuellement consultée est automatiquement exclue des résultats.
+> ⚠️ Les anciennes vues HTML `CatalogueView` / `AnnonceDetailView` et le
+> FilterSet `AnnonceFilter` (`annonces/views.py`, `annonces/filters.py`)
+> **n'existent plus**. Le catalogue et la fiche sont servis exclusivement par
+> l'API REST :
+>
+> - `GET /api/annonces/` — `AnnonceListCreateAPIView` + `AnnonceAPIFilter`
+>   (`annonces/api_views.py`) : filtres `q, region, province, commune,
+>   statut_foncier, acces_eau, prix_min/max, surface_min/max, lat/lng_min/max`,
+>   tri `?ordering=`, pagination 12 (max 50).
+> - `GET /api/annonces/<slug>/` — `AnnonceDetailAPIView`.
+>
+> Aucune de ces deux vues n'a de cache de réponse (cf. §13).
 
 ---
 
@@ -1110,22 +1057,23 @@ CACHES = {
 
 La variable `REDIS_URL` peut être définie dans `.env` pour surcharger l'URL par défaut.
 
-### Stratégies de cache appliquées
+### Usages réels du cache
 
-| Vue | Stratégie | TTL | Clé de cache |
-|---|---|---|---|
-| `CatalogueView` | Cache manuel (response HTTP) | 60s | `catalogue:` + MD5 des query params triés |
-| `AnnonceDetailView` | `@cache_page(300)` | 5 min | Clé Django standard (URL-based) |
+> ⚠️ Le cache manuel de `CatalogueView` et le `@cache_page(300)` de
+> `AnnonceDetailView` décrits dans les versions précédentes de ce document
+> **n'existent plus** (vues supprimées). Le catalogue API n'a pas de cache de
+> réponse. Redis sert aujourd'hui à :
 
-**CatalogueView** — Le cache manuel est préféré à `@cache_page` car il permet de construire des clés granulaires basées sur les filtres actifs, maximisant le hit rate :
-```python
-def _build_catalogue_cache_key(query_dict):
-    sorted_params = sorted(query_dict.items())
-    raw = '&'.join(f'{k}={v}' for k, v in sorted_params)
-    return f"catalogue:{hashlib.md5(raw.encode()).hexdigest()}"
-```
+| Usage | Où | TTL |
+|---|---|---|
+| Rate-limiting DRF (throttles anon/user/scopés) | `REST_FRAMEWORK` (`base.py`) | selon le scope |
+| Limites administratives GeoJSON | `geo/api_views.py` | `TTL_CACHE_LIMITES` |
+| Passeport AgriScore assemblé (clé versionnée par la configuration) + verrou de calcul | `agriscore/api_views.py` | 12 h / 60 s |
+| Collectes des agents AgriScore par coordonnées | `agriscore/agents/_cache.py` | selon l'agent |
+| Déduplication des vues de fiche | `annonces/api_views.py` (`EnregistrerVueAPIView`) | 24 h |
 
-**AnnonceDetailView** — `@method_decorator(cache_page(300), name='dispatch')` appliqué sur toute la vue. Les détails d'annonce changent rarement, un TTL plus long est approprié.
+Redis est en **fail-open** (`IGNORE_EXCEPTIONS`) : une panne dégrade ces
+optimisations sans jamais provoquer de 500.
 
 ---
 
@@ -1182,12 +1130,14 @@ Le backend AKAL est conteneurisé via Docker et configuré pour un déploiement 
 
 | Composant | Technologie | Fichier de config | Rôle |
 |---|---|---|---|
-| **Conteneurisation** | Docker | `Dockerfile` | Image `python:3.11-slim` sécurisée (utilisateur non-root). Installe les dépendances système GDAL/PostGIS via `apt-get` (`binutils`, `libproj-dev`, `gdal-bin`). |
+| **Conteneurisation** | Docker | `Dockerfile` | Image `python:3.13-slim` sécurisée (utilisateur non-root). Installe les dépendances système GDAL/PostGIS via `apt-get` (`binutils`, `libproj-dev`, `gdal-bin`). |
 | **Orchestration / IaC** | Render | `render.yaml` | Déploie un Web Service Docker (`akal-backend`) et provisionne une DB PostgreSQL managée (`akal-db`). Gère l'injection de `DATABASE_URL` et `SECRET_KEY`. |
 | **Serveur d'Application** | Gunicorn | `requirements.txt` | Serveur WSGI performant pour Django (`gunicorn akal.wsgi:application --bind 0.0.0.0:8000`). |
 | **Fichiers Statiques** | WhiteNoise | `base.py` | Middleware (`WhiteNoiseMiddleware`) servant les assets statiques sans nécessiter un serveur Nginx/Apache en frontal. |
 
-> ⚠️ **PostGIS sur Render** : La base de données provisionnée par `render.yaml` est un PostgreSQL standard. Lors du premier déploiement, vous devez exécuter manuellement `CREATE EXTENSION postgis;` sur l'instance de DB avant que les migrations Django ne puissent s'exécuter avec succès.
+> **PostGIS sur Render** : aucune action manuelle. L'entrypoint Docker
+> (`docker-entrypoint.sh`) exécute `manage.py ensure_postgis` avant `migrate`
+> à chaque démarrage : l'extension est créée si elle manque.
 
 ---
 
@@ -1210,6 +1160,8 @@ Le backend AKAL est conteneurisé via Docker et configuré pour un déploiement 
 | 2026-07-28 | — | **F03 — Dépôt d'annonce (MinIO)** : Stockage photo migré vers MinIO/S3 via `django-storages` (`STORAGES`, plus de `MEDIA_URL`/service Django des médias). `Parcelle.commune/latitude/longitude/geom` nullable (migration `0005`) + `Parcelle.is_geolocated()` / `Annonce.can_publish()` pour encadrer la transition `brouillon → en_ligne` (contrat §6.1). Nouveaux endpoints : `POST /api/annonces/` (création, statut forcé brouillon, rôle auto-promu VENDEUR), `GET/PATCH /api/annonces/<uuid>/` (édition + upload photo multipart `photos[]`, PUT désactivé), `DELETE /api/annonces/<uuid>/photos/<uuid>/` (suppression + réordonnancement, brouillon uniquement). Pas d'endpoint `/publish/` (charte §4.1). `GET /api/geo/provinces/` et `/communes/` ajoutés hors périmètre F03 par nécessité (à faire relire par Ibrahim). Suite de tests permanente : `annonces/tests.py` (20 tests), `geo/tests.py` (6 tests). |
 | 2026-08-03 | — | **Statistiques dashboard propriétaire** : Nouvel endpoint `GET /api/annonces/mes-annonces/statistiques/` (`MesStatistiquesAPIView` + `MesStatistiquesSerializer`, `annonces/api_views.py`/`serializers.py`) — favoris reçus, conversations reçues, messages non lus, en import cross-app depuis `messaging.models` (Favori, Conversation, Message). Décompte par statut d'annonce délibérément **non** dupliqué côté serveur : déjà dérivable côté front depuis `GET /mes-annonces/`. 7 nouveaux tests (`annonces.tests.MesStatistiquesTests`), suite `annonces`+`messaging` toujours verte (68 tests). |
 | 2026-08-04 | — | **Sprint Release Candidate** : Réinitialisation de mot de passe — `POST /api/auth/password-reset/` (envoie un email si le compte existe, réponse 204 identique sinon pour ne pas permettre l'énumération) et `POST /api/auth/password-reset/confirm/` (`{uid, token, password}`, jeton signé via `django.contrib.auth.tokens.default_token_generator`, à usage unique car il encode le hash du mot de passe courant). Throttle dédié `password_reset` (3/h). Nouveaux settings `FRONTEND_URL` (construit le lien envoyé par email) et bloc `EMAIL_*` (`EMAIL_HOST` vide = backend console, comme `SENTRY_DSN`). 8 nouveaux tests (`accounts.tests.PasswordResetTests`/`PasswordResetThrottleTests`), suite `accounts` toujours verte (23 tests). Édition du contenu d'une annonce `en_ligne`/`archivee` réintroduite côté frontend (le PATCH backend le permettait déjà sans restriction, cf. entrée du 2026-08-03) — aucun changement backend requis. |
+| 2026-09-29 | — | **Correctifs de fin de stage (audit)** : IP client fiable pour le rate-limiting (`akal/middleware.py`, secret partagé `AKAL_PROXY_SECRET` avec le BFF Next, `NUM_PROXIES=0`) et throttle `login_email` ; en-tête `Origin` sur les appels serveur Next (CSRF en HTTPS) ; transitions `en_attente` réservées à la modération + modération des textes modifiés ; `User.telephone_verifie` (connexion SMS rattachée seulement à un numéro prouvé) ; validation géographique (Maroc + point dans la commune) ; `DELETE /api/annonces/<uuid>/` pour les annonces jamais publiées ; quota `passeport` appliqué aux seuls calculs à froid, clé de cache versionnée ; bornes métier à l'import scrapé ; `topographie` dans le DTO liste ; N+1 favoris corrigé ; dépendances épinglées (`requirements-dev.txt` pour les outils de dev). |
+
 ---
 
 *Documentation générée et maintenue au fur et à mesure de l'avancement du projet AKAL.*

@@ -82,6 +82,11 @@ services:
         value: akal.settings.prod
       - key: SECRET_KEY
         generateValue: true
+      # Secret partagé avec akal-frontend (IP visiteur des appels BFF, cf.
+      # backend/akal/middleware.py) — généré ici, relu par le frontend via
+      # fromService ci-dessous.
+      - key: AKAL_PROXY_SECRET
+        generateValue: true
       - key: PYTHONUNBUFFERED
         value: "1"
       # Plan free = 0,1 CPU / 512 Mo : 2 workers gunicorn tiennent, 3 font
@@ -138,7 +143,7 @@ services:
       - key: CORS_ALLOWED_ORIGINS
         sync: false        # même URL (+ éventuel domaine custom, séparés par des virgules)
       - key: CSRF_TRUSTED_ORIGINS
-        sync: false        # idem CORS_ALLOWED_ORIGINS
+        sync: false        # OBLIGATOIRE = origine de NEXT_PUBLIC_SITE_URL (le BFF Next envoie cet Origin, sinon 403 CSRF)
       - key: ALLOWED_HOSTS
         sync: false        # facultatif — `.onrender.com` est déjà couvert par défaut (prod.py)
 
@@ -253,6 +258,11 @@ services:
       # Jamais "true" en prod (le build échoue par garde-fou, next.config.ts).
       - key: NEXT_PUBLIC_USE_MOCKS
         value: "false"
+      - key: AKAL_PROXY_SECRET
+        fromService:
+          type: web
+          name: akal-backend
+          envVarKey: AKAL_PROXY_SECRET
 
       # Domaine public du bucket média — next/image refuse toute image d'un
       # hôte non listé. Figé ici, IDENTIQUE à AWS_S3_CUSTOM_DOMAIN côté

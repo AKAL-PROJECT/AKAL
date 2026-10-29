@@ -78,6 +78,9 @@ from django.utils import timezone
 from accounts.models import User
 from annonces.api_views import MAX_PHOTO_OCTETS
 from annonces.models import Annonce, Parcelle, Photo
+from annonces.serializers import (
+    PRIX_M2_MAX, PRIX_M2_MIN, PRIX_MAD_MAX, SURFACE_HA_MAX, SURFACE_HA_MIN,
+)
 from geo.models import CommuneGeom, ProvinceGeom, RegionOfficielle
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / 'data' / 'scraped'
@@ -349,6 +352,20 @@ class Command(BaseCommand):
             # inexploitable pour Parcelle.surface_ha (DecimalField, pas de
             # zéro métier valide), rejeté plutôt que stocké à 0.
             self._rejeter(bilan, 'surface trop petite après conversion en ha')
+            return
+
+        # Mêmes garde-fous de plausibilité qu'un dépôt via l'API (audit M1,
+        # annonces/serializers.py) : les exports bruts contiennent des prix de
+        # 20 DH comme de 16 milliards de DH. Rejeté, jamais corrigé.
+        if prix_mad > PRIX_MAD_MAX:
+            self._rejeter(bilan, 'prix hors bornes métier')
+            return
+        if not (SURFACE_HA_MIN <= surface_ha <= SURFACE_HA_MAX):
+            self._rejeter(bilan, 'surface hors bornes métier')
+            return
+        prix_m2 = prix_mad / (surface_ha * 10000)
+        if not (PRIX_M2_MIN <= prix_m2 <= PRIX_M2_MAX):
+            self._rejeter(bilan, 'prix au m² incohérent')
             return
 
         description = (entree.get('description') or '').strip()

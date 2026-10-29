@@ -27,6 +27,7 @@ import { fetchWithAuth } from "./fetchWithAuth";
 import type { Conversation, Message } from "@/types/messaging";
 
 import { API_URL } from "./api-base";
+import { entetesBackendRequete } from "./entetes-backend-serveur";
 
 async function cookieHeader(): Promise<string> {
   const jar = await cookies();
@@ -43,7 +44,7 @@ async function lireOuLeverErreur(res: Response): Promise<never> {
 // commentaire d'en-tête).
 export async function fetchInbox(): Promise<Paginated<Conversation>> {
   const res = await fetch(`${API_URL}/conversations/`, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);
@@ -62,7 +63,7 @@ export async function fetchInbox(): Promise<Paginated<Conversation>> {
 // échantillon plutôt que du vrai total agrégé côté serveur.
 export async function fetchNombreMessagesNonLus(): Promise<number> {
   const res = await fetch(`${API_URL}/conversations/non-lues/`, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);
@@ -78,7 +79,7 @@ export async function fetchNombreMessagesNonLus(): Promise<number> {
 // fetchWithAuth ici.
 export async function fetchConversation(conversationId: string): Promise<Conversation> {
   const res = await fetch(`${API_URL}/conversations/${conversationId}/`, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);
@@ -90,7 +91,7 @@ export async function fetchConversation(conversationId: string): Promise<Convers
 // (cf. commentaire d'en-tête).
 export async function fetchMessages(conversationId: string): Promise<Message[]> {
   const res = await fetch(`${API_URL}/conversations/${conversationId}/messages/`, {
-    headers: { Cookie: await cookieHeader() },
+    headers: { Cookie: await cookieHeader(), ...(await entetesBackendRequete()) },
     cache: "no-store",
   });
   if (!res.ok) await lireOuLeverErreur(res);

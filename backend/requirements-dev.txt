@@ -1,0 +1,8 @@
+# Dev local uniquement (jamais dans l'image de prod) :
+#   - Faker      : manage.py seed_test_data (volume de test)
+#   - locust     : locustfile.py (test de charge)
+#   - playwright : repli navigateur optionnel de import_scraped_data
+-r requirements.txt
+Faker==40.40.0
+locust==2.46.6
+playwright==1.63.0

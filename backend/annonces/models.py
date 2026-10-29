@@ -332,7 +332,10 @@ class Annonce(models.Model):
             return False, raisons
         self.statut = self.StatutAnnonce.EN_LIGNE
         self.date_publication = timezone.now()
-        self.save(update_fields=['statut', 'date_publication'])
+        # Approbation humaine : le signal automatique est levé (sinon une
+        # réactivation ultérieure la redétournerait, cf. serializers.update).
+        self.motif_moderation = ''
+        self.save(update_fields=['statut', 'date_publication', 'motif_moderation'])
         return True, []
 
     def rejeter(self):

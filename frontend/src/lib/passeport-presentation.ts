@@ -23,6 +23,17 @@ export function bandeScore(score: number | null): { mot: string; ton: TonScore }
   return { mot: "limité", ton: "reserve" };
 }
 
+// Seuil de fiabilité sous lequel le score global n'est pas affiché : avec
+// une ou deux dimensions seulement, la renormalisation des poids présente un
+// sous-score comme un « score global » (audit AgriScore). Les sous-scores
+// disponibles restent visibles, seul le chiffre de synthèse est masqué.
+export const SEUIL_FIABILITE_SCORE = 40;
+
+export function scoreFiable(passeport: { scoreGlobal: number | null; fiabiliteGlobale: number }): number | null {
+  if (passeport.scoreGlobal === null) return null;
+  return passeport.fiabiliteGlobale >= SEUIL_FIABILITE_SCORE ? passeport.scoreGlobal : null;
+}
+
 // Couleur associée à un ton — un seul endroit pour ce mapping, réutilisé par
 // la carte synthèse du passeport complet (PasseportAgronomiqueScreen) et par
 // le résumé compact (AgriScoreResume, catalogue/fiche/comparateur).

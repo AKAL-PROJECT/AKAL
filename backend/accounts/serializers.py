@@ -4,10 +4,28 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
+import re
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from .models import DOMAINE_EMAIL_TELEPHONE, User
+
+
+_RE_TELEPHONE = re.compile(r'^\+?[0-9]{8,15}$')
+
+
+def valider_telephone(valeur):
+    """Format international ou national, chiffres uniquement (espaces,
+    points et tirets tolérés à la saisie puis retirés)."""
+    if not valeur:
+        return valeur
+    normalise = re.sub(r'[\s.\-]', '', valeur)
+    if not _RE_TELEPHONE.match(normalise):
+        raise serializers.ValidationError(
+            "Numéro de téléphone invalide (ex. +212612345678 ou 0612345678)."
+        )
+    return normalise
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -31,8 +49,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'nom', 'prenom', 'telephone', 'avatar', 'role', 'is_verified',
-            'date_inscription', 'peut_moderer',
+            'id', 'email', 'nom', 'prenom', 'telephone', 'telephone_verifie',
+            'avatar', 'role', 'is_verified', 'date_inscription', 'peut_moderer',
         ]
         read_only_fields = fields
 
@@ -69,6 +87,15 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("L'image dépasse la taille maximale de 2 Mo.")
         return value
 
+    def validate_telephone(self, value):
+        return valider_telephone(value)
+
+    def update(self, instance, validated_data):
+        # Changer de numéro fait perdre la preuve de possession (audit S4).
+        if 'telephone' in validated_data and validated_data['telephone'] != instance.telephone:
+            instance.telephone_verifie = False
+        return super().update(instance, validated_data)
+
 
 class SignupSerializer(serializers.ModelSerializer):
     """Inscription publique — pas de rôle à l'inscription : acheteur/vendeur
@@ -104,6 +131,9 @@ class SignupSerializer(serializers.ModelSerializer):
                 "Ce domaine d'adresse email est réservé et ne peut pas être utilisé pour un compte."
             )
         return value
+
+    def validate_telephone(self, value):
+        return valider_telephone(value)
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)

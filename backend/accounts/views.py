@@ -30,6 +30,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .authentication import enforce_csrf
 from .models import User
+from .throttling import LoginEmailThrottle
 from .serializers import (
     LoginSerializer,
     PasswordResetConfirmSerializer,
@@ -102,7 +103,8 @@ class LoginView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_classes = [ScopedRateThrottle]
+    # 'login' par IP + 'login_email' par compte visé (audit S2).
+    throttle_classes = [ScopedRateThrottle, LoginEmailThrottle]
     throttle_scope = 'login'
 
     def post(self, request):

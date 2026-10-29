@@ -548,6 +548,31 @@ class FavoriToggleTests(FavorisTestCase):
 
 
 class FavoriListTests(FavorisTestCase):
+    def test_nombre_de_requetes_constant_avec_le_referentiel_officiel(self):
+        # Audit : 3 requêtes supplémentaires PAR favori quand la parcelle
+        # utilise commune_geom (chaîne non préchargée).
+        from django.contrib.gis.geos import MultiPolygon, Polygon
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        from geo.models import CommuneGeom, ProvinceGeom, RegionOfficielle
+
+        carre = MultiPolygon(Polygon(((-5.1, 33.9), (-4.9, 33.9), (-4.9, 34.1), (-5.1, 34.1), (-5.1, 33.9))), srid=4326)
+        region = RegionOfficielle.objects.create(code=3, slug='fes-meknes', nom='Fès-Meknès')
+        province = ProvinceGeom.objects.create(iso='MA-03-1', nom='Fès', region=region, geom=carre)
+        commune = CommuneGeom.objects.create(source_fid=1, libelle='MU FES', nom_affichage='Fès', province=province, geom=carre)
+        Parcelle.objects.update(commune_geom=commune)
+
+        def compter():
+            with CaptureQueriesContext(connection) as requetes:
+                self.client.get(FAVORIS_URL)
+            return len(requetes)
+
+        self.client.force_authenticate(self.user)
+        Favori.objects.create(user=self.user, annonce=self.annonce)
+        une = compter()
+        Favori.objects.create(user=self.user, annonce=self.autre_annonce)
+        self.assertEqual(compter(), une)
+
     def test_list_requires_authentication(self):
         response = self.client.get(FAVORIS_URL)
 

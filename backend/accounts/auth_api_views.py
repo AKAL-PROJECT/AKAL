@@ -11,7 +11,7 @@ import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
 import os
 from django.conf import settings
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from .models import DOMAINE_EMAIL_TELEPHONE, User
 from .serializers import UserSerializer
 from .views import _set_auth_cookies
@@ -91,14 +91,22 @@ class PhoneLoginVerifyView(APIView):
             if not telephone:
                 return Response({'error': 'Numéro de téléphone non trouvé dans le jeton.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            user, created = User.objects.get_or_create(
-                telephone=telephone,
-                defaults={
-                    'email': f"{telephone.replace('+', '').replace(' ', '')}@{DOMAINE_EMAIL_TELEPHONE}",
-                    'nom': nom or 'Utilisateur',
-                    'prenom': prenom or telephone,
-                }
-            )
+            # Rattachement UNIQUEMENT à un numéro déjà prouvé par SMS (audit
+            # S4) : un numéro simplement déclaré à l'inscription ou dans le
+            # profil ne donne jamais accès à un compte. Sinon, nouveau compte
+            # au numéro vérifié.
+            user = User.objects.filter(telephone=telephone, telephone_verifie=True).first()
+            created = user is None
+            if created:
+                with transaction.atomic():  # savepoint : cf. except IntegrityError
+                    user = User.objects.create_user(
+                        email=f"{telephone.replace('+', '').replace(' ', '')}@{DOMAINE_EMAIL_TELEPHONE}",
+                        password=None,
+                        telephone=telephone,
+                        telephone_verifie=True,
+                        nom=nom or 'Utilisateur',
+                        prenom=prenom or telephone,
+                    )
 
             # Si l'utilisateur existait mais n'avait pas de nom/prénom corrects,
             # on les met à jour si le front en envoie de nouveaux (sans écraser

@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { AccesEau } from "@/types/parcelle";
 import { useAgriScoreResume } from "@/hooks/useAgriScoreResume";
-import { DIMENSIONS, type Passeport } from "@/lib/passeport-api";
-import { bandeScore, couleurTon, LIBELLE_DIMENSION, verdict } from "@/lib/passeport-presentation";
+import { DIMENSIONS, type Passeport, type RaisonIndisponible } from "@/lib/passeport-api";
+import { bandeScore, couleurTon, LIBELLE_DIMENSION, scoreFiable, verdict } from "@/lib/passeport-presentation";
 
 type Props = {
   parcelleId: string; // UUID de la Parcelle (≠ id annonce) — cf. lib/passeport-api.ts
@@ -41,7 +41,7 @@ export default function AgriScoreResume({ parcelleId, slug, accesEau, variante =
   const router = useRouter();
 
   useEffect(() => {
-    if (etat.statut === "ok") onScore?.(etat.passeport.scoreGlobal);
+    if (etat.statut === "ok") onScore?.(scoreFiable(etat.passeport));
     else if (etat.statut === "indisponible") onScore?.(null);
   }, [etat, onScore]);
 
@@ -72,9 +72,13 @@ export default function AgriScoreResume({ parcelleId, slug, accesEau, variante =
       }}
     >
       {etat.statut === "chargement" && <LigneChargement />}
-      {etat.statut === "indisponible" && <LigneIndisponible />}
+      {etat.statut === "indisponible" && <LigneIndisponible raison={etat.raison} />}
       {etat.statut === "ok" && (
-        <LigneScore score={etat.passeport.scoreGlobal} accesEau={accesEau} />
+        <LigneScore
+          score={scoreFiable(etat.passeport)}
+          accesEau={accesEau}
+          peuFiable={etat.passeport.scoreGlobal !== null && scoreFiable(etat.passeport) === null}
+        />
       )}
       {etat.statut === "ok" && variante === "detaille" && (
         <LigneSousScores passeport={etat.passeport} />
@@ -101,17 +105,21 @@ function LigneChargement() {
   );
 }
 
-function LigneIndisponible() {
-  return (
-    <span style={{ fontSize: "12px", color: "var(--color-tertiaire)" }}>
-      🌱 Analyse agronomique indisponible
-    </span>
-  );
+function LigneIndisponible({ raison }: { raison: RaisonIndisponible }) {
+  const texte =
+    raison === "limite" || raison === "en_cours"
+      ? "🌱 Analyse agronomique : réessayez dans quelques minutes"
+      : "🌱 Analyse agronomique indisponible";
+  return <span style={{ fontSize: "12px", color: "var(--color-tertiaire)" }}>{texte}</span>;
 }
 
-function LigneScore({ score, accesEau }: { score: number | null; accesEau: AccesEau | null }) {
+function LigneScore({ score, accesEau, peuFiable = false }: { score: number | null; accesEau: AccesEau | null; peuFiable?: boolean }) {
   const couleur = couleurTon(bandeScore(score).ton);
-  const texte = score === null ? verdict(score, accesEau) : `AgriScore ${Math.round(score)}/100 — ${verdict(score, accesEau)}`;
+  const texte = peuFiable
+    ? "Données insuffisantes pour un AgriScore fiable"
+    : score === null
+      ? verdict(score, accesEau)
+      : `AgriScore ${Math.round(score)}/100 — ${verdict(score, accesEau)}`;
   return (
     <span style={{ fontSize: "12px", fontWeight: 500, color: couleur }}>
       🌱 {texte}

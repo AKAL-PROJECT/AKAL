@@ -294,9 +294,28 @@ export default function FicheParcelle({
             </p>
           </section>
 
-          {/* Localisation */}
+          {/* Localisation — calque 1b du handoff design (11 sept) : ajoute
+              l'explication "emplacement approximatif" (même position déjà
+              établie ailleurs, cf. FAQ de /comment-ca-marche) + un bouton
+              vers /carte?region=<regionCode>. Pas un lien direct vers CETTE
+              parcelle : /carte n'a aucun paramètre de sélection par id
+              aujourd'hui (deep-link précis = vraie fonctionnalité, hors
+              périmètre d'un polish) — région, l'approximation la plus
+              honnête avec les capacités réelles actuelles. */}
           <section>
             <h2 className="fiche-section-titre">Localisation</h2>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", marginBottom: "12px" }}>
+              <p style={{ flex: 1, minWidth: "240px", margin: 0, fontSize: "13px", color: "var(--color-tertiaire)", lineHeight: 1.6 }}>
+                Emplacement approximatif : le contour exact est communiqué par le vendeur lors du contact.
+              </p>
+              <Link
+                href={`/carte?region=${a.parcelle.regionCode}`}
+                className="btn-secondary akal-focusable"
+                style={{ whiteSpace: "nowrap", textDecoration: "none" }}
+              >
+                Ouvrir dans la carte
+              </Link>
+            </div>
             <div style={{ height: "320px", borderRadius: "var(--radius-card)", overflow: "hidden", boxShadow: "var(--shadow-card)" }}>
               <CarteFiche parcelle={a} />
             </div>

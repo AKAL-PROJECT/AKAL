@@ -164,8 +164,8 @@ export function mapAnnonceToParcelle(dto: AnnonceListDTO): Parcelle {
       // rapport d'audit du 2026-08-15 — 0/147 annonces en_ligne concernées).
       // Assertion non-null délibérée : un vrai null ici trahirait un bug
       // backend à corriger, pas un état normal à absorber en silence.
-      regionCode: dto.parcelle.region!.code,
-      regionNom: dto.parcelle.region!.nom,
+      regionCode: dto.parcelle.region?.code ?? "", // region peut être null côté API
+      regionNom: dto.parcelle.region?.nom ?? "",
       province: null, // absent en liste (ParcelleListSerializer)
       commune: null, // absent en liste
       adresseApproximative: null, // absent en liste
@@ -220,8 +220,8 @@ export function mapAnnonceDetailToParcelle(dto: AnnonceDetailDTO): Parcelle {
       latitude: dto.parcelle.localisation.latitude,
       longitude: dto.parcelle.localisation.longitude,
       // Même raisonnement que mapAnnonceToParcelle() ci-dessus.
-      regionCode: dto.parcelle.region!.code,
-      regionNom: dto.parcelle.region!.nom,
+      regionCode: dto.parcelle.region?.code ?? "", // region peut être null côté API
+      regionNom: dto.parcelle.region?.nom ?? "",
       province: dto.parcelle.province ?? null,
       commune: dto.parcelle.commune ?? null,
       adresseApproximative: dto.parcelle.localisation.adresse_approximative,

@@ -34,6 +34,9 @@ CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['https://akal.m
 # X-Forwarded-Proto — c'est ce qu'il faut déclarer ici pour que Django fasse
 # confiance à cet en-tête plutôt qu'à la connexion interne.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Render place un proxy devant le service : l'IP client est la dernière
+# entrée de X-Forwarded-For (cf. akal/middleware.py, audit S2).
+AKAL_TRUSTED_PROXY_COUNT = env.int('AKAL_TRUSTED_PROXY_COUNT', default=1)
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

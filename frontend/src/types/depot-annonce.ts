@@ -67,11 +67,9 @@ export type AnnonceEcriture = {
   photos: PhotoEcriture[];
 };
 
-// Référentiel géographique legacy (backend/geo) — {id, code, nom} pour
-// région/province, {id, nom} pour commune (pas de code, cf. geo/models.py).
+// Référentiel géographique legacy (backend/geo) — {id, code, nom} de région,
+// encore utilisé par les cartes (CarteRegions, CarteCouvertureLeaflet...).
 export type RegionRef = { id: number; code: string; nom: string };
-export type ProvinceRef = { id: number; code: string; nom: string };
-export type CommuneRef = { id: number; nom: string };
 
 // Référentiel géométrique officiel (2026-08-06, cf. docs/plans/2026-08-06-communes-geo-design.md)
 // — 12 régions (codes HCP), 75 provinces, 1536 communes réelles. Extraits

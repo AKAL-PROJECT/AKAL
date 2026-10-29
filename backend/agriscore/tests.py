@@ -2177,6 +2177,36 @@ class PasseportParcelleAPITests(APITestCase):
         # pour les trois requêtes.
         faux_passeport.assert_called_once()
 
+    def test_lectures_en_cache_jamais_limitees(self):
+        # Audit B2 : le catalogue affiche un passeport par carte — servir un
+        # passeport déjà calculé ne consomme pas le quota 'passeport'.
+        cle = f"agriscore:passeport:{self.parcelle.id}:v{ConfigurationAgriScore.version()}"
+        cache.set(cle, {"score_global": 50.0}, 3600)
+        codes = [self.client.get(self._url(self.parcelle.id)).status_code for _ in range(20)]
+        self.assertEqual(set(codes), {200})
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_calculs_a_froid_limites_avec_un_code_distinct(self, faux_passeport):
+        faux_passeport.return_value = {"mode": "reel", "score_global": 80.0, "dimensions": {}, "cultures_suggerees": []}
+        ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+        with patch("agriscore.api_views._cache_get", return_value=None):
+            reponses = [self.client.get(self._url(self.parcelle.id)) for _ in range(16)]
+        self.assertEqual([r.status_code for r in reponses[:15]], [200] * 15)
+        self.assertEqual(reponses[15].status_code, 429)
+        self.assertEqual(reponses[15].json()["code"], "limite_atteinte")
+
+    @patch("agriscore.api_views.passeport_parcelle")
+    def test_changer_la_configuration_invalide_le_cache(self, faux_passeport):
+        faux_passeport.return_value = {"mode": "reel", "score_global": 80.0, "dimensions": {}, "cultures_suggerees": []}
+        config, _ = ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": True})
+        self.client.get(self._url(self.parcelle.id))
+        # modifie_le a une résolution à la seconde : on force un instant différent.
+        ConfigurationAgriScore.objects.filter(pk=1).update(
+            poids_ndvi=30, poids_acces=10, modifie_le=config.modifie_le + timedelta(seconds=5),
+        )
+        self.client.get(self._url(self.parcelle.id))
+        self.assertEqual(faux_passeport.call_count, 2)
+
     def test_calcul_concurrent_pour_la_meme_parcelle_renvoie_429(self):
         # Simule un calcul déjà en cours : le verrou est posé, rien en cache.
         ConfigurationAgriScore.objects.update_or_create(pk=1, defaults={"actif": False})
@@ -2186,6 +2216,7 @@ class PasseportParcelleAPITests(APITestCase):
 
         self.assertEqual(reponse.status_code, 429)
         self.assertIn("cours", reponse.json()["detail"].lower())
+        self.assertEqual(reponse.json()["code"], "analyse_en_cours")
         self.assertIn("Retry-After", reponse.headers)
 
     @patch("agriscore.api_views.passeport_parcelle")
