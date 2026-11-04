@@ -23,6 +23,15 @@
 name: akal
 
 services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    ports: ["5678:5678"]
+    environment:
+      - GENERIC_TIMEZONE=Africa/Casablanca
+      - TZ=Africa/Casablanca
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
   # ── PostgreSQL 16 + PostGIS ───────────────────────────────────────────
   db:
     image: postgis/postgis:16-3.4
@@ -196,3 +205,4 @@ services:
 volumes:
   db_data:
   minio_data:
+  n8n_data:
